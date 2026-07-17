@@ -1,0 +1,122 @@
+# Builds TrackEditor and packages two portable ZIPs, both single-file and both win-x64:
+#
+#   * self-contained       — carries the .NET runtime; unzip and run on any 64-bit Windows,
+#                            nothing to install (~200 MB, larger because of the Mapsui/SkiaSharp
+#                            and SQLite native libraries).
+#   * framework-dependent  — smaller, but needs the .NET 9 Desktop Runtime installed. It is not
+#                            tiny: SkiaSharp/HarfBuzz/e_sqlite3 native libs ship in both variants.
+#
+# On every push/PR both ZIPs are uploaded as build artifacts. Push a version tag (e.g. v1.0.0)
+# and both are attached to a GitHub Release.
+
+name: Build portable ZIP
+
+on:
+  push:
+    branches: [ "master" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        include:
+          - variant: selfcontained
+            self_contained: 'true'
+          - variant: framework-dependent
+            self_contained: 'false'
+
+    env:
+      Project: TrackEditor/TrackEditor.csproj
+      Runtime: win-x64
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    # A tag v1.2.3 becomes version 1.2.3; anything else gets 0.0.<run number> so untagged
+    # builds still carry a unique, sortable version.
+    - name: Determine version
+      id: ver
+      shell: pwsh
+      run: |
+        if ('${{ github.ref_type }}' -eq 'tag') {
+          $v = '${{ github.ref_name }}' -replace '^v', ''
+        } else {
+          $v = "0.0.${{ github.run_number }}"
+        }
+        "version=$v" >> $env:GITHUB_OUTPUT
+        Write-Host "Version: $v"
+
+    # IncludeNativeLibrariesForSelfExtract bundles the native libs (SkiaSharp, HarfBuzz, e_sqlite3)
+    # into the single file so it self-extracts at runtime; harmless for the framework-dependent
+    # variant, so the same command serves both.
+    - name: Publish
+      shell: pwsh
+      run: >
+        dotnet publish $env:Project
+        --configuration Release
+        --runtime $env:Runtime
+        --self-contained ${{ matrix.self_contained }}
+        -p:PublishSingleFile=true
+        -p:IncludeNativeLibrariesForSelfExtract=true
+        -p:DebugType=none
+        -p:DebugSymbols=false
+        -p:Version=${{ steps.ver.outputs.version }}
+        --output publish
+
+    - name: Stage package
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force package | Out-Null
+        Copy-Item publish/* package/ -Recurse -Force
+        Copy-Item README.md package/ -Force
+        Copy-Item LICENSE.txt package/ -Force
+
+    - name: Create ZIP
+      id: zip
+      shell: pwsh
+      run: |
+        $name = "TrackEditor-v${{ steps.ver.outputs.version }}-$env:Runtime-${{ matrix.variant }}.zip"
+        Compress-Archive -Path package/* -DestinationPath $name -Force
+        "name=$name" >> $env:GITHUB_OUTPUT
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: TrackEditor-${{ env.Runtime }}-${{ matrix.variant }}
+        path: ${{ steps.zip.outputs.name }}
+
+  # Both variants are built before we cut a Release, so a single job gathers them and creates one
+  # Release with both ZIPs — rather than two build jobs racing to create the same Release.
+  release:
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to create the Release
+
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: dist
+
+    - name: Publish Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: dist/**/*.zip
+        generate_release_notes: true
