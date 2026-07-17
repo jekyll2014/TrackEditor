@@ -17,7 +17,7 @@ namespace TrackEditor;
 
 public partial class MainWindow : Window
 {
-    private enum EditMode { View, Draw, Insert }
+    private enum EditMode { View, Draw, Insert, Measure }
 
     private static readonly (string Name, string Hex)[] Palette =
     {
@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     private double[] _cumDist = Array.Empty<double>();
     private double?[] _speeds = Array.Empty<double?>();
     private EditMode _mode = EditMode.View;
+    private (double Lat, double Lon)? _measureA; // first click of a map measurement
     private bool _syncingUi;
     private int _paletteCursor;
 
@@ -46,9 +47,14 @@ public partial class MainWindow : Window
         InitializeComponent();
         _settings = AppSettings.Load();
         _mapMgr = new MapManager(MapCtrl, _settings.BaseMap, _settings.TileCacheLimitMB);
-        Closed += (_, _) => _mapMgr.Dispose(); // checkpoint/close the MBTiles cache cleanly
+        Closed += (_, _) =>
+        {
+            _mapMgr.Dispose(); // checkpoint/close the MBTiles cache cleanly
+            SessionStore.Save(new SessionStore.Session { Active = ActiveIndex(), Tracks = _doc.Tracks });
+        };
         BuildColorCombo();
         ApplySettings();
+        SetupPlotMenu();
 
         _viewportTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
         _viewportTimer.Tick += ViewportTimer_Tick;
@@ -56,12 +62,28 @@ public partial class MainWindow : Window
 
         RefreshPlots();
 
-        // support "TrackEditor.exe file1.gpx file2.kmz …"
+        // Restore the last session, then open any files passed on the command line.
         Loaded += (_, _) =>
         {
+            RestoreSession();
             var args = Environment.GetCommandLineArgs().Skip(1).Where(File.Exists).ToArray();
             if (args.Length > 0) LoadFiles(args);
         };
+    }
+
+    private void RestoreSession()
+    {
+        var session = SessionStore.Load();
+        if (session is null || session.Tracks.Count == 0) return;
+
+        _doc.Tracks.AddRange(session.Tracks);
+        _paletteCursor = _doc.Tracks.Count; // continue the palette past restored tracks
+        _active = session.Active >= 0 && session.Active < _doc.Tracks.Count
+            ? _doc.Tracks[session.Active]
+            : _doc.Tracks.FirstOrDefault();
+        RefreshAll();
+        _mapMgr.ZoomToTracks(_doc.Tracks);
+        StatusInfo.Text = $"Restored {_doc.Tracks.Count} track(s) from last session";
     }
 
     // ======================= settings =======================
@@ -126,6 +148,7 @@ public partial class MainWindow : Window
                 var tracks = file.EndsWith(".gpx", StringComparison.OrdinalIgnoreCase)
                     ? GpxIo.Load(file)
                     : KmlIo.Load(file);
+                foreach (var t in tracks) t.SourceFile = file;
                 loaded.AddRange(tracks);
             }
             catch (Exception ex)
@@ -140,6 +163,7 @@ public partial class MainWindow : Window
         foreach (var t in loaded)
         {
             t.ColorHex = Palette[_paletteCursor++ % Palette.Length].Hex;
+            t.ResetBaseline(); // clean, as loaded from the file
             _doc.Tracks.Add(t);
         }
         _active = loaded[0];
@@ -147,7 +171,7 @@ public partial class MainWindow : Window
         _mapMgr.ZoomToTracks(loaded);
         StatusInfo.Text = $"Loaded {loaded.Count} track(s), {loaded.Sum(t => t.Points.Count)} points";
         // Bake heights into tracks that lack them (SRTM w/ optional download, then online) — once, not per refresh.
-        FillElevationAfterLoad(loaded);
+        FillElevationAfterLoad(loaded, isInitialLoad: true);
     }
 
     private void SaveActive_Click(object sender, RoutedEventArgs e)
@@ -172,7 +196,11 @@ public partial class MainWindow : Window
         if (dlg.ShowDialog() != true) return;
         try
         {
-            GpxIo.Save(dlg.FileName, tracks);
+            var saved = tracks.ToList();
+            GpxIo.Save(dlg.FileName, saved);
+            // Saving establishes a new clean baseline and source for the written tracks.
+            foreach (var t in saved) { t.SourceFile = dlg.FileName; t.ResetBaseline(); }
+            RefreshTracksList();
             StatusInfo.Text = $"Saved {dlg.FileName}";
         }
         catch (Exception ex)
@@ -182,6 +210,58 @@ public partial class MainWindow : Window
     }
 
     private void Exit_Click(object sender, RoutedEventArgs e) => Close();
+
+    /// <summary>Adds a "Save plot image…" entry to the profile plot's right-click menu.</summary>
+    private void SetupPlotMenu()
+    {
+        ProfilePlot.Menu?.Add("Save plot image…", _ => SavePlotImage());
+    }
+
+    /// <summary>Saves the profile plot exactly as shown (current zoom, scales and axes) to a PNG.</summary>
+    private void SavePlotImage()
+    {
+        if (_active is null || _active.Points.Count < 2)
+        {
+            StatusInfo.Text = "Nothing to export — the profile plot is empty";
+            return;
+        }
+        var dlg = new SaveFileDialog { Filter = "PNG image|*.png", FileName = "profile.png" };
+        if (dlg.ShowDialog() != true) return;
+        try
+        {
+            int w = Math.Max(200, (int)(ProfilePlot.ActualWidth * ProfilePlot.DisplayScale));
+            int h = Math.Max(150, (int)(ProfilePlot.ActualHeight * ProfilePlot.DisplayScale));
+            ProfilePlot.Plot.SavePng(dlg.FileName, w, h);
+            StatusInfo.Text = $"Saved {dlg.FileName}";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Save Plot", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async void ExportMap_Click(object sender, RoutedEventArgs e)
+    {
+        var extent = _mapMgr.ViewportExtent();
+        var dlg = new ExportMapWindow(extent, _mapMgr.CurrentZoomLevel(), _mapMgr.BaseMaxZoom) { Owner = this };
+        if (dlg.ShowDialog() != true) return;
+
+        var save = new SaveFileDialog { Filter = "PNG image|*.png", FileName = "map.png" };
+        if (save.ShowDialog() != true) return;
+
+        BeginBusy("Exporting map…");
+        try
+        {
+            await MapExporter.ExportAsync(_mapMgr.BaseTileSource, extent, dlg.Zoom, dlg.Scale,
+                _doc.Tracks, save.FileName, new Progress<string>(UpdateBusy));
+            StatusInfo.Text = $"Exported {save.FileName}";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Export Map", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally { EndBusy(); }
+    }
 
     // ======================= helpers =======================
 
@@ -337,6 +417,14 @@ public partial class MainWindow : Window
         RefreshSelectionStats();
     }
 
+    /// <summary>Double-clicking a grid row recenters the map on that point (no zoom change).</summary>
+    private void PointsGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (_active is null) return;
+        if (PointsGrid.CurrentItem is PointRow row && row.Index >= 0 && row.Index < _active.Points.Count)
+            _mapMgr.CenterOn(_active.Points[row.Index]);
+    }
+
     /// <summary>Selects a point in the grid programmatically (map click, plot click).</summary>
     private void SelectPointInGrid(int index, bool ctrl = false, bool shift = false)
     {
@@ -420,6 +508,22 @@ public partial class MainWindow : Window
     private void CtxZoomTrack_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is TrackRow row) _mapMgr.ZoomToTracks(new[] { row.T });
+    }
+
+    private void CtxRenameTrack_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not TrackRow row) return;
+        string? name = InputDialog.Ask(this, "Rename track", "Track name:", row.T.Name);
+        if (name is null || name == row.T.Name) return;
+        row.T.Name = name; // rename counts as a modification (IsModified is content-based)
+        RefreshTracksList();
+        StatusInfo.Text = $"Renamed to “{name}”";
+    }
+
+    private void CtxTrackInfo_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is TrackRow row)
+            new TrackInfoWindow(row.T) { Owner = this }.ShowDialog();
     }
 
     private void TracksList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -565,6 +669,7 @@ public partial class MainWindow : Window
 
         _doc.Snapshot(ActiveIndex());
         _elevBusy = true;
+        BeginBusy("Fetching elevation…");
         (int Srtm, int Online) r = (0, 0);
         try { r = await FillElevationAsync(track, overwrite: true); }
         catch (Exception ex)
@@ -572,7 +677,7 @@ public partial class MainWindow : Window
             MessageBox.Show(this, $"Elevation lookup failed:\n{ex.Message}",
                 "Elevation", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
-        finally { _elevBusy = false; }
+        finally { _elevBusy = false; EndBusy(); }
 
         if (_doc.Tracks.Contains(track)) RefreshAll();
         StatusInfo.Text =
@@ -583,13 +688,14 @@ public partial class MainWindow : Window
     /// Background pass after loading: fill tracks still missing elevation (gaps only, never overwrite).
     /// Runs after the tracks are shown, then refreshes.
     /// </summary>
-    private async void FillElevationAfterLoad(IReadOnlyList<Track> tracks)
+    private async void FillElevationAfterLoad(IReadOnlyList<Track> tracks, bool isInitialLoad = false)
     {
         if (_elevBusy || (!SrtmActive && !_settings.OnlineEnabled)) return;
         var pending = tracks.Where(t => t.Points.Any(p => p.Ele is null)).ToList();
         if (pending.Count == 0) return;
 
         _elevBusy = true;
+        BeginBusy("Fetching elevation…");
         int total = 0;
         try
         {
@@ -597,13 +703,15 @@ public partial class MainWindow : Window
             {
                 var r = await FillElevationAsync(t, overwrite: false);
                 total += r.Srtm + r.Online;
+                // Auto-enrichment at load time is part of "as loaded", not a user edit.
+                if (isInitialLoad) t.ResetBaseline();
             }
         }
         catch (Exception ex)
         {
             StatusInfo.Text = $"Elevation lookup failed: {ex.Message}";
         }
-        finally { _elevBusy = false; }
+        finally { _elevBusy = false; EndBusy(); }
 
         if (total > 0) RefreshAll();
     }
@@ -622,7 +730,7 @@ public partial class MainWindow : Window
             if (_srtm.AutoDownload)
             {
                 var need = track.Points.Where(p => overwrite || p.Ele is null).Select(p => (p.Lat, p.Lon));
-                await _srtm.EnsureTilesAsync(need, new Progress<string>(s => StatusInfo.Text = s));
+                await _srtm.EnsureTilesAsync(need, new Progress<string>(UpdateBusy));
             }
             foreach (var p in track.Points)
                 if ((overwrite || p.Ele is null) && _srtm.GetElevation(p.Lat, p.Lon) is double ele)
@@ -641,7 +749,7 @@ public partial class MainWindow : Window
             {
                 var coords = missing.Select(i => (track.Points[i].Lat, track.Points[i].Lon)).ToList();
                 var progress = new Progress<(int Done, int Total)>(pr =>
-                    StatusInfo.Text = $"Fetching elevations online… {pr.Done}/{pr.Total}");
+                    UpdateBusy($"Fetching elevation online… {pr.Done}/{pr.Total}"));
                 var elevs = await _online.GetElevationsAsync(coords, progress);
                 for (int k = 0; k < missing.Count; k++)
                     if (elevs[k] is double ele) { track.Points[missing[k]].Ele = ele; onlineApplied++; }
@@ -661,12 +769,16 @@ public partial class MainWindow : Window
 
     private void Mode_Checked(object sender, RoutedEventArgs e)
     {
-        if (ModeDraw is null || ModeInsert is null) return; // during InitializeComponent
+        if (ModeDraw is null || ModeInsert is null || ModeMeasure is null) return; // during InitializeComponent
         _mode = ModeDraw.IsChecked == true ? EditMode.Draw
               : ModeInsert.IsChecked == true ? EditMode.Insert
+              : ModeMeasure.IsChecked == true ? EditMode.Measure
               : EditMode.View;
         if (StatusMode is not null)
             StatusMode.Text = $"Mode: {_mode}";
+
+        if (_mode != EditMode.Measure) { _measureA = null; _mapMgr.ClearMeasure(); }
+        else if (MeasureText is not null) MeasureText.Text = "Click two points on the map";
     }
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -681,6 +793,32 @@ public partial class MainWindow : Window
         else if (ctrl && e.Key == Key.O) { OpenFile_Click(sender, e); e.Handled = true; }
         else if (ctrl && e.Key == Key.S) { SaveAll_Click(sender, e); e.Handled = true; }
         else if (e.Key == Key.Delete) { DeletePoints_Click(sender, e); e.Handled = true; }
+    }
+
+    // ======================= background-activity indicator =======================
+
+    private int _busyDepth;
+
+    /// <summary>Show the status-bar busy indicator for a background task. Pair with EndBusy in a finally.</summary>
+    private void BeginBusy(string message)
+    {
+        _busyDepth++;
+        UpdateBusy(message);
+    }
+
+    /// <summary>Update the busy indicator's text while a task is running (e.g. progress).</summary>
+    private void UpdateBusy(string message)
+    {
+        StatusBusy.Text = message;
+        StatusBusyItem.Visibility = Visibility.Visible;
+    }
+
+    private void EndBusy()
+    {
+        if (--_busyDepth > 0) return;
+        _busyDepth = 0;
+        StatusBusy.Text = "";
+        StatusBusyItem.Visibility = Visibility.Collapsed;
     }
 
     // ======================= statistics =======================
@@ -705,6 +843,58 @@ public partial class MainWindow : Window
         string header = $"Points {lo}–{hi} ({span.Count})\n";
         SelStatsText.Text = header + TrackStatistics.Compute(span).ToDisplayString(includeIncline: true);
     }
+
+    // ======================= map measurement =======================
+
+    /// <summary>Straight-line distance + elevation stats between two map points (elevation sampled like a track).</summary>
+    private async Task ComputeMeasurementAsync((double Lat, double Lon) a, (double Lat, double Lon) b)
+    {
+        double dist = GeoMath.HaversineM(a.Lat, a.Lon, b.Lat, b.Lon);
+        double bearing = GeoMath.BearingDeg(a.Lat, a.Lon, b.Lat, b.Lon);
+
+        // Sample the line and pull elevation for the samples the same way tracks are filled.
+        var temp = new Track { Points = SampleLine(a, b) };
+        if (!_elevBusy && (SrtmActive || _settings.OnlineEnabled))
+        {
+            _elevBusy = true;
+            BeginBusy("Measuring…");
+            try { await FillElevationAsync(temp, overwrite: true); }
+            catch { /* offline / lookup failure → distance only */ }
+            finally { _elevBusy = false; EndBusy(); }
+        }
+
+        var s = TrackStatistics.Compute(temp.Points);
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("A → B");
+        sb.AppendLine($"Distance:        {dist / 1000:F2} km");
+        sb.AppendLine($"Bearing:         {bearing:F0}°");
+        if (s.MinEleM is not null)
+        {
+            sb.AppendLine($"Elevation:       {s.MinEleM:F0} … {s.MaxEleM:F0} m");
+            sb.AppendLine($"Ascent:          {s.AscentM:F0} m");
+            sb.AppendLine($"Descent:         {s.DescentM:F0} m");
+            if (s.NetInclineDeg is not null)
+                sb.AppendLine($"Avg incline:     {s.NetInclineDeg:+0.0;-0.0;0.0}°  ({Math.Tan(s.NetInclineDeg.Value * Math.PI / 180) * 100:+0;-0;0} %)");
+        }
+        else sb.AppendLine("(no elevation source — distance only)");
+
+        MeasureText.Text = sb.ToString().TrimEnd();
+        StatusInfo.Text = $"Measured {dist / 1000:F2} km";
+    }
+
+    /// <summary>Evenly spaced points along the A→B line (~90 m spacing, capped) for elevation sampling.</summary>
+    private static List<TrackPoint> SampleLine((double Lat, double Lon) a, (double Lat, double Lon) b)
+    {
+        double dist = GeoMath.HaversineM(a.Lat, a.Lon, b.Lat, b.Lon);
+        int segs = Math.Clamp((int)(dist / 90), 1, 400);
+        var pts = new List<TrackPoint>(segs + 1);
+        for (int i = 0; i <= segs; i++)
+        {
+            double t = (double)i / segs;
+            pts.Add(new TrackPoint { Lat = a.Lat + (b.Lat - a.Lat) * t, Lon = a.Lon + (b.Lon - a.Lon) * t });
+        }
+        return pts;
+    }
 }
 
 // ======================= binding rows =======================
@@ -714,7 +904,7 @@ public class TrackRow
     public Track T { get; }
     public TrackRow(Track t) => T = t;
 
-    public string Title => $"{T.Name}  ({T.Points.Count} pts)";
+    public string Title => $"{T.Name}{(T.IsModified ? " *" : "")}  ({T.Points.Count} pts)";
     public bool Visible { get => T.Visible; set => T.Visible = value; }
     public System.Windows.Media.Brush Swatch =>
         new SolidColorBrush((System.Windows.Media.Color)ColorConverter.ConvertFromString(T.ColorHex));

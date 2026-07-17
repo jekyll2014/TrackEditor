@@ -185,6 +185,25 @@ public partial class MainWindow
                 StatusInfo.Text = $"Inserted point at index {anchor + 1}";
                 break;
             }
+            case EditMode.Measure:
+            {
+                var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
+                if (_measureA is null)
+                {
+                    _measureA = (lat, lon);
+                    _mapMgr.SetMeasure(_measureA, null);
+                    MeasureText.Text = "Click the second point";
+                    StatusInfo.Text = "Measure: click the second point";
+                }
+                else
+                {
+                    var a = _measureA.Value;
+                    _measureA = null; // the next click starts a fresh measurement
+                    _mapMgr.SetMeasure(a, (lat, lon));
+                    _ = ComputeMeasurementAsync(a, (lat, lon));
+                }
+                break;
+            }
             default: // View: select point / switch active track
             {
                 if (_active is not null && _active.Points.Count > 0)

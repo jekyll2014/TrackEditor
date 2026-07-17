@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace TrackEditor.Models;
 
@@ -25,6 +26,38 @@ public class Track
     /// <summary>True when some/all elevations were filled from a DEM/online service rather than recorded.</summary>
     public bool ElevationEstimated { get; set; }
 
+    /// <summary>Path this track was loaded from / last saved to; null for a drawn (never-saved) track.</summary>
+    public string? SourceFile { get; set; }
+
+    /// <summary>Content hash captured at load/save; used to detect user modifications. Null = never baselined.</summary>
+    public string? BaselineHash { get; set; }
+
+    /// <summary>True when name/points/elevation differ from the load/save baseline (metadata like color/width is ignored).</summary>
+    [JsonIgnore]
+    public bool IsModified => Points.Count > 0 && ContentHash() != BaselineHash;
+
+    /// <summary>Deterministic hash over the "content" that counts as a modification: name + each point's lat/lon/ele/time.</summary>
+    public string ContentHash()
+    {
+        unchecked
+        {
+            ulong h = 1469598103934665603UL; // FNV-1a
+            void Mix(long v) { for (int i = 0; i < 8; i++) { h ^= (byte)(v >> (i * 8)); h *= 1099511628211UL; } }
+            foreach (char c in Name) { h ^= c; h *= 1099511628211UL; }
+            foreach (var p in Points)
+            {
+                Mix(BitConverter.DoubleToInt64Bits(p.Lat));
+                Mix(BitConverter.DoubleToInt64Bits(p.Lon));
+                Mix(BitConverter.DoubleToInt64Bits(p.Ele ?? double.NaN));
+                Mix(p.Time?.Ticks ?? 0);
+            }
+            return h.ToString("x");
+        }
+    }
+
+    /// <summary>Mark the current content as the clean baseline (call after load-from-file or save-to-file).</summary>
+    public void ResetBaseline() => BaselineHash = ContentHash();
+
     public Track Clone() => new()
     {
         Name = Name,
@@ -32,6 +65,8 @@ public class Track
         Width = Width,
         Visible = Visible,
         ElevationEstimated = ElevationEstimated,
+        SourceFile = SourceFile,
+        BaselineHash = BaselineHash,
         Points = Points.Select(p => p.Clone()).ToList(),
     };
 }

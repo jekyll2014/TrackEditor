@@ -20,6 +20,15 @@ public static class GeoMath
 
     public static double ToRad(double deg) => deg * Math.PI / 180.0;
 
+    /// <summary>Initial great-circle bearing from point 1 to point 2, in degrees (0 = north, clockwise).</summary>
+    public static double BearingDeg(double lat1, double lon1, double lat2, double lon2)
+    {
+        double p1 = ToRad(lat1), p2 = ToRad(lat2), dl = ToRad(lon2 - lon1);
+        double y = Math.Sin(dl) * Math.Cos(p2);
+        double x = Math.Cos(p1) * Math.Sin(p2) - Math.Sin(p1) * Math.Cos(p2) * Math.Cos(dl);
+        return (Math.Atan2(y, x) * 180.0 / Math.PI + 360.0) % 360.0;
+    }
+
     /// <summary>Cumulative distance in meters from the first point; [0] = 0.</summary>
     public static double[] CumulativeDistancesM(IReadOnlyList<TrackPoint> pts)
     {

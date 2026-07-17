@@ -1,0 +1,40 @@
+<Window x:Class="TrackEditor.ExportMapWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Export Map Image" Height="250" Width="420"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False">
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Save the current map view as a PNG image." Margin="0,0,0,10"/>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="Detail (zoom level):" VerticalAlignment="Center" Width="130"/>
+            <ComboBox x:Name="CmbZoom" Width="180" SelectionChanged="Selection_Changed"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="Output scale:" VerticalAlignment="Center" Width="130"/>
+            <ComboBox x:Name="CmbScale" Width="180" SelectionChanged="Selection_Changed">
+                <ComboBoxItem Content="1× (native)" Tag="1"/>
+                <ComboBoxItem Content="2×" Tag="2"/>
+                <ComboBoxItem Content="3×" Tag="3"/>
+                <ComboBoxItem Content="4×" Tag="4"/>
+            </ComboBox>
+        </StackPanel>
+
+        <TextBlock x:Name="EstimateText" Grid.Row="3" Foreground="#666" TextWrapping="Wrap"/>
+
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button x:Name="OkButton" Content="Export…" Width="90" IsDefault="True" Click="Ok_Click"/>
+            <Button Content="Cancel" Width="80" Margin="8,0,0,0" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>

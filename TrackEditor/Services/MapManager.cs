@@ -30,10 +30,12 @@ public class MapManager : IDisposable
     private readonly MemoryLayer _flagLayer = new() { Name = "Flags", Style = null };
     private readonly MemoryLayer _selLayer = new() { Name = "Selection", Style = null };
     private readonly MemoryLayer _hoverLayer = new() { Name = "Hover", Style = null };
+    private readonly MemoryLayer _measureLayer = new() { Name = "Measure", Style = null };
     private ILayer _baseLayer;
     private MbTilesCache _baseCache;
     private BaseMapProvider _provider;
     private int _tileLimitMB;
+    private int _baseMaxZoom = 19;
 
     public MapManager(Mapsui.UI.Wpf.MapControl ctrl, BaseMapProvider provider = BaseMapProvider.OpenStreetMap, int tileLimitMB = 0)
     {
@@ -41,13 +43,69 @@ public class MapManager : IDisposable
         _provider = provider;
         _tileLimitMB = tileLimitMB;
         var map = ctrl.Map;
-        _baseLayer = CreateBaseLayer(provider, LimitBytes, out _baseCache);
+        _baseLayer = CreateBaseLayer(provider, LimitBytes, out _baseCache, out _baseMaxZoom);
         map.Layers.Add(_baseLayer);
         map.Layers.Add(_lineLayer);
         map.Layers.Add(_vertexLayer);
         map.Layers.Add(_flagLayer);
         map.Layers.Add(_selLayer);
         map.Layers.Add(_hoverLayer);
+        map.Layers.Add(_measureLayer);
+
+        map.Widgets.Add(new Mapsui.Widgets.ScaleBar.ScaleBarWidget(map)
+        {
+            HorizontalAlignment = Mapsui.Widgets.HorizontalAlignment.Right,
+            VerticalAlignment = Mapsui.Widgets.VerticalAlignment.Bottom,
+            TextAlignment = Mapsui.Widgets.Alignment.Center,
+            MarginX = 12,
+            MarginY = 12,
+        });
+    }
+
+    /// <summary>Draws the measurement overlay: endpoint markers plus the A→B line when B is set.</summary>
+    public void SetMeasure((double Lat, double Lon)? a, (double Lat, double Lon)? b)
+    {
+        var features = new List<IFeature>();
+        var color = new Color(233, 30, 99); // magenta, distinct from tracks/selection
+
+        if (a is not null && b is not null)
+        {
+            var (ax, ay) = SphericalMercator.FromLonLat(a.Value.Lon, a.Value.Lat);
+            var (bx, by) = SphericalMercator.FromLonLat(b.Value.Lon, b.Value.Lat);
+            var lf = new GeometryFeature(new LineString(new[] { new Coordinate(ax, ay), new Coordinate(bx, by) }));
+            lf.Styles.Add(new VectorStyle
+            {
+                Line = new Pen(color, 3) { PenStyle = PenStyle.Dash, PenStrokeCap = PenStrokeCap.Round },
+            });
+            features.Add(lf);
+        }
+        foreach (var p in new[] { a, b })
+            if (p is not null)
+            {
+                var (x, y) = SphericalMercator.FromLonLat(p.Value.Lon, p.Value.Lat);
+                var f = new GeometryFeature(new NetTopologySuite.Geometries.Point(x, y));
+                f.Styles.Add(new SymbolStyle
+                {
+                    SymbolType = SymbolType.Ellipse,
+                    SymbolScale = 0.35,
+                    Fill = new Mapsui.Styles.Brush(color),
+                    Outline = new Pen(Color.White, 2),
+                });
+                features.Add(f);
+            }
+
+        _measureLayer.Features = features;
+        _measureLayer.DataHasChanged();
+        _ctrl.RefreshGraphics();
+    }
+
+    public void ClearMeasure() => SetMeasure(null, null);
+
+    /// <summary>Recenters the viewport on a point, keeping the current zoom level.</summary>
+    public void CenterOn(TrackPoint p)
+    {
+        var m = ToMercator(p);
+        _ctrl.Map.Navigator.CenterOn(m);
     }
 
     private long LimitBytes => _tileLimitMB > 0 ? (long)_tileLimitMB * 1024 * 1024 : 0;
@@ -58,7 +116,7 @@ public class MapManager : IDisposable
         if (provider == _provider) return;
         _provider = provider;
         var map = _ctrl.Map;
-        var newLayer = CreateBaseLayer(provider, LimitBytes, out var newCache);
+        var newLayer = CreateBaseLayer(provider, LimitBytes, out var newCache, out _baseMaxZoom);
         map.Layers.Remove(_baseLayer);   // the basemap is always the bottom (first) layer
         map.Layers.Insert(0, newLayer);
         var oldCache = _baseCache;
@@ -104,9 +162,32 @@ public class MapManager : IDisposable
     private static string CacheFile(BaseMapProvider provider) =>
         Path.Combine(TileCacheDir, provider + ".mbtiles");
 
-    private static ILayer CreateBaseLayer(BaseMapProvider provider, long limitBytes, out MbTilesCache cache)
+    // ===== map-image export support =====
+
+    /// <summary>The active basemap's tile source (used to fetch tiles for image export).</summary>
+    public ITileSource BaseTileSource => ((TileLayer)_baseLayer).TileSource;
+
+    /// <summary>Highest zoom level the active basemap provides.</summary>
+    public int BaseMaxZoom => _baseMaxZoom;
+
+    /// <summary>Current viewport bounds in Web-Mercator meters (min/max X/Y).</summary>
+    public (double MinX, double MinY, double MaxX, double MaxY) ViewportExtent()
     {
-        var (url, maxZoom, attrText, attrUrl, yAxis) = provider switch
+        var v = _ctrl.Map.Navigator.Viewport;
+        double halfW = v.Width / 2 * v.Resolution, halfH = v.Height / 2 * v.Resolution;
+        return (v.CenterX - halfW, v.CenterY - halfH, v.CenterX + halfW, v.CenterY + halfH);
+    }
+
+    /// <summary>Approximate current tile zoom level from the viewport resolution.</summary>
+    public int CurrentZoomLevel()
+    {
+        double res = _ctrl.Map.Navigator.Viewport.Resolution;
+        return res <= 0 ? 0 : (int)Math.Round(Math.Log2(2 * 20037508.342789244 / (256.0 * res)));
+    }
+
+    private static ILayer CreateBaseLayer(BaseMapProvider provider, long limitBytes, out MbTilesCache cache, out int maxZoom)
+    {
+        var (url, tileMaxZoom, attrText, attrUrl, yAxis) = provider switch
         {
             BaseMapProvider.OpenTopoMap => (
                 "https://tile.opentopomap.org/{z}/{x}/{y}.png", 17,
@@ -125,8 +206,9 @@ public class MapManager : IDisposable
                 "© OpenStreetMap contributors", "https://www.openstreetmap.org/copyright", YAxis.OSM),
         };
 
+        maxZoom = tileMaxZoom;
         string name = provider.ToString();
-        var schema = new GlobalSphericalMercator(yAxis, 0, maxZoom);
+        var schema = new GlobalSphericalMercator(yAxis, 0, tileMaxZoom);
         cache = new MbTilesCache(CacheFile(provider), name, limitBytes);
         var source = new HttpTileSource(schema, url, name: name,
             attribution: new BruTile.Attribution(attrText, attrUrl),

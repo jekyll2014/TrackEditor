@@ -13,6 +13,8 @@
                 <MenuItem Header="Save _Active Track as GPX…" Click="SaveActive_Click"/>
                 <MenuItem Header="Save A_ll Tracks as GPX…" Click="SaveAll_Click" InputGestureText="Ctrl+S"/>
                 <Separator/>
+                <MenuItem Header="_Export Map Image…" Click="ExportMap_Click"/>
+                <Separator/>
                 <MenuItem Header="E_xit" Click="Exit_Click"/>
             </MenuItem>
             <MenuItem Header="_Edit">
@@ -64,6 +66,8 @@
                              ToolTip="Click on map to append points to the active track; right-click removes last point"/>
                 <RadioButton x:Name="ModeInsert" Content="Insert" GroupName="Mode" Checked="Mode_Checked"
                              ToolTip="Click on map to insert a point after the selected point"/>
+                <RadioButton x:Name="ModeMeasure" Content="Measure" GroupName="Mode" Checked="Mode_Checked"
+                             ToolTip="Click two points on the map to measure distance and elevation between them"/>
                 <Separator/>
                 <Button Content="New track" Click="NewTrack_Click" ToolTip="Create empty track and switch to Draw mode"/>
                 <Button Content="Del last" Click="DeleteLast_Click" ToolTip="Delete last point of active track (Draw mode helper)"/>
@@ -90,10 +94,22 @@
         </ToolBarTray>
 
         <StatusBar DockPanel.Dock="Bottom">
+            <StatusBar.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <DockPanel HorizontalAlignment="Stretch"/>
+                </ItemsPanelTemplate>
+            </StatusBar.ItemsPanel>
             <StatusBarItem><TextBlock x:Name="StatusMode" Text="Mode: View"/></StatusBarItem>
             <Separator/>
             <StatusBarItem><TextBlock x:Name="StatusCoords" Text=""/></StatusBarItem>
             <Separator/>
+            <!-- Right-docked background-activity indicator; shown only while a background task runs. -->
+            <StatusBarItem x:Name="StatusBusyItem" DockPanel.Dock="Right" Visibility="Collapsed">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="⏳ " VerticalAlignment="Center"/>
+                    <TextBlock x:Name="StatusBusy" FontWeight="Bold" Foreground="#E67E22" VerticalAlignment="Center"/>
+                </StackPanel>
+            </StatusBarItem>
             <StatusBarItem><TextBlock x:Name="StatusInfo" Text="Open a GPX/KML/KMZ file to start"/></StatusBarItem>
         </StatusBar>
 
@@ -124,6 +140,9 @@
                             <StackPanel Orientation="Horizontal">
                                 <StackPanel.ContextMenu>
                                     <ContextMenu>
+                                        <MenuItem Header="Rename…" Click="CtxRenameTrack_Click"/>
+                                        <MenuItem Header="Track Information…" Click="CtxTrackInfo_Click"/>
+                                        <Separator/>
                                         <MenuItem Header="Zoom to Track" Click="CtxZoomTrack_Click"/>
                                         <MenuItem Header="Re-evaluate Elevation (SRTM / Online)" Click="CtxReevalElevation_Click"/>
                                         <MenuItem Header="Remove from List" Click="CtxRemoveTrack_Click"/>
@@ -152,7 +171,8 @@
                           EnableRowVirtualization="True"
                           VirtualizingPanel.VirtualizationMode="Recycling"
                           HeadersVisibility="Column"
-                          SelectionChanged="PointsGrid_SelectionChanged">
+                          SelectionChanged="PointsGrid_SelectionChanged"
+                          MouseDoubleClick="PointsGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="#" Binding="{Binding Index}" Width="46"/>
                         <DataGridTextColumn Header="Lat" Binding="{Binding LatStr}" Width="76"/>
@@ -170,6 +190,10 @@
                     <Expander Header="Selection statistics" IsExpanded="True" Margin="0,4,0,0">
                         <TextBlock x:Name="SelStatsText" FontFamily="Consolas" FontSize="12" Margin="4"
                                    Text="Select 2+ points"/>
+                    </Expander>
+                    <Expander Header="Measurement" IsExpanded="True" Margin="0,4,0,0">
+                        <TextBlock x:Name="MeasureText" FontFamily="Consolas" FontSize="12" Margin="4"
+                                   Text="Measure mode: click two points on the map"/>
                     </Expander>
                 </StackPanel>
             </Grid>
