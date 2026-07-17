@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
@@ -150,85 +147,85 @@ public partial class MainWindow
         switch (_mode)
         {
             case EditMode.Draw:
-            {
-                if (_active is null)
                 {
-                    NewTrack_Click(this, new RoutedEventArgs());
-                    if (_active is null) return;
-                }
-                var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
-                _doc.Snapshot(ActiveIndex());
-                var p = new TrackPoint { Lat = lat, Lon = lon };
-                if (SrtmActive && _srtm.GetElevation(lat, lon) is double ele) { p.Ele = ele; _active.ElevationEstimated = true; }
-                _active.Points.Add(p);
-                RefreshAll();
-                StatusInfo.Text = $"Added point {_active.Points.Count - 1} ({lat:F5}, {lon:F5})";
-                break;
-            }
-            case EditMode.Insert:
-            {
-                if (_active is null) return;
-                var sel = SelectedIndices();
-                if (sel.Count == 0)
-                {
-                    StatusInfo.Text = "Insert: first select the point after which to insert (list or map)";
-                    return;
-                }
-                int anchor = sel[^1];
-                var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
-                _doc.Snapshot(ActiveIndex());
-                var p = new TrackPoint { Lat = lat, Lon = lon };
-                if (SrtmActive && _srtm.GetElevation(lat, lon) is double ele) { p.Ele = ele; _active.ElevationEstimated = true; }
-                _active.Points.Insert(anchor + 1, p);
-                RefreshAll();
-                SelectPointInGrid(anchor + 1); // chain: next click inserts after the new point
-                StatusInfo.Text = $"Inserted point at index {anchor + 1}";
-                break;
-            }
-            case EditMode.Measure:
-            {
-                var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
-                if (_measureA is null)
-                {
-                    _measureA = (lat, lon);
-                    _mapMgr.SetMeasure(_measureA, null);
-                    MeasureText.Text = "Click the second point";
-                    StatusInfo.Text = "Measure: click the second point";
-                }
-                else
-                {
-                    var a = _measureA.Value;
-                    _measureA = null; // the next click starts a fresh measurement
-                    _mapMgr.SetMeasure(a, (lat, lon));
-                    _ = ComputeMeasurementAsync(a, (lat, lon));
-                }
-                break;
-            }
-            default: // View: select point / switch active track
-            {
-                if (_active is not null && _active.Points.Count > 0)
-                {
-                    int idx = _mapMgr.FindNearestPointIndex(_active, pos.X, pos.Y, 12);
-                    if (idx >= 0)
+                    if (_active is null)
                     {
-                        SelectPointInGrid(idx, ctrl, shift);
+                        NewTrack_Click(this, new RoutedEventArgs());
+                        if (_active is null) return;
+                    }
+                    var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
+                    _doc.Snapshot(ActiveIndex());
+                    var p = new TrackPoint { Lat = lat, Lon = lon };
+                    if (SrtmActive && _srtm.GetElevation(lat, lon) is double ele) { p.Ele = ele; _active.ElevationEstimated = true; }
+                    _active.Points.Add(p);
+                    RefreshAll();
+                    StatusInfo.Text = $"Added point {_active.Points.Count - 1} ({lat:F5}, {lon:F5})";
+                    break;
+                }
+            case EditMode.Insert:
+                {
+                    if (_active is null) return;
+                    var sel = SelectedIndices();
+                    if (sel.Count == 0)
+                    {
+                        StatusInfo.Text = "Insert: first select the point after which to insert (list or map)";
                         return;
                     }
+                    int anchor = sel[^1];
+                    var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
+                    _doc.Snapshot(ActiveIndex());
+                    var p = new TrackPoint { Lat = lat, Lon = lon };
+                    if (SrtmActive && _srtm.GetElevation(lat, lon) is double ele) { p.Ele = ele; _active.ElevationEstimated = true; }
+                    _active.Points.Insert(anchor + 1, p);
+                    RefreshAll();
+                    SelectPointInGrid(anchor + 1); // chain: next click inserts after the new point
+                    StatusInfo.Text = $"Inserted point at index {anchor + 1}";
+                    break;
                 }
-                var hit = _mapMgr.FindNearestTrack(_doc.Tracks, pos.X, pos.Y, 8);
-                if (hit is not null && !ReferenceEquals(hit, _active))
+            case EditMode.Measure:
                 {
-                    SetActive(hit);
-                    RefreshTracksList();
-                    RefreshPointsGrid();
-                    _mapMgr.RebuildTracks(_doc.Tracks, _active);
-                    UpdateFlags();
-                    RefreshPlots();
-                    RefreshStats();
-                    StatusInfo.Text = $"Active track: {hit.Name}";
+                    var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
+                    if (_measureA is null)
+                    {
+                        _measureA = (lat, lon);
+                        _mapMgr.SetMeasure(_measureA, null);
+                        MeasureText.Text = "Click the second point";
+                        StatusInfo.Text = "Measure: click the second point";
+                    }
+                    else
+                    {
+                        var a = _measureA.Value;
+                        _measureA = null; // the next click starts a fresh measurement
+                        _mapMgr.SetMeasure(a, (lat, lon));
+                        _ = ComputeMeasurementAsync(a, (lat, lon));
+                    }
+                    break;
                 }
-                break;
-            }
+            default: // View: select point / switch active track
+                {
+                    if (_active is not null && _active.Points.Count > 0)
+                    {
+                        int idx = _mapMgr.FindNearestPointIndex(_active, pos.X, pos.Y, 12);
+                        if (idx >= 0)
+                        {
+                            SelectPointInGrid(idx, ctrl, shift);
+                            return;
+                        }
+                    }
+                    var hit = _mapMgr.FindNearestTrack(_doc.Tracks, pos.X, pos.Y, 8);
+                    if (hit is not null && !ReferenceEquals(hit, _active))
+                    {
+                        SetActive(hit);
+                        RefreshTracksList();
+                        RefreshPointsGrid();
+                        _mapMgr.RebuildTracks(_doc.Tracks, _active);
+                        UpdateFlags();
+                        RefreshPlots();
+                        RefreshStats();
+                        StatusInfo.Text = $"Active track: {hit.Name}";
+                    }
+                    break;
+                }
         }
     }
 

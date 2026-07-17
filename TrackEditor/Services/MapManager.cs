@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using BruTile;
 using BruTile.Predefined;
 using BruTile.Web;
@@ -13,6 +9,7 @@ using Mapsui.Projections;
 using Mapsui.Styles;
 using Mapsui.Tiling.Layers;
 using NetTopologySuite.Geometries;
+using System.IO;
 using TrackEditor.Models;
 using Color = Mapsui.Styles.Color;
 

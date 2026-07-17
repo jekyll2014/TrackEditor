@@ -1,11 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using BruTile;
 using Mapsui.Projections;
 using SkiaSharp;
+using System.IO;
 using TrackEditor.Models;
 
 namespace TrackEditor.Services;
