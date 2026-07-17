@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="TrackEditor.ParseTest/TrackEditor.ParseTest.csproj" />
+  <Project Path="TrackEditor/TrackEditor.csproj" />
+</Solution>

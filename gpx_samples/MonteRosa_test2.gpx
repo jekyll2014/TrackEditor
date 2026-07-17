@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" creator="SAS.Planet 21.12.30.10225" version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:wptx1="http://www.garmin.com/xmlschemas/WaypointExtension/v1" xmlns:gpxtrx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/WaypointExtension/v1 http://www8.garmin.com/xmlschemas/WaypointExtensionv1.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd">
+  <metadata>
+    <time>2026-07-15T12:28:54Z</time>
+    <link href="http://www.sasgis.org/">
+      <text>SAS.Planet</text>
+    </link>
+    <name>MonteRosa_test2</name>
+    <desc>15/07/2026 15:28:17</desc>
+    <author>
+      <name>jekyll</name>
+    </author>
+    <bounds maxlat="45.7720520464674" maxlon="7.86735631918138" minlat="45.799895" minlon="7.82376505827131"/>
+  </metadata>
+  <rte>
+    <name>MonteRosa_test2</name>
+    <cmt>15/07/2026 15:28:17</cmt>
+    <number>1</number>
+    <extensions>
+      <gpxx:RouteExtension>
+        <gpxx:Categories>
+          <gpxx:Category>default</gpxx:Category>
+        </gpxx:Categories>
+      </gpxx:RouteExtension>
+      <gpxtrx:TrackExtension>
+        <gpxtrx:Categories>
+          <gpxtrx:Category>default</gpxtrx:Category>
+        </gpxtrx:Categories>
+      </gpxtrx:TrackExtension>
+    </extensions>
+    <rtept lat="45.7722503594226" lon="7.83104457353736">
+      <name>MonteRosa_test2 1</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7724561551401" lon="7.83250369524147">
+      <name>MonteRosa_test2 2</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.772104" lon="7.832708">
+      <name>MonteRosa_test2 3</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7720520464674" lon="7.83345856165077">
+      <name>MonteRosa_test2 4</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7722353924317" lon="7.83339955305244">
+      <name>MonteRosa_test2 5</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7733953223192" lon="7.83717610334569">
+      <name>MonteRosa_test2 6</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7741960340375" lon="7.83788420652562">
+      <name>MonteRosa_test2 7</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7755654489294" lon="7.83757307027989">
+      <name>MonteRosa_test2 8</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7762389193273" lon="7.84325935339147">
+      <name>MonteRosa_test2 9</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7771443500439" lon="7.84579135870152">
+      <name>MonteRosa_test2 10</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7789327195838" lon="7.84711100553685">
+      <name>MonteRosa_test2 11</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7801897818348" lon="7.85100557302647">
+      <name>MonteRosa_test2 12</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7815066737958" lon="7.85480358099156">
+      <name>MonteRosa_test2 13</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7825018044739" lon="7.85755016302281">
+      <name>MonteRosa_test2 14</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7837662682072" lon="7.85880543684178">
+      <name>MonteRosa_test2 15</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.785748949455" lon="7.86020018552953">
+      <name>MonteRosa_test2 16</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7854796082169" lon="7.86127306913548">
+      <name>MonteRosa_test2 17</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.786397" lon="7.861597">
+      <name>MonteRosa_test2 18</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.786427" lon="7.862677">
+      <name>MonteRosa_test2 19</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.787147" lon="7.863">
+      <name>MonteRosa_test2 20</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.787368" lon="7.864535">
+      <name>MonteRosa_test2 21</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7899834211838" lon="7.86735631918138">
+      <name>MonteRosa_test2 22</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.79051" lon="7.86619">
+      <name>MonteRosa_test2 23</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.793007" lon="7.864211">
+      <name>MonteRosa_test2 24</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7956986997226" lon="7.8633437344951">
+      <name>MonteRosa_test2 25</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7953097202952" lon="7.86102630590623">
+      <name>MonteRosa_test2 26</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.79622" lon="7.859061">
+      <name>MonteRosa_test2 27</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.795273" lon="7.856676">
+      <name>MonteRosa_test2 28</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7957585424705" lon="7.85248615240282">
+      <name>MonteRosa_test2 29</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7962522426882" lon="7.85304405187791">
+      <name>MonteRosa_test2 30</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.799255" lon="7.848">
+      <name>MonteRosa_test2 31</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.799895" lon="7.843499">
+      <name>MonteRosa_test2 32</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.798965" lon="7.839391">
+      <name>MonteRosa_test2 33</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.799517" lon="7.836781">
+      <name>MonteRosa_test2 34</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.797916" lon="7.833628">
+      <name>MonteRosa_test2 35</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.797754" lon="7.83211">
+      <name>MonteRosa_test2 36</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.796939" lon="7.832966">
+      <name>MonteRosa_test2 37</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7961325581886" lon="7.82965518926805">
+      <name>MonteRosa_test2 38</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.798718" lon="7.827971">
+      <name>MonteRosa_test2 39</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.797631" lon="7.82713">
+      <name>MonteRosa_test2 40</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7976136357791" lon="7.82609321569627">
+      <name>MonteRosa_test2 41</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7969479037528" lon="7.8254924008769">
+      <name>MonteRosa_test2 42</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7956164158394" lon="7.82522417997541">
+      <name>MonteRosa_test2 43</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7936116436899" lon="7.82376505827131">
+      <name>MonteRosa_test2 44</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7904547294138" lon="7.82479502653302">
+      <name>MonteRosa_test2 45</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7882851822882" lon="7.82559968923749">
+      <name>MonteRosa_test2 46</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.785113002774" lon="7.82494523023786">
+      <name>MonteRosa_test2 47</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7825616613919" lon="7.8254387566966">
+      <name>MonteRosa_test2 48</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7816920853062" lon="7.82599090085491">
+      <name>MonteRosa_test2 49</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7801881373065" lon="7.82599090085491">
+      <name>MonteRosa_test2 50</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7801507251476" lon="7.82567976460919">
+      <name>MonteRosa_test2 51</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7795670922182" lon="7.82572267995342">
+      <name>MonteRosa_test2 52</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.777741329249" lon="7.82662390218243">
+      <name>MonteRosa_test2 53</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7764318312889" lon="7.82661317334637">
+      <name>MonteRosa_test2 54</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7754665245321" lon="7.8283297871159">
+      <name>MonteRosa_test2 55</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7743216041582" lon="7.82840488896832">
+      <name>MonteRosa_test2 56</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="45.7725181198174" lon="7.83104418263897">
+      <name>MonteRosa_test2 57</name>
+      <sym>waypoint</sym>
+    </rtept>
+  </rte>
+</gpx>

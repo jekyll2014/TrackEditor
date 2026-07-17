@@ -1,0 +1,731 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Globalization;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Shapes;
+using System.Windows.Threading;
+using Microsoft.Win32;
+using TrackEditor.Models;
+using TrackEditor.Services;
+
+namespace TrackEditor;
+
+public partial class MainWindow : Window
+{
+    private enum EditMode { View, Draw, Insert }
+
+    private static readonly (string Name, string Hex)[] Palette =
+    {
+        ("Red", "#E53935"), ("Blue", "#1E88E5"), ("Green", "#43A047"), ("Orange", "#FB8C00"),
+        ("Purple", "#8E24AA"), ("Magenta", "#D81B60"), ("Brown", "#6D4C41"), ("Black", "#212121"),
+        ("Teal", "#00897B"), ("Navy", "#283593"),
+    };
+
+    private readonly TrackDocument _doc = new();
+    private readonly SrtmService _srtm = new();
+    private readonly OnlineElevationService _online = new();
+    private AppSettings _settings = new();
+    private bool _elevBusy;
+    private readonly MapManager _mapMgr;
+    private readonly DispatcherTimer _viewportTimer;
+
+    private Track? _active;
+    private double[] _cumDist = Array.Empty<double>();
+    private double?[] _speeds = Array.Empty<double?>();
+    private EditMode _mode = EditMode.View;
+    private bool _syncingUi;
+    private int _paletteCursor;
+
+    public MainWindow()
+    {
+        InitializeComponent();
+        _settings = AppSettings.Load();
+        _mapMgr = new MapManager(MapCtrl, _settings.BaseMap, _settings.TileCacheLimitMB);
+        Closed += (_, _) => _mapMgr.Dispose(); // checkpoint/close the MBTiles cache cleanly
+        BuildColorCombo();
+        ApplySettings();
+
+        _viewportTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        _viewportTimer.Tick += ViewportTimer_Tick;
+        _viewportTimer.Start();
+
+        RefreshPlots();
+
+        // support "TrackEditor.exe file1.gpx file2.kmz …"
+        Loaded += (_, _) =>
+        {
+            var args = Environment.GetCommandLineArgs().Skip(1).Where(File.Exists).ToArray();
+            if (args.Length > 0) LoadFiles(args);
+        };
+    }
+
+    // ======================= settings =======================
+
+    /// <summary>True when SRTM is enabled in settings and the tile folder actually exists.</summary>
+    private bool SrtmActive => _settings.SrtmEnabled && _srtm.IsAvailable;
+
+    /// <summary>Push the current settings into the elevation services and the basemap.</summary>
+    private void ApplySettings()
+    {
+        _srtm.Folder = _settings.SrtmFolder;
+        _srtm.AutoDownload = _settings.SrtmAutoDownload;
+        _online.Provider = _settings.OnlineProvider;
+        _online.OpenTopoDataset = _settings.OpenTopoDataset;
+        _mapMgr.SetBaseMap(_settings.BaseMap);
+        _mapMgr.SetTileCacheLimit(_settings.TileCacheLimitMB);
+    }
+
+    private void ClearTileCache_Click(object sender, RoutedEventArgs e)
+    {
+        if (MessageBox.Show(this,
+                "Delete all cached map tiles for every basemap? They will re-download as you browse.",
+                "Clear tile cache", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK)
+            return;
+        long freed = _mapMgr.ClearTileCache();
+        StatusInfo.Text = $"Tile cache cleared ({freed / (1024.0 * 1024.0):F1} MB freed)";
+    }
+
+    private void Settings_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new SettingsWindow(_settings) { Owner = this };
+        if (dlg.ShowDialog() != true) return;
+        _settings = dlg.Result;
+        _settings.Save();
+        ApplySettings();
+        RefreshAll();
+        StatusInfo.Text = "Settings updated";
+        // If a source was just enabled, fill any tracks still missing elevation (fills gaps only).
+        FillElevationAfterLoad(_doc.Tracks);
+    }
+
+    // ======================= file operations =======================
+
+    private void OpenFile_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFileDialog
+        {
+            Filter = "Tracks (*.gpx;*.kml;*.kmz)|*.gpx;*.kml;*.kmz|GPX|*.gpx|KML/KMZ|*.kml;*.kmz|All files|*.*",
+            Multiselect = true,
+        };
+        if (dlg.ShowDialog() != true) return;
+        LoadFiles(dlg.FileNames);
+    }
+
+    private void LoadFiles(IReadOnlyList<string> files)
+    {
+        var loaded = new List<Track>();
+        foreach (string file in files)
+        {
+            try
+            {
+                var tracks = file.EndsWith(".gpx", StringComparison.OrdinalIgnoreCase)
+                    ? GpxIo.Load(file)
+                    : KmlIo.Load(file);
+                loaded.AddRange(tracks);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, $"Failed to load {file}:\n{ex.Message}", "Open",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        if (loaded.Count == 0) return;
+
+        _doc.Snapshot(ActiveIndex());
+        foreach (var t in loaded)
+        {
+            t.ColorHex = Palette[_paletteCursor++ % Palette.Length].Hex;
+            _doc.Tracks.Add(t);
+        }
+        _active = loaded[0];
+        RefreshAll();
+        _mapMgr.ZoomToTracks(loaded);
+        StatusInfo.Text = $"Loaded {loaded.Count} track(s), {loaded.Sum(t => t.Points.Count)} points";
+        // Bake heights into tracks that lack them (SRTM w/ optional download, then online) — once, not per refresh.
+        FillElevationAfterLoad(loaded);
+    }
+
+    private void SaveActive_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null) return;
+        SaveTracks(new[] { _active }, _active.Name);
+    }
+
+    private void SaveAll_Click(object sender, RoutedEventArgs e)
+    {
+        if (_doc.Tracks.Count == 0) return;
+        SaveTracks(_doc.Tracks, "tracks");
+    }
+
+    private void SaveTracks(IEnumerable<Track> tracks, string suggestedName)
+    {
+        var dlg = new SaveFileDialog
+        {
+            Filter = "GPX|*.gpx",
+            FileName = string.Join("_", suggestedName.Split(System.IO.Path.GetInvalidFileNameChars())) + ".gpx",
+        };
+        if (dlg.ShowDialog() != true) return;
+        try
+        {
+            GpxIo.Save(dlg.FileName, tracks);
+            StatusInfo.Text = $"Saved {dlg.FileName}";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Save", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void Exit_Click(object sender, RoutedEventArgs e) => Close();
+
+    // ======================= helpers =======================
+
+    private int ActiveIndex() => _active is null ? -1 : _doc.Tracks.IndexOf(_active);
+
+    private List<int> SelectedIndices() =>
+        PointsGrid.SelectedItems.Cast<PointRow>().Select(r => r.Index).OrderBy(i => i).ToList();
+
+    private void SetActive(Track? track)
+    {
+        _active = track;
+        _cumDist = _active is not null ? GeoMath.CumulativeDistancesM(_active.Points) : Array.Empty<double>();
+        _speeds = _active is not null ? GeoMath.SpeedsMps(_active.Points) : Array.Empty<double?>();
+    }
+
+    /// <summary>Full UI refresh after any document mutation.</summary>
+    private void RefreshAll()
+    {
+        if (_active is not null && !_doc.Tracks.Contains(_active))
+            _active = _doc.Tracks.FirstOrDefault();
+        SetActive(_active);
+
+        RefreshTracksList();
+        RefreshPointsGrid();
+        _mapMgr.RebuildTracks(_doc.Tracks, _active);
+        _mapMgr.SetSelection(null, Array.Empty<int>());
+        UpdateFlags();
+        RefreshPlots();
+        RefreshStats();
+        UpdateUndoButtons();
+    }
+
+    private void UpdateUndoButtons()
+    {
+        BtnUndo.IsEnabled = _doc.CanUndo;
+        BtnRedo.IsEnabled = _doc.CanRedo;
+    }
+
+    // ======================= tracks list =======================
+
+    private void RefreshTracksList()
+    {
+        _syncingUi = true;
+        try
+        {
+            var rows = _doc.Tracks.Select(t => new TrackRow(t)).ToList();
+            TracksList.ItemsSource = rows;
+            TracksList.SelectedItem = rows.FirstOrDefault(r => ReferenceEquals(r.T, _active));
+
+            if (_active is not null)
+            {
+                WidthSlider.Value = _active.Width;
+                WidthLabel.Text = ((int)_active.Width).ToString();
+                foreach (ComboBoxItem item in ColorCombo.Items)
+                    if ((string)item.Tag == _active.ColorHex) { ColorCombo.SelectedItem = item; break; }
+            }
+        }
+        finally { _syncingUi = false; }
+    }
+
+    private void TracksList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_syncingUi) return;
+        if (TracksList.SelectedItem is TrackRow row && !ReferenceEquals(row.T, _active))
+        {
+            SetActive(row.T);
+            RefreshTracksList();
+            RefreshPointsGrid();
+            _mapMgr.RebuildTracks(_doc.Tracks, _active);
+            _mapMgr.SetSelection(null, Array.Empty<int>());
+            UpdateFlags();
+            RefreshPlots();
+            RefreshStats();
+        }
+    }
+
+    private void TrackVisible_Click(object sender, RoutedEventArgs e)
+    {
+        _mapMgr.RebuildTracks(_doc.Tracks, _active);
+        UpdateFlags();
+    }
+
+    private void BuildColorCombo()
+    {
+        foreach (var (name, hex) in Palette)
+        {
+            var panel = new StackPanel { Orientation = Orientation.Horizontal };
+            panel.Children.Add(new Rectangle
+            {
+                Width = 12,
+                Height = 12,
+                Margin = new Thickness(0, 0, 4, 0),
+                Fill = new SolidColorBrush((System.Windows.Media.Color)ColorConverter.ConvertFromString(hex)),
+            });
+            panel.Children.Add(new TextBlock { Text = name });
+            ColorCombo.Items.Add(new ComboBoxItem { Content = panel, Tag = hex });
+        }
+    }
+
+    private void ColorCombo_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_syncingUi || _active is null || ColorCombo.SelectedItem is not ComboBoxItem item) return;
+        _active.ColorHex = (string)item.Tag;
+        RefreshTracksList();
+        _mapMgr.RebuildTracks(_doc.Tracks, _active);
+        RefreshPlots();
+    }
+
+    private void WidthSlider_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_syncingUi || _active is null || WidthLabel is null) return;
+        _active.Width = Math.Round(WidthSlider.Value);
+        WidthLabel.Text = ((int)_active.Width).ToString();
+        _mapMgr.RebuildTracks(_doc.Tracks, _active);
+    }
+
+    // ======================= points grid =======================
+
+    private void RefreshPointsGrid()
+    {
+        _syncingUi = true;
+        try
+        {
+            var rows = new List<PointRow>();
+            if (_active is not null)
+            {
+                for (int i = 0; i < _active.Points.Count; i++)
+                {
+                    var p = _active.Points[i];
+                    rows.Add(new PointRow
+                    {
+                        Index = i,
+                        LatStr = p.Lat.ToString("F5", CultureInfo.InvariantCulture),
+                        LonStr = p.Lon.ToString("F5", CultureInfo.InvariantCulture),
+                        EleStr = p.Ele is double ele ? ele.ToString("F0") : "",
+                        TimeStr = p.Time is DateTime t ? t.ToLocalTime().ToString("HH:mm:ss") : "",
+                        DistStr = (_cumDist[i] / 1000).ToString("F2"),
+                    });
+                }
+            }
+            PointsGrid.ItemsSource = rows;
+        }
+        finally { _syncingUi = false; }
+    }
+
+    private void PointsGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_syncingUi) return;
+        var indices = SelectedIndices();
+        _mapMgr.SetSelection(_active, indices);
+        if (indices.Count > 0) UpdatePlotMarkers(indices[^1]);
+        if (indices.Count > 1) StatusInfo.Text = $"{indices.Count} points selected";
+        RefreshSelectionStats();
+    }
+
+    /// <summary>Selects a point in the grid programmatically (map click, plot click).</summary>
+    private void SelectPointInGrid(int index, bool ctrl = false, bool shift = false)
+    {
+        if (PointsGrid.ItemsSource is not List<PointRow> rows || index < 0 || index >= rows.Count) return;
+
+        if (shift && PointsGrid.SelectedItems.Count > 0)
+        {
+            int anchor = ((PointRow)PointsGrid.SelectedItems[0]!).Index;
+            PointsGrid.SelectedItems.Clear();
+            for (int i = Math.Min(anchor, index); i <= Math.Max(anchor, index); i++)
+                PointsGrid.SelectedItems.Add(rows[i]);
+        }
+        else if (ctrl)
+        {
+            if (PointsGrid.SelectedItems.Contains(rows[index]))
+                PointsGrid.SelectedItems.Remove(rows[index]);
+            else
+                PointsGrid.SelectedItems.Add(rows[index]);
+        }
+        else
+        {
+            PointsGrid.SelectedItems.Clear();
+            PointsGrid.SelectedItems.Add(rows[index]);
+        }
+        PointsGrid.ScrollIntoView(rows[index]);
+    }
+
+    // ======================= editing commands =======================
+
+    private void Undo_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_doc.CanUndo) return;
+        int active = _doc.Undo(ActiveIndex());
+        _active = active >= 0 && active < _doc.Tracks.Count ? _doc.Tracks[active] : _doc.Tracks.FirstOrDefault();
+        RefreshAll();
+    }
+
+    private void Redo_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_doc.CanRedo) return;
+        int active = _doc.Redo(ActiveIndex());
+        _active = active >= 0 && active < _doc.Tracks.Count ? _doc.Tracks[active] : _doc.Tracks.FirstOrDefault();
+        RefreshAll();
+    }
+
+    private void NewTrack_Click(object sender, RoutedEventArgs e)
+    {
+        _doc.Snapshot(ActiveIndex());
+        var track = new Track
+        {
+            Name = $"New track {_doc.Tracks.Count + 1}",
+            ColorHex = Palette[_paletteCursor++ % Palette.Length].Hex,
+        };
+        _doc.Tracks.Add(track);
+        _active = track;
+        RefreshAll();
+        ModeDraw.IsChecked = true;
+        StatusInfo.Text = "Draw mode: click on the map to add points, right-click removes the last one";
+    }
+
+    private void RemoveTrack_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is not null) RemoveTrack(_active);
+    }
+
+    private void RemoveTrack(Track track)
+    {
+        if (!_doc.Tracks.Contains(track)) return;
+        _doc.Snapshot(ActiveIndex());
+        _doc.Tracks.Remove(track);
+        if (ReferenceEquals(_active, track)) _active = _doc.Tracks.FirstOrDefault();
+        RefreshAll();
+    }
+
+    // Tracks-list context menu / double-click. The clicked row is the MenuItem's DataContext.
+    private void CtxRemoveTrack_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is TrackRow row) RemoveTrack(row.T);
+    }
+
+    private void CtxZoomTrack_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is TrackRow row) _mapMgr.ZoomToTracks(new[] { row.T });
+    }
+
+    private void TracksList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (TracksList.SelectedItem is TrackRow row) _mapMgr.ZoomToTracks(new[] { row.T });
+    }
+
+    private void DeleteLast_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null || _active.Points.Count == 0) return;
+        _doc.Snapshot(ActiveIndex());
+        _active.Points.RemoveAt(_active.Points.Count - 1);
+        RefreshAll();
+    }
+
+    private void DeletePoints_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null) return;
+        var indices = SelectedIndices();
+        if (indices.Count == 0) return;
+        _doc.Snapshot(ActiveIndex());
+        for (int i = indices.Count - 1; i >= 0; i--)
+            _active.Points.RemoveAt(indices[i]);
+        RefreshAll();
+        int reselect = Math.Min(indices[0], _active.Points.Count - 1);
+        if (reselect >= 0) SelectPointInGrid(reselect);
+        StatusInfo.Text = $"Deleted {indices.Count} point(s)";
+    }
+
+    private void Crop_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null) return;
+        var indices = SelectedIndices();
+        if (indices.Count < 2)
+        {
+            StatusInfo.Text = "Crop: select at least 2 points (kept range = min…max of selection)";
+            return;
+        }
+        _doc.Snapshot(ActiveIndex());
+        int from = indices[0], to = indices[^1];
+        _active.Points = _active.Points.GetRange(from, to - from + 1);
+        RefreshAll();
+        StatusInfo.Text = $"Cropped to points {from}…{to}";
+    }
+
+    private void Split_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null) return;
+        var indices = SelectedIndices();
+        if (indices.Count != 1 || indices[0] <= 0 || indices[0] >= _active.Points.Count - 1)
+        {
+            StatusInfo.Text = "Split: select exactly one interior point";
+            return;
+        }
+        _doc.Snapshot(ActiveIndex());
+        int at = indices[0];
+        var second = new Track
+        {
+            Name = _active.Name + " [2]",
+            ColorHex = Palette[_paletteCursor++ % Palette.Length].Hex,
+            Width = _active.Width,
+            Points = _active.Points.Skip(at).Select(p => p.Clone()).ToList(),
+        };
+        _active.Points = _active.Points.Take(at + 1).ToList();
+        _active.Name += " [1]";
+        _doc.Tracks.Insert(_doc.Tracks.IndexOf(_active) + 1, second);
+        RefreshAll();
+        StatusInfo.Text = $"Split at point {at}: {_active.Points.Count} + {second.Points.Count} points";
+    }
+
+    private void Simplify_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null || _active.Points.Count < 3) return;
+        if (!double.TryParse(TolBox.Text.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double tol) || tol <= 0)
+        {
+            StatusInfo.Text = "Simplify: enter a positive tolerance in meters";
+            return;
+        }
+        _doc.Snapshot(ActiveIndex());
+        int before = _active.Points.Count;
+        var keep = GeoMath.DouglasPeucker(_active.Points, tol);
+        _active.Points = keep.Select(i => _active.Points[i]).ToList();
+        RefreshAll();
+        StatusInfo.Text = $"Simplified: {before} → {_active.Points.Count} points (tolerance {tol} m)";
+    }
+
+    private void Reverse_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null || _active.Points.Count < 2) return;
+        _doc.Snapshot(ActiveIndex());
+        _active.Points.Reverse();
+        RefreshAll();
+        StatusInfo.Text = "Track reversed (note: timestamps are now in reverse order)";
+    }
+
+    private void CopyPoints_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null) return;
+        var indices = SelectedIndices();
+        if (indices.Count == 0) return;
+        _doc.Clipboard.Clear();
+        _doc.Clipboard.AddRange(indices.Select(i => _active.Points[i].Clone()));
+        StatusInfo.Text = $"Copied {indices.Count} point(s)";
+    }
+
+    private void PastePoints_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null || _doc.Clipboard.Count == 0) return;
+        _doc.Snapshot(ActiveIndex());
+        var indices = SelectedIndices();
+        int insertAt = indices.Count > 0 ? indices[^1] + 1 : _active.Points.Count;
+        _active.Points.InsertRange(insertAt, _doc.Clipboard.Select(p => p.Clone()));
+        RefreshAll();
+        SelectPointInGrid(Math.Min(insertAt + _doc.Clipboard.Count - 1, _active.Points.Count - 1));
+        StatusInfo.Text = $"Pasted {_doc.Clipboard.Count} point(s) at index {insertAt}";
+    }
+
+    /// <summary>Track menu: re-evaluate elevation for the active track (overwrites from the sources).</summary>
+    private async void ApplyElevation_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is not null) await ReevaluateElevationAsync(_active);
+    }
+
+    /// <summary>Context menu: re-evaluate elevation for the right-clicked track.</summary>
+    private async void CtxReevalElevation_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is TrackRow row)
+            await ReevaluateElevationAsync(row.T);
+    }
+
+    /// <summary>Manual re-evaluation: recompute all heights (SRTM overwrites, online fills the rest).</summary>
+    private async Task ReevaluateElevationAsync(Track track)
+    {
+        if (_elevBusy) return;
+        if (!SrtmActive && !_settings.OnlineEnabled)
+        {
+            MessageBox.Show(this,
+                "No elevation source is enabled. Open Tools → Settings… and enable SRTM " +
+                "(with a folder of .hgt tiles) and/or the online elevation service.",
+                "Elevation", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        _doc.Snapshot(ActiveIndex());
+        _elevBusy = true;
+        (int Srtm, int Online) r = (0, 0);
+        try { r = await FillElevationAsync(track, overwrite: true); }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Elevation lookup failed:\n{ex.Message}",
+                "Elevation", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally { _elevBusy = false; }
+
+        if (_doc.Tracks.Contains(track)) RefreshAll();
+        StatusInfo.Text =
+            $"Elevation — SRTM: {r.Srtm}, online: {r.Online}, of {track.Points.Count} points";
+    }
+
+    /// <summary>
+    /// Background pass after loading: fill tracks still missing elevation (gaps only, never overwrite).
+    /// Runs after the tracks are shown, then refreshes.
+    /// </summary>
+    private async void FillElevationAfterLoad(IReadOnlyList<Track> tracks)
+    {
+        if (_elevBusy || (!SrtmActive && !_settings.OnlineEnabled)) return;
+        var pending = tracks.Where(t => t.Points.Any(p => p.Ele is null)).ToList();
+        if (pending.Count == 0) return;
+
+        _elevBusy = true;
+        int total = 0;
+        try
+        {
+            foreach (var t in pending)
+            {
+                var r = await FillElevationAsync(t, overwrite: false);
+                total += r.Srtm + r.Online;
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusInfo.Text = $"Elevation lookup failed: {ex.Message}";
+        }
+        finally { _elevBusy = false; }
+
+        if (total > 0) RefreshAll();
+    }
+
+    /// <summary>
+    /// Fills a track's elevation from the enabled sources: SRTM (auto-downloading tiles if allowed),
+    /// then the online service for any points still missing. When <paramref name="overwrite"/> is true,
+    /// SRTM replaces existing heights; otherwise only points without a value are touched.
+    /// Caller owns the _elevBusy guard and exception handling. Returns per-source counts applied.
+    /// </summary>
+    private async Task<(int Srtm, int Online)> FillElevationAsync(Track track, bool overwrite)
+    {
+        int srtmApplied = 0;
+        if (SrtmActive)
+        {
+            if (_srtm.AutoDownload)
+            {
+                var need = track.Points.Where(p => overwrite || p.Ele is null).Select(p => (p.Lat, p.Lon));
+                await _srtm.EnsureTilesAsync(need, new Progress<string>(s => StatusInfo.Text = s));
+            }
+            foreach (var p in track.Points)
+                if ((overwrite || p.Ele is null) && _srtm.GetElevation(p.Lat, p.Lon) is double ele)
+                { p.Ele = ele; srtmApplied++; }
+            if (srtmApplied > 0) track.ElevationEstimated = true;
+        }
+
+        int onlineApplied = 0;
+        if (_settings.OnlineEnabled)
+        {
+            var missing = new List<int>();
+            for (int i = 0; i < track.Points.Count; i++)
+                if (track.Points[i].Ele is null) missing.Add(i);
+
+            if (missing.Count > 0)
+            {
+                var coords = missing.Select(i => (track.Points[i].Lat, track.Points[i].Lon)).ToList();
+                var progress = new Progress<(int Done, int Total)>(pr =>
+                    StatusInfo.Text = $"Fetching elevations online… {pr.Done}/{pr.Total}");
+                var elevs = await _online.GetElevationsAsync(coords, progress);
+                for (int k = 0; k < missing.Count; k++)
+                    if (elevs[k] is double ele) { track.Points[missing[k]].Ele = ele; onlineApplied++; }
+                if (onlineApplied > 0) track.ElevationEstimated = true;
+            }
+        }
+
+        return (srtmApplied, onlineApplied);
+    }
+
+    private void ZoomToTrack_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is not null) _mapMgr.ZoomToTracks(new[] { _active });
+    }
+
+    // ======================= modes / keyboard =======================
+
+    private void Mode_Checked(object sender, RoutedEventArgs e)
+    {
+        if (ModeDraw is null || ModeInsert is null) return; // during InitializeComponent
+        _mode = ModeDraw.IsChecked == true ? EditMode.Draw
+              : ModeInsert.IsChecked == true ? EditMode.Insert
+              : EditMode.View;
+        if (StatusMode is not null)
+            StatusMode.Text = $"Mode: {_mode}";
+    }
+
+    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (Keyboard.FocusedElement is TextBox) return;
+
+        bool ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+        if (ctrl && e.Key == Key.Z) { Undo_Click(sender, e); e.Handled = true; }
+        else if (ctrl && e.Key == Key.Y) { Redo_Click(sender, e); e.Handled = true; }
+        else if (ctrl && e.Key == Key.C) { CopyPoints_Click(sender, e); e.Handled = true; }
+        else if (ctrl && e.Key == Key.V) { PastePoints_Click(sender, e); e.Handled = true; }
+        else if (ctrl && e.Key == Key.O) { OpenFile_Click(sender, e); e.Handled = true; }
+        else if (ctrl && e.Key == Key.S) { SaveAll_Click(sender, e); e.Handled = true; }
+        else if (e.Key == Key.Delete) { DeletePoints_Click(sender, e); e.Handled = true; }
+    }
+
+    // ======================= statistics =======================
+
+    private void RefreshStats()
+    {
+        StatsText.Text = _active is null || _active.Points.Count < 2
+            ? "—"
+            : TrackStatistics.Compute(_active.Points).ToDisplayString();
+        RefreshSelectionStats();
+    }
+
+    /// <summary>Statistics for the selected span (first→last selected index, inclusive).</summary>
+    private void RefreshSelectionStats()
+    {
+        if (_active is null) { SelStatsText.Text = "Select 2+ points"; return; }
+        var idx = SelectedIndices();
+        if (idx.Count < 2) { SelStatsText.Text = "Select 2+ points"; return; }
+
+        int lo = idx[0], hi = idx[^1];
+        var span = _active.Points.GetRange(lo, hi - lo + 1);
+        string header = $"Points {lo}–{hi} ({span.Count})\n";
+        SelStatsText.Text = header + TrackStatistics.Compute(span).ToDisplayString(includeIncline: true);
+    }
+}
+
+// ======================= binding rows =======================
+
+public class TrackRow
+{
+    public Track T { get; }
+    public TrackRow(Track t) => T = t;
+
+    public string Title => $"{T.Name}  ({T.Points.Count} pts)";
+    public bool Visible { get => T.Visible; set => T.Visible = value; }
+    public System.Windows.Media.Brush Swatch =>
+        new SolidColorBrush((System.Windows.Media.Color)ColorConverter.ConvertFromString(T.ColorHex));
+}
+
+public class PointRow
+{
+    public int Index { get; set; }
+    public string LatStr { get; set; } = "";
+    public string LonStr { get; set; } = "";
+    public string EleStr { get; set; } = "";
+    public string TimeStr { get; set; } = "";
+    public string DistStr { get; set; } = "";
+}

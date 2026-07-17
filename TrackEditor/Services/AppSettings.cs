@@ -1,0 +1,73 @@
+using System;
+using System.IO;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace TrackEditor.Services;
+
+public enum OnlineElevationProvider { OpenTopoData, OpenElevation }
+
+public enum BaseMapProvider { OpenStreetMap, OpenTopoMap, CyclOSM, EsriWorldImagery, CartoLight }
+
+/// <summary>
+/// User settings persisted as JSON under %AppData%\TrackEditor\settings.json.
+/// Migrates the legacy srtm_folder.txt on first load.
+/// </summary>
+public class AppSettings
+{
+    public string? SrtmFolder { get; set; }
+    public bool SrtmEnabled { get; set; } = true;
+    public bool SrtmAutoDownload { get; set; } = true;
+
+    public bool OnlineEnabled { get; set; }
+    public OnlineElevationProvider OnlineProvider { get; set; } = OnlineElevationProvider.OpenTopoData;
+    public string OpenTopoDataset { get; set; } = "srtm90m";
+
+    public BaseMapProvider BaseMap { get; set; } = BaseMapProvider.OpenStreetMap;
+    /// <summary>Per-map tile cache size cap in MB; 0 or negative means no limit (LRU eviction above it).</summary>
+    public int TileCacheLimitMB { get; set; } = 500;
+
+    private static readonly JsonSerializerOptions JsonOpts = new()
+    {
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() },
+    };
+
+    private static string Dir =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TrackEditor");
+
+    private static string FilePath => Path.Combine(Dir, "settings.json");
+
+    public static AppSettings Load()
+    {
+        try
+        {
+            if (File.Exists(FilePath))
+            {
+                var s = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath), JsonOpts);
+                if (s is not null) return s;
+            }
+            else
+            {
+                // migrate the old single-value settings file
+                string legacy = Path.Combine(Dir, "srtm_folder.txt");
+                if (File.Exists(legacy))
+                    return new AppSettings { SrtmFolder = File.ReadAllText(legacy).Trim() };
+            }
+        }
+        catch { /* fall through to defaults */ }
+        return new AppSettings();
+    }
+
+    public void Save()
+    {
+        try
+        {
+            Directory.CreateDirectory(Dir);
+            File.WriteAllText(FilePath, JsonSerializer.Serialize(this, JsonOpts));
+        }
+        catch { /* non-fatal: settings just won't persist */ }
+    }
+
+    public AppSettings Clone() => (AppSettings)MemberwiseClone();
+}

@@ -1,0 +1,540 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" creator="SAS.Planet 21.12.30.10225" version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:wptx1="http://www.garmin.com/xmlschemas/WaypointExtension/v1" xmlns:gpxtrx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/WaypointExtension/v1 http://www8.garmin.com/xmlschemas/WaypointExtensionv1.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd">
+  <metadata>
+    <time>2025-09-17T07:34:18Z</time>
+    <link href="http://www.sasgis.org/">
+      <text>SAS.Planet</text>
+    </link>
+    <name>Lago di Lares</name>
+    <desc>16/09/2025 11:33:05</desc>
+    <author>
+      <name>jekyll</name>
+    </author>
+    <bounds maxlat="46.1202801812675" maxlon="10.6954730602256" minlat="46.1671202818002" minlon="10.6148995014183"/>
+  </metadata>
+  <rte>
+    <name>Lago di Lares</name>
+    <cmt>16/09/2025 11:33:05</cmt>
+    <number>1</number>
+    <extensions>
+      <gpxx:RouteExtension>
+        <gpxx:Categories>
+          <gpxx:Category>default</gpxx:Category>
+        </gpxx:Categories>
+      </gpxx:RouteExtension>
+      <gpxtrx:TrackExtension>
+        <gpxtrx:Categories>
+          <gpxtrx:Category>default</gpxtrx:Category>
+        </gpxtrx:Categories>
+      </gpxtrx:TrackExtension>
+    </extensions>
+    <rtept lat="46.1652707558292" lon="10.6948424065739">
+      <name>Lago di Lares 1</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1649289479489" lon="10.6922031129032">
+      <name>Lago di Lares 2</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1644682470107" lon="10.6922674859196">
+      <name>Lago di Lares 3</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1632793235386" lon="10.6910658562809">
+      <name>Lago di Lares 4</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1629523650793" lon="10.6893707001835">
+      <name>Lago di Lares 5</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1621795464511" lon="10.6912160599858">
+      <name>Lago di Lares 6</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1604703897798" lon="10.6918168748051">
+      <name>Lago di Lares 7</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1597718495952" lon="10.6925464356571">
+      <name>Lago di Lares 8</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1588949461712" lon="10.6914306367069">
+      <name>Lago di Lares 9</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1582558382612" lon="10.6913233483464">
+      <name>Lago di Lares 10</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1574532271155" lon="10.6918168748051">
+      <name>Lago di Lares 11</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1550152283194" lon="10.6918632136765">
+      <name>Lago di Lares 12</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1529342378953" lon="10.6891166316452">
+      <name>Lago di Lares 13</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1521315491309" lon="10.6870566951218">
+      <name>Lago di Lares 14</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1490396015326" lon="10.6832372294846">
+      <name>Lago di Lares 15</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1467651253575" lon="10.6784092532578">
+      <name>Lago di Lares 16</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1467056606674" lon="10.6768857585373">
+      <name>Lago di Lares 17</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1459920793762" lon="10.675920163292">
+      <name>Lago di Lares 18</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1459028810644" lon="10.6742250071945">
+      <name>Lago di Lares 19</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1445946225527" lon="10.6733237849655">
+      <name>Lago di Lares 20</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1442675530668" lon="10.6719075786057">
+      <name>Lago di Lares 21</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1421564214549" lon="10.6700193034592">
+      <name>Lago di Lares 22</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.140045208888" lon="10.6697188960495">
+      <name>Lago di Lares 23</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1391679911282" lon="10.668903504509">
+      <name>Lago di Lares 24</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1383502331722" lon="10.6689464198532">
+      <name>Lago di Lares 25</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1374878570802" lon="10.669976388115">
+      <name>Lago di Lares 26</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1349006477683" lon="10.6693755732956">
+      <name>Lago di Lares 27</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1338300428422" lon="10.669804726738">
+      <name>Lago di Lares 28</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1315103274349" lon="10.6684743510666">
+      <name>Lago di Lares 29</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1280305711244" lon="10.6634317981186">
+      <name>Lago di Lares 30</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1276271092344" lon="10.6612704941824">
+      <name>Lago di Lares 31</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.126229186276" lon="10.6597684571341">
+      <name>Lago di Lares 32</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1257086739831" lon="10.6577514359549">
+      <name>Lago di Lares 33</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.12557482717" lon="10.656142110546">
+      <name>Lago di Lares 34</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1202801812675" lon="10.6462715813712">
+      <name>Lago di Lares 35</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1205925200079" lon="10.645520562847">
+      <name>Lago di Lares 36</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1204071513829" lon="10.6453441027482">
+      <name>Lago di Lares 37</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1209277137669" lon="10.6438957098802">
+      <name>Lago di Lares 38</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1206302501497" lon="10.6428120974381">
+      <name>Lago di Lares 39</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1220145417253" lon="10.6396187396995">
+      <name>Lago di Lares 40</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1224819350492" lon="10.6398616675218">
+      <name>Lago di Lares 41</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1226604074139" lon="10.639368141063">
+      <name>Lago di Lares 42</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1225499616273" lon="10.6389106365196">
+      <name>Lago di Lares 43</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1229515231391" lon="10.6374300571434">
+      <name>Lago di Lares 44</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1225711713038" lon="10.6367395762284">
+      <name>Lago di Lares 45</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1222971250998" lon="10.6368936153404">
+      <name>Lago di Lares 46</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1220803701147" lon="10.6360529307206">
+      <name>Lago di Lares 47</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1228909333626" lon="10.6340037230332">
+      <name>Lago di Lares 48</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1229663957315" lon="10.6322373004905">
+      <name>Lago di Lares 49</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1234932708048" lon="10.6316970232804">
+      <name>Lago di Lares 50</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1234263447476" lon="10.6291113737901">
+      <name>Lago di Lares 51</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1240212401837" lon="10.6281457785448">
+      <name>Lago di Lares 52</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1239777225939" lon="10.6251348110191">
+      <name>Lago di Lares 53</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1246469728096" lon="10.6246412845604">
+      <name>Lago di Lares 54</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.124899798553" lon="10.6232036205284">
+      <name>Lago di Lares 55</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1245194601686" lon="10.6219981554827">
+      <name>Lago di Lares 56</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1253162148951" lon="10.6206716152183">
+      <name>Lago di Lares 57</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1252418550649" lon="10.6203068347923">
+      <name>Lago di Lares 58</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1249730595198" lon="10.6205926779589">
+      <name>Lago di Lares 59</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1248551823297" lon="10.6202210041038">
+      <name>Lago di Lares 60</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1254500623366" lon="10.6197274776451">
+      <name>Lago di Lares 61</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1258516027098" lon="10.6200493427269">
+      <name>Lago di Lares 62</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1258962181261" lon="10.6189764591209">
+      <name>Lago di Lares 63</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1269669772781" lon="10.6181610675804">
+      <name>Lago di Lares 64</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1275469631285" lon="10.6166375728599">
+      <name>Lago di Lares 65</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1285582059024" lon="10.6165517421714">
+      <name>Lago di Lares 66</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1298965869102" lon="10.6149853321067">
+      <name>Lago di Lares 67</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1304914124749" lon="10.6148995014183">
+      <name>Lago di Lares 68</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1309523978691" lon="10.6156290622703">
+      <name>Lago di Lares 69</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1346996198465" lon="10.6158865543357">
+      <name>Lago di Lares 70</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1358148152502" lon="10.6170023532859">
+      <name>Lago di Lares 71</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.136573135225" lon="10.6187833400718">
+      <name>Lago di Lares 72</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1363798389682" lon="10.6196416469566">
+      <name>Lago di Lares 73</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1366772175438" lon="10.6196416469566">
+      <name>Lago di Lares 74</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1370489385048" lon="10.6189335437767">
+      <name>Lago di Lares 75</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1375842122805" lon="10.6186116786949">
+      <name>Lago di Lares 76</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1394130250881" lon="10.620972022628">
+      <name>Lago di Lares 77</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1397252553507" lon="10.6218517871849">
+      <name>Lago di Lares 78</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1396806511358" lon="10.6232250782005">
+      <name>Lago di Lares 79</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1403348426651" lon="10.6218303295127">
+      <name>Lago di Lares 80</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1406470677004" lon="10.6187189670555">
+      <name>Lago di Lares 81</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.141568864617" lon="10.6207574459068">
+      <name>Lago di Lares 82</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1436205507366" lon="10.6211007686607">
+      <name>Lago di Lares 83</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1446463651244" lon="10.6198562236778">
+      <name>Lago di Lares 84</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.144304429119" lon="10.6229890438072">
+      <name>Lago di Lares 85</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1445125643318" lon="10.6267655941001">
+      <name>Lago di Lares 86</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.144021958643" lon="10.62818180046">
+      <name>Lago di Lares 87</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1440516924456" lon="10.6310785861961">
+      <name>Lago di Lares 88</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1450180322867" lon="10.6338466258995">
+      <name>Lago di Lares 89</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1440665593408" lon="10.637365684127">
+      <name>Lago di Lares 90</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1440368255463" lon="10.6383098217002">
+      <name>Lago di Lares 91</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1444084968237" lon="10.640605792617">
+      <name>Lago di Lares 92</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.144021958643" lon="10.6411636920921">
+      <name>Lago di Lares 93</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1441111600025" lon="10.6428803058616">
+      <name>Lago di Lares 94</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1432934754636" lon="10.6427944751731">
+      <name>Lago di Lares 95</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.142728522688" lon="10.6439746471397">
+      <name>Lago di Lares 96</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.144334162769" lon="10.6483734699241">
+      <name>Lago di Lares 97</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1454937625929" lon="10.6481374355308">
+      <name>Lago di Lares 98</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1460586869917" lon="10.6487811656944">
+      <name>Lago di Lares 99</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1471885183974" lon="10.6484378429405">
+      <name>Lago di Lares 100</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1503251656061" lon="10.6485880466453">
+      <name>Lago di Lares 101</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1531346172711" lon="10.6516994091026">
+      <name>Lago di Lares 102</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.154561585417" lon="10.6508411022178">
+      <name>Lago di Lares 103</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1553493748952" lon="10.6513775440208">
+      <name>Lago di Lares 104</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1551115528449" lon="10.6557119937889">
+      <name>Lago di Lares 105</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1552007362342" lon="10.6582225414268">
+      <name>Lago di Lares 106</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1556317872451" lon="10.6600679012291">
+      <name>Lago di Lares 107</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1568357394243" lon="10.6615699382774">
+      <name>Lago di Lares 108</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1572816409542" lon="10.6612480731956">
+      <name>Lago di Lares 109</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1587085015689" lon="10.6614626499168">
+      <name>Lago di Lares 110</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1595110944049" lon="10.6609047504417">
+      <name>Lago di Lares 111</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1604920253062" lon="10.6610549541465">
+      <name>Lago di Lares 112</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1605960624064" lon="10.6622780414573">
+      <name>Lago di Lares 113</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1619039405979" lon="10.6646598430625">
+      <name>Lago di Lares 114</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1630185849711" lon="10.6623424144737">
+      <name>Lago di Lares 115</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1637468070983" lon="10.6645096393577">
+      <name>Lago di Lares 116</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1648168302868" lon="10.6647671314231">
+      <name>Lago di Lares 117</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1659165546543" lon="10.6659902187339">
+      <name>Lago di Lares 118</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1670756997831" lon="10.6659258457176">
+      <name>Lago di Lares 119</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1671202818002" lon="10.6683291049949">
+      <name>Lago di Lares 120</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1664366868998" lon="10.669959888076">
+      <name>Lago di Lares 121</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1658719716616" lon="10.673393115615">
+      <name>Lago di Lares 122</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1660057205314" lon="10.6753886791221">
+      <name>Lago di Lares 123</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1651586388638" lon="10.6788219066612">
+      <name>Lago di Lares 124</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1646236331952" lon="10.6830490680687">
+      <name>Lago di Lares 125</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1652626671396" lon="10.6904305072776">
+      <name>Lago di Lares 126</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.165441000869" lon="10.6954730602256">
+      <name>Lago di Lares 127</name>
+      <sym>waypoint</sym>
+    </rtept>
+  </rte>
+</gpx>

@@ -1,0 +1,684 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" creator="SAS.Planet 21.12.30.10225" version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:wptx1="http://www.garmin.com/xmlschemas/WaypointExtension/v1" xmlns:gpxtrx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/WaypointExtension/v1 http://www8.garmin.com/xmlschemas/WaypointExtensionv1.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd">
+  <metadata>
+    <time>2025-09-17T07:34:37Z</time>
+    <link href="http://www.sasgis.org/">
+      <text>SAS.Planet</text>
+    </link>
+    <name>Lago dei Pozzoni</name>
+    <desc>16/09/2025 11:14:27</desc>
+    <author>
+      <name>jekyll</name>
+    </author>
+    <bounds maxlat="46.1043557604544" maxlon="10.6619847717321" minlat="46.1253671673992" minlon="10.6145308855852"/>
+  </metadata>
+  <rte>
+    <name>Lago dei Pozzoni</name>
+    <cmt>16/09/2025 11:14:27</cmt>
+    <number>1</number>
+    <extensions>
+      <gpxx:RouteExtension>
+        <gpxx:Categories>
+          <gpxx:Category>default</gpxx:Category>
+        </gpxx:Categories>
+      </gpxx:RouteExtension>
+      <gpxtrx:TrackExtension>
+        <gpxtrx:Categories>
+          <gpxtrx:Category>default</gpxtrx:Category>
+        </gpxtrx:Categories>
+      </gpxtrx:TrackExtension>
+    </extensions>
+    <rtept lat="46.1043557604544" lon="10.6619847717321">
+      <name>Lago dei Pozzoni 1</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1048467195179" lon="10.6606222095525">
+      <name>Lago dei Pozzoni 2</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1046905057447" lon="10.6601072254216">
+      <name>Lago dei Pozzoni 3</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1049583005135" lon="10.6594849529302">
+      <name>Lago dei Pozzoni 4</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1048169645476" lon="10.6589914264714">
+      <name>Lago dei Pozzoni 5</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1048318420348" lon="10.6575108470952">
+      <name>Lago dei Pozzoni 6</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1054269382286" lon="10.6564272346532">
+      <name>Lago dei Pozzoni 7</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1051219522318" lon="10.6553221645391">
+      <name>Lago dei Pozzoni 8</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1051665844343" lon="10.6546998920476">
+      <name>Lago dei Pozzoni 9</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1051219522318" lon="10.6530691089666">
+      <name>Lago dei Pozzoni 10</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1059914444691" lon="10.6508377884484">
+      <name>Lago dei Pozzoni 11</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1060360759676" lon="10.65039790617">
+      <name>Lago dei Pozzoni 12</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1065790896387" lon="10.6498507355309">
+      <name>Lago dei Pozzoni 13</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1068543137032" lon="10.6492070053673">
+      <name>Lago dei Pozzoni 14</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1070551520182" lon="10.6482092236138">
+      <name>Lago dei Pozzoni 15</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1073006200762" lon="10.6479731892205">
+      <name>Lago dei Pozzoni 16</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1076055940195" lon="10.6471256111718">
+      <name>Lago dei Pozzoni 17</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1079849494965" lon="10.6465355251885">
+      <name>Lago dei Pozzoni 18</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1083345492912" lon="10.6466320847131">
+      <name>Lago dei Pozzoni 19</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1086023263577" lon="10.6459561680413">
+      <name>Lago dei Pozzoni 20</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1091230002631" lon="10.6462351177788">
+      <name>Lago dei Pozzoni 21</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1091973818481" lon="10.6457952355004">
+      <name>Lago dei Pozzoni 22</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1087362144031" lon="10.6441751812554">
+      <name>Lago dei Pozzoni 23</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1083519725283" lon="10.6436588216166">
+      <name>Lago dei Pozzoni 24</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1083817255905" lon="10.6431223798136">
+      <name>Lago dei Pozzoni 25</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1086197495101" lon="10.6428702521662">
+      <name>Lago dei Pozzoni 26</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1090920751822" lon="10.6418992925028">
+      <name>Lago dei Pozzoni 27</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1093672866996" lon="10.6408907819132">
+      <name>Lago dei Pozzoni 28</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1092817481319" lon="10.6407244849543">
+      <name>Lago dei Pozzoni 29</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1093375341694" lon="10.640499179397">
+      <name>Lago dei Pozzoni 30</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.10948629666" lon="10.6404616284708">
+      <name>Lago dei Pozzoni 31</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1093672866996" lon="10.6400002885202">
+      <name>Lago dei Pozzoni 32</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1095867111141" lon="10.6397374320368">
+      <name>Lago dei Pozzoni 33</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1094602632531" lon="10.6390829730372">
+      <name>Lago dei Pozzoni 34</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1096610920734" lon="10.6384767937998">
+      <name>Lago dei Pozzoni 35</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1096648111187" lon="10.6370176720957">
+      <name>Lago dei Pozzoni 36</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.109333815102" lon="10.6358857798914">
+      <name>Lago dei Pozzoni 37</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.108370568194" lon="10.6366153407435">
+      <name>Lago dei Pozzoni 38</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1076825243823" lon="10.6360306191782">
+      <name>Lago dei Pozzoni 39</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1070837333189" lon="10.6351776767115">
+      <name>Lago dei Pozzoni 40</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1061204470901" lon="10.6347807097773">
+      <name>Lago dei Pozzoni 41</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.105592306183" lon="10.6342335391382">
+      <name>Lago dei Pozzoni 42</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1053803045366" lon="10.6343032765726">
+      <name>Lago dei Pozzoni 43</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1052741946325" lon="10.6339219083733">
+      <name>Lago dei Pozzoni 44</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1053448620746" lon="10.6338038911767">
+      <name>Lago dei Pozzoni 45</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1048762236617" lon="10.6336483230538">
+      <name>Lago dei Pozzoni 46</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1051142627185" lon="10.6329455842919">
+      <name>Lago dei Pozzoni 47</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1052890719962" lon="10.6328007450051">
+      <name>Lago dei Pozzoni 48</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1052072464459" lon="10.6327149143166">
+      <name>Lago dei Pozzoni 49</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1053262653881" lon="10.632607625956">
+      <name>Lago dei Pozzoni 50</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1051365788274" lon="10.6323608627266">
+      <name>Lago dei Pozzoni 51</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1060292157746" lon="10.6319692602105">
+      <name>Lago dei Pozzoni 52</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1060626893789" lon="10.6316903104729">
+      <name>Lago dei Pozzoni 53</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1058878825544" lon="10.6314167251534">
+      <name>Lago dei Pozzoni 54</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1062746884011" lon="10.6313738098092">
+      <name>Lago dei Pozzoni 55</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1065015636445" lon="10.6310465803094">
+      <name>Lago dei Pozzoni 56</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1064308976852" lon="10.630794452662">
+      <name>Lago dei Pozzoni 57</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1071598684914" lon="10.6304189433999">
+      <name>Lago dei Pozzoni 58</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1074164936749" lon="10.6301185359902">
+      <name>Lago dei Pozzoni 59</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1075801380956" lon="10.6296250095315">
+      <name>Lago dei Pozzoni 60</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1075057543282" lon="10.6295016279168">
+      <name>Lago dei Pozzoni 61</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1073458288885" lon="10.629549907679">
+      <name>Lago dei Pozzoni 62</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1072379719346" lon="10.6292977800316">
+      <name>Lago dei Pozzoni 63</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1072528487684" lon="10.6287720670647">
+      <name>Lago dei Pozzoni 64</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1077289053292" lon="10.6277528276391">
+      <name>Lago dei Pozzoni 65</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1076359258553" lon="10.6274148693032">
+      <name>Lago dei Pozzoni 66</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1078665146629" lon="10.627194928164">
+      <name>Lago dei Pozzoni 67</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1078590763293" lon="10.6267389526314">
+      <name>Lago dei Pozzoni 68</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1075541037885" lon="10.6265297403283">
+      <name>Lago dei Pozzoni 69</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.107245410352" lon="10.6260684003777">
+      <name>Lago dei Pozzoni 70</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1077884121102" lon="10.6259128322548">
+      <name>Lago dei Pozzoni 71</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1079408979434" lon="10.6261756887383">
+      <name>Lago dei Pozzoni 72</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1081566088894" lon="10.6257036199517">
+      <name>Lago dei Pozzoni 73</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1086586914428" lon="10.6251832714028">
+      <name>Lago dei Pozzoni 74</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1088372085819" lon="10.6252583732552">
+      <name>Lago dei Pozzoni 75</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1098859850979" lon="10.6243196001">
+      <name>Lago dei Pozzoni 76</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1100087129604" lon="10.6240352859444">
+      <name>Lago dei Pozzoni 77</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1105888773384" lon="10.6234291067071">
+      <name>Lago dei Pozzoni 78</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1115409287253" lon="10.6241640319771">
+      <name>Lago dei Pozzoni 79</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1117938146106" lon="10.6242015829033">
+      <name>Lago dei Pozzoni 80</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1121508280026" lon="10.6235685815758">
+      <name>Lago dei Pozzoni 81</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1127904712132" lon="10.6236865987725">
+      <name>Lago dei Pozzoni 82</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1130359137302" lon="10.623418377871">
+      <name>Lago dei Pozzoni 83</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1132887927558" lon="10.6229141225762">
+      <name>Lago dei Pozzoni 84</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1136160462431" lon="10.6229570379204">
+      <name>Lago dei Pozzoni 85</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1136904217647" lon="10.6222167482323">
+      <name>Lago dei Pozzoni 86</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1141366727861" lon="10.6224098672814">
+      <name>Lago dei Pozzoni 87</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.114806042543" lon="10.6217554082818">
+      <name>Lago dei Pozzoni 88</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1155051533865" lon="10.6215837469048">
+      <name>Lago dei Pozzoni 89</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1157728956161" lon="10.6211653222985">
+      <name>Lago dei Pozzoni 90</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1159513897131" lon="10.6214013566918">
+      <name>Lago dei Pozzoni 91</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1162563157913" lon="10.6214657297082">
+      <name>Lago dei Pozzoni 92</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1160406365448" lon="10.6204250326104">
+      <name>Lago dei Pozzoni 93</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.11624887859" lon="10.6206074228234">
+      <name>Lago dei Pozzoni 94</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1161298832319" lon="10.6193199624962">
+      <name>Lago dei Pozzoni 95</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1162191297746" lon="10.6192126741356">
+      <name>Lago dei Pozzoni 96</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1167174203145" lon="10.6193521490044">
+      <name>Lago dei Pozzoni 97</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1167917916504" lon="10.6191697587914">
+      <name>Lago dei Pozzoni 98</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.117022342154" lon="10.6191161146111">
+      <name>Lago dei Pozzoni 99</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1173049511327" lon="10.618740605349">
+      <name>Lago dei Pozzoni 100</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1178776017245" lon="10.6182470788903">
+      <name>Lago dei Pozzoni 101</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1192608630191" lon="10.6181183328576">
+      <name>Lago dei Pozzoni 102</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1196773219838" lon="10.6178822984643">
+      <name>Lago dei Pozzoni 103</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1200119742281" lon="10.6172600259728">
+      <name>Lago dei Pozzoni 104</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1204358641529" lon="10.6170990934319">
+      <name>Lago dei Pozzoni 105</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1213208168183" lon="10.6163266172356">
+      <name>Lago dei Pozzoni 106</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1217521331332" lon="10.6165626516289">
+      <name>Lago dei Pozzoni 107</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1221537004601" lon="10.6164231767602">
+      <name>Lago dei Pozzoni 108</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1222726828097" lon="10.6161871423668">
+      <name>Lago dei Pozzoni 109</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1225701375595" lon="10.6164446344323">
+      <name>Lago dei Pozzoni 110</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1231883847745" lon="10.6162045840105">
+      <name>Lago dei Pozzoni 111</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1233222373858" lon="10.6151746157488">
+      <name>Lago dei Pozzoni 112</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1238204636922" lon="10.6145308855852">
+      <name>Lago dei Pozzoni 113</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1239617509292" lon="10.6147776488146">
+      <name>Lago dei Pozzoni 114</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1238650807536" lon="10.6153999213061">
+      <name>Lago dei Pozzoni 115</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1240361124873" lon="10.616108024486">
+      <name>Lago dei Pozzoni 116</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1242666326796" lon="10.6161402109942">
+      <name>Lago dei Pozzoni 117</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1240509847869" lon="10.6175135020098">
+      <name>Lago dei Pozzoni 118</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1244971519074" lon="10.618092859157">
+      <name>Lago dei Pozzoni 119</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1244450992629" lon="10.6191228274187">
+      <name>Lago dei Pozzoni 120</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1250697277512" lon="10.6200133208117">
+      <name>Lago dei Pozzoni 121</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1248540830021" lon="10.6203459147295">
+      <name>Lago dei Pozzoni 122</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1249730595198" lon="10.6205926779589">
+      <name>Lago dei Pozzoni 123</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1252258837667" lon="10.6203673724016">
+      <name>Lago dei Pozzoni 124</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1253671673992" lon="10.6206570509753">
+      <name>Lago dei Pozzoni 125</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1245194601686" lon="10.6219981554827">
+      <name>Lago dei Pozzoni 126</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1249581874691" lon="10.6232105139574">
+      <name>Lago dei Pozzoni 127</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1246756177438" lon="10.6237254980883">
+      <name>Lago dei Pozzoni 128</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.124787158598" lon="10.6241761092028">
+      <name>Lago dei Pozzoni 129</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1244227909716" lon="10.6249056700548">
+      <name>Lago dei Pozzoni 130</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1238799530993" lon="10.6248412970385">
+      <name>Lago dei Pozzoni 131</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1240212401837" lon="10.6281457785448">
+      <name>Lago dei Pozzoni 132</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1236271226754" lon="10.6284354571183">
+      <name>Lago dei Pozzoni 133</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1234263447476" lon="10.6291113737901">
+      <name>Lago dei Pozzoni 134</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1236196864689" lon="10.6309781912644">
+      <name>Lago dei Pozzoni 135</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1234932708048" lon="10.6316970232804">
+      <name>Lago dei Pozzoni 136</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1230396592693" lon="10.6321047190507">
+      <name>Lago dei Pozzoni 137</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1228909333626" lon="10.6340037230332">
+      <name>Lago dei Pozzoni 138</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1224521895988" lon="10.635409200557">
+      <name>Lago dei Pozzoni 139</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1220803701147" lon="10.6360529307206">
+      <name>Lago dei Pozzoni 140</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1223332076369" lon="10.636836135753">
+      <name>Lago dei Pozzoni 141</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1225711713038" lon="10.6367395762284">
+      <name>Lago dei Pozzoni 142</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1230099141201" lon="10.6373725775559">
+      <name>Lago dei Pozzoni 143</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1224819350492" lon="10.6389175299485">
+      <name>Lago dei Pozzoni 144</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1226604074139" lon="10.639368141063">
+      <name>Lago dei Pozzoni 145</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1224819350492" lon="10.6398616675218">
+      <name>Lago dei Pozzoni 146</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1220580608658" lon="10.6396041754563">
+      <name>Lago dei Pozzoni 147</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1206302501497" lon="10.6428120974381">
+      <name>Lago dei Pozzoni 148</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1209277137669" lon="10.6438957098802">
+      <name>Lago dei Pozzoni 149</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1204071513829" lon="10.6453441027482">
+      <name>Lago dei Pozzoni 150</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1198494005135" lon="10.6452797297319">
+      <name>Lago dei Pozzoni 151</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1190834134517" lon="10.6434665564378">
+      <name>Lago dei Pozzoni 152</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.118830561016" lon="10.6435523871263">
+      <name>Lago dei Pozzoni 153</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.118481027797" lon="10.6426940802415">
+      <name>Lago dei Pozzoni 154</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1166589570287" lon="10.6427369955857">
+      <name>Lago dei Pozzoni 155</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.115982172541" lon="10.6416426543077">
+      <name>Lago dei Pozzoni 156</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.115982172541" lon="10.6412564162095">
+      <name>Lago dei Pozzoni 157</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1149558241609" lon="10.6400655154069">
+      <name>Lago dei Pozzoni 158</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1133865154051" lon="10.6402371767839">
+      <name>Lago dei Pozzoni 159</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1131485120703" lon="10.6394754294236">
+      <name>Lago dei Pozzoni 160</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1121072353957" lon="10.6400977019151">
+      <name>Lago dei Pozzoni 161</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.1112146968733" lon="10.6395719889482">
+      <name>Lago dei Pozzoni 162</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="46.108782456041" lon="10.6440995577653">
+      <name>Lago dei Pozzoni 163</name>
+      <sym>waypoint</sym>
+    </rtept>
+  </rte>
+</gpx>

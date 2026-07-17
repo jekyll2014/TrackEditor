@@ -1,0 +1,217 @@
+<Window x:Class="TrackEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mapsui="clr-namespace:Mapsui.UI.Wpf;assembly=Mapsui.UI.Wpf"
+        xmlns:sp="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
+        Title="Track Editor" Height="900" Width="1500"
+        WindowStartupLocation="CenterScreen"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open GPX/KML/KMZ…" Click="OpenFile_Click" InputGestureText="Ctrl+O"/>
+                <MenuItem Header="Save _Active Track as GPX…" Click="SaveActive_Click"/>
+                <MenuItem Header="Save A_ll Tracks as GPX…" Click="SaveAll_Click" InputGestureText="Ctrl+S"/>
+                <Separator/>
+                <MenuItem Header="E_xit" Click="Exit_Click"/>
+            </MenuItem>
+            <MenuItem Header="_Edit">
+                <MenuItem Header="_Undo" Click="Undo_Click" InputGestureText="Ctrl+Z"/>
+                <MenuItem Header="_Redo" Click="Redo_Click" InputGestureText="Ctrl+Y"/>
+                <Separator/>
+                <MenuItem Header="_Copy Points" Click="CopyPoints_Click" InputGestureText="Ctrl+C"/>
+                <MenuItem Header="_Paste Points After Selected" Click="PastePoints_Click" InputGestureText="Ctrl+V"/>
+                <MenuItem Header="_Delete Selected Points" Click="DeletePoints_Click" InputGestureText="Del"/>
+            </MenuItem>
+            <MenuItem Header="_Track">
+                <MenuItem Header="_New Empty Track (draw mode)" Click="NewTrack_Click"/>
+                <MenuItem Header="_Split at Selected Point" Click="Split_Click"/>
+                <MenuItem Header="_Crop to Selected Range" Click="Crop_Click"/>
+                <MenuItem Header="_Delete Selected Range" Click="DeletePoints_Click"/>
+                <MenuItem Header="Si_mplify…" Click="Simplify_Click"/>
+                <Separator/>
+                <MenuItem Header="_Reverse Track" Click="Reverse_Click"/>
+                <MenuItem Header="Apply _Elevation to Track (SRTM / Online)" Click="ApplyElevation_Click"/>
+                <Separator/>
+                <MenuItem Header="_Zoom to Track" Click="ZoomToTrack_Click"/>
+                <MenuItem Header="Remove Track from _List" Click="RemoveTrack_Click"/>
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem x:Name="MenuFlags" Header="Show _Mileage Flags" IsCheckable="True" Click="FlagsToggle_Click"/>
+                <MenuItem Header="_Altitude on Profile" IsCheckable="True"
+                          IsChecked="{Binding IsChecked, ElementName=ChkAlt, Mode=TwoWay}"/>
+                <MenuItem Header="_Speed on Profile" IsCheckable="True"
+                          IsChecked="{Binding IsChecked, ElementName=ChkSpeed, Mode=TwoWay}"/>
+            </MenuItem>
+            <MenuItem Header="T_ools">
+                <MenuItem Header="_Settings…" Click="Settings_Click"/>
+                <Separator/>
+                <MenuItem Header="_Clear Tile Cache…" Click="ClearTileCache_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <ToolBarTray DockPanel.Dock="Top">
+            <ToolBar Band="0" BandIndex="0">
+                <Button Content="Open" Click="OpenFile_Click" ToolTip="Open GPX / KML / KMZ (Ctrl+O)"/>
+                <Button Content="Save" Click="SaveAll_Click" ToolTip="Save all tracks as GPX (Ctrl+S)"/>
+                <Separator/>
+                <Button x:Name="BtnUndo" Content="Undo" Click="Undo_Click" ToolTip="Ctrl+Z"/>
+                <Button x:Name="BtnRedo" Content="Redo" Click="Redo_Click" ToolTip="Ctrl+Y"/>
+                <Separator/>
+                <RadioButton x:Name="ModeView" Content="View" IsChecked="True" GroupName="Mode" Checked="Mode_Checked"
+                             ToolTip="Click a point to select it; Ctrl/Shift extend selection"/>
+                <RadioButton x:Name="ModeDraw" Content="Draw" GroupName="Mode" Checked="Mode_Checked"
+                             ToolTip="Click on map to append points to the active track; right-click removes last point"/>
+                <RadioButton x:Name="ModeInsert" Content="Insert" GroupName="Mode" Checked="Mode_Checked"
+                             ToolTip="Click on map to insert a point after the selected point"/>
+                <Separator/>
+                <Button Content="New track" Click="NewTrack_Click" ToolTip="Create empty track and switch to Draw mode"/>
+                <Button Content="Del last" Click="DeleteLast_Click" ToolTip="Delete last point of active track (Draw mode helper)"/>
+                <Separator/>
+                <Button Content="Split" Click="Split_Click" ToolTip="Split track at the selected point"/>
+                <Button Content="Crop" Click="Crop_Click" ToolTip="Keep only the selected range, trim the rest"/>
+                <Button Content="Del pts" Click="DeletePoints_Click" ToolTip="Delete selected points (Del)"/>
+                <Separator/>
+                <TextBlock Text=" Tol, m: " VerticalAlignment="Center"/>
+                <TextBox x:Name="TolBox" Width="40" Text="10" VerticalContentAlignment="Center"/>
+                <Button Content="Simplify" Click="Simplify_Click" ToolTip="Douglas-Peucker simplify with tolerance in meters"/>
+                <Separator/>
+                <Button Content="Copy" Click="CopyPoints_Click" ToolTip="Copy selected points (Ctrl+C)"/>
+                <Button Content="Paste" Click="PastePoints_Click" ToolTip="Paste after selected point (Ctrl+V)"/>
+                <Separator/>
+                <CheckBox x:Name="FlagsCheck" Content="Flags" Click="FlagsToggle_Click" VerticalAlignment="Center"
+                          ToolTip="Show mileage/time flags along the track"/>
+                <ComboBox x:Name="FlagContent" Width="110" SelectedIndex="0" SelectionChanged="FlagContent_Changed">
+                    <ComboBoxItem Content="Distance"/>
+                    <ComboBoxItem Content="Time"/>
+                    <ComboBoxItem Content="Distance + time"/>
+                </ComboBox>
+            </ToolBar>
+        </ToolBarTray>
+
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBarItem><TextBlock x:Name="StatusMode" Text="Mode: View"/></StatusBarItem>
+            <Separator/>
+            <StatusBarItem><TextBlock x:Name="StatusCoords" Text=""/></StatusBarItem>
+            <Separator/>
+            <StatusBarItem><TextBlock x:Name="StatusInfo" Text="Open a GPX/KML/KMZ file to start"/></StatusBarItem>
+        </StatusBar>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="380"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ===== left panel ===== -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="120"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="Tracks" FontWeight="Bold" Margin="6,6,6,2"/>
+                <ListBox x:Name="TracksList" Grid.Row="1" Margin="6,0,6,4"
+                         SelectionChanged="TracksList_SelectionChanged"
+                         MouseDoubleClick="TracksList_MouseDoubleClick"
+                         ToolTip="Double-click a track to fit it in the map; right-click for more">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <StackPanel.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Zoom to Track" Click="CtxZoomTrack_Click"/>
+                                        <MenuItem Header="Re-evaluate Elevation (SRTM / Online)" Click="CtxReevalElevation_Click"/>
+                                        <MenuItem Header="Remove from List" Click="CtxRemoveTrack_Click"/>
+                                    </ContextMenu>
+                                </StackPanel.ContextMenu>
+                                <CheckBox IsChecked="{Binding Visible, Mode=TwoWay}" Click="TrackVisible_Click" VerticalAlignment="Center"/>
+                                <Rectangle Width="14" Height="14" Fill="{Binding Swatch}" Margin="4,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="6,0,6,4">
+                    <TextBlock Text="Color:" VerticalAlignment="Center"/>
+                    <ComboBox x:Name="ColorCombo" Width="90" Margin="4,0" SelectionChanged="ColorCombo_Changed"/>
+                    <TextBlock Text="Width:" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    <Slider x:Name="WidthSlider" Width="90" Minimum="1" Maximum="10" Value="3" Margin="4,0"
+                            VerticalAlignment="Center" ValueChanged="WidthSlider_Changed"/>
+                    <TextBlock x:Name="WidthLabel" Text="3" VerticalAlignment="Center" Width="18"/>
+                </StackPanel>
+
+                <DataGrid x:Name="PointsGrid" Grid.Row="3" Margin="6,0,6,4"
+                          AutoGenerateColumns="False" IsReadOnly="True"
+                          SelectionMode="Extended" SelectionUnit="FullRow"
+                          EnableRowVirtualization="True"
+                          VirtualizingPanel.VirtualizationMode="Recycling"
+                          HeadersVisibility="Column"
+                          SelectionChanged="PointsGrid_SelectionChanged">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="#" Binding="{Binding Index}" Width="46"/>
+                        <DataGridTextColumn Header="Lat" Binding="{Binding LatStr}" Width="76"/>
+                        <DataGridTextColumn Header="Lon" Binding="{Binding LonStr}" Width="76"/>
+                        <DataGridTextColumn Header="Ele, m" Binding="{Binding EleStr}" Width="52"/>
+                        <DataGridTextColumn Header="Time" Binding="{Binding TimeStr}" Width="66"/>
+                        <DataGridTextColumn Header="Km" Binding="{Binding DistStr}" Width="54"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel Grid.Row="4" Margin="6,0,6,6">
+                    <Expander Header="Statistics" IsExpanded="True">
+                        <TextBlock x:Name="StatsText" FontFamily="Consolas" FontSize="12" Margin="4" Text="—"/>
+                    </Expander>
+                    <Expander Header="Selection statistics" IsExpanded="True" Margin="0,4,0,0">
+                        <TextBlock x:Name="SelStatsText" FontFamily="Consolas" FontSize="12" Margin="4"
+                                   Text="Select 2+ points"/>
+                    </Expander>
+                </StackPanel>
+            </Grid>
+
+            <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#DDD"/>
+
+            <!-- ===== map + plots ===== -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="5"/>
+                    <RowDefinition x:Name="PlotRow" Height="230"/>
+                </Grid.RowDefinitions>
+
+                <mapsui:MapControl x:Name="MapCtrl" Grid.Row="0"
+                                   MouseMove="MapCtrl_MouseMove"
+                                   MouseLeave="MapCtrl_MouseLeave"
+                                   PreviewMouseLeftButtonDown="MapCtrl_PreviewMouseLeftButtonDown"
+                                   PreviewMouseLeftButtonUp="MapCtrl_PreviewMouseLeftButtonUp"
+                                   PreviewMouseRightButtonUp="MapCtrl_PreviewMouseRightButtonUp"/>
+
+                <Popup x:Name="HoverPopup" Placement="Relative" PlacementTarget="{Binding ElementName=MapCtrl}"
+                       AllowsTransparency="True" IsHitTestVisible="False">
+                    <Border Background="#F2FFFDE7" BorderBrush="#888" BorderThickness="1" CornerRadius="3" Padding="6,4">
+                        <TextBlock x:Name="HoverText" FontSize="12"/>
+                    </Border>
+                </Popup>
+
+                <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#DDD"/>
+
+                <DockPanel Grid.Row="2">
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="8,2,8,0">
+                        <TextBlock Text="Profile:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <CheckBox x:Name="ChkAlt" Content="Altitude" IsChecked="True" VerticalAlignment="Center"
+                                  Margin="0,0,12,0" Checked="PlotSeriesToggle" Unchecked="PlotSeriesToggle"/>
+                        <CheckBox x:Name="ChkSpeed" Content="Speed" IsChecked="True" VerticalAlignment="Center"
+                                  Checked="PlotSeriesToggle" Unchecked="PlotSeriesToggle"/>
+                    </StackPanel>
+                    <sp:WpfPlot x:Name="ProfilePlot" MouseLeftButtonDown="ProfilePlot_MouseLeftButtonDown"
+                                MouseMove="ProfilePlot_MouseMove" MouseLeave="Plot_MouseLeave"/>
+                </DockPanel>
+            </Grid>
+        </Grid>
+    </DockPanel>
+</Window>

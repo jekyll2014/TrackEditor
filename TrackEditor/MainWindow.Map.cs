@@ -1,0 +1,452 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Input;
+using TrackEditor.Models;
+using TrackEditor.Services;
+
+namespace TrackEditor;
+
+/// <summary>Map mouse interaction, hover popup, mileage flags and the bottom plots.</summary>
+public partial class MainWindow
+{
+    private System.Windows.Point _mouseDownPos;
+    private bool _leftDown;
+    private int _hoverIdx = -1;
+    private (double Cx, double Cy, double Res) _lastViewport;
+
+    private ScottPlot.Plottables.VerticalLine? _marker; // selection marker on the profile plot
+    private ScottPlot.Plottables.VerticalLine? _hover;  // hover marker on the profile plot
+
+    // ======================= hover (map <-> plots, both directions) =======================
+
+    /// <summary>Central hover state: highlights the point on the map AND on both plots. -1 clears.</summary>
+    private void SetHoverPoint(int idx)
+    {
+        if (idx == _hoverIdx) return;
+        _hoverIdx = idx;
+        bool valid = idx >= 0 && _active is not null && idx < _active.Points.Count;
+        _mapMgr.SetHover(valid ? _active!.Points[idx] : null);
+        double x = valid && idx < _cumDist.Length ? _cumDist[idx] / 1000 : double.NaN;
+        _hover = UpdateHoverLine(ProfilePlot, _hover, x);
+    }
+
+    private static ScottPlot.Plottables.VerticalLine? UpdateHoverLine(
+        ScottPlot.WPF.WpfPlot plot, ScottPlot.Plottables.VerticalLine? line, double x)
+    {
+        if (double.IsNaN(x))
+        {
+            if (line is not null)
+            {
+                plot.Plot.Remove(line);
+                plot.Refresh();
+            }
+            return null;
+        }
+        if (line is null)
+        {
+            line = plot.Plot.Add.VerticalLine(x);
+            line.Color = ScottPlot.Colors.SteelBlue;
+            line.LineWidth = 1;
+        }
+        else line.X = x;
+        plot.Refresh();
+        return line;
+    }
+
+    private void ShowHoverPopup(UIElement target, System.Windows.Point pos, int idx)
+    {
+        HoverText.Text = BuildPointInfo(idx);
+        HoverPopup.PlacementTarget = target;
+        HoverPopup.HorizontalOffset = pos.X + 16;
+        HoverPopup.VerticalOffset = pos.Y + 16;
+        HoverPopup.IsOpen = true;
+    }
+
+    // ======================= mouse on map =======================
+
+    private void MapCtrl_MouseMove(object sender, MouseEventArgs e)
+    {
+        var pos = e.GetPosition(MapCtrl);
+        var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
+        StatusCoords.Text = $"{lat:F5}, {lon:F5}";
+
+        if (_active is null || _active.Points.Count == 0)
+        {
+            HideHover();
+            return;
+        }
+
+        int idx = _mapMgr.FindNearestPointIndex(_active, pos.X, pos.Y, 10);
+        SetHoverPoint(idx);
+
+        if (idx >= 0)
+            ShowHoverPopup(MapCtrl, pos, idx);
+        else
+            HoverPopup.IsOpen = false;
+    }
+
+    private void MapCtrl_MouseLeave(object sender, MouseEventArgs e) => HideHover();
+
+    private void HideHover()
+    {
+        HoverPopup.IsOpen = false;
+        SetHoverPoint(-1);
+    }
+
+    private string BuildPointInfo(int idx)
+    {
+        var p = _active!.Points[idx];
+        var sb = new StringBuilder();
+        sb.AppendLine($"#{idx} of {_active.Points.Count - 1}");
+        if (p.Time is DateTime t)
+        {
+            sb.Append($"Time: {t.ToLocalTime():HH:mm:ss}");
+            if (_active.Points[0].Time is DateTime t0 && t >= t0)
+                sb.Append($"  (+{FmtSpan(t - t0)})");
+            sb.AppendLine();
+        }
+        double toEnd = _cumDist[^1] - _cumDist[idx];
+        sb.AppendLine($"From start: {_cumDist[idx] / 1000:F2} km   To end: {toEnd / 1000:F2} km");
+        if (p.Ele is double ele) sb.AppendLine($"Ele (track): {ele:F0} m");
+        if (SrtmActive && _srtm.GetElevation(p.Lat, p.Lon) is double srtmEle) sb.AppendLine($"Ele (SRTM): {srtmEle:F0} m");
+        if (idx < _speeds.Length && _speeds[idx] is double v) sb.AppendLine($"Speed: {v * 3.6:F1} km/h");
+        return sb.ToString().TrimEnd();
+    }
+
+    private static string FmtSpan(TimeSpan t) => $"{(int)t.TotalHours}:{t.Minutes:D2}:{t.Seconds:D2}";
+
+    private void MapCtrl_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _leftDown = true;
+        _mouseDownPos = e.GetPosition(MapCtrl);
+    }
+
+    private void MapCtrl_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_leftDown) return;
+        _leftDown = false;
+        var pos = e.GetPosition(MapCtrl);
+        if (Math.Abs(pos.X - _mouseDownPos.X) + Math.Abs(pos.Y - _mouseDownPos.Y) > 5) return; // it was a pan
+        HandleMapClick(pos);
+    }
+
+    private void MapCtrl_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_mode == EditMode.Draw && _active is not null && _active.Points.Count > 0)
+        {
+            DeleteLast_Click(sender, e);
+            e.Handled = true;
+        }
+    }
+
+    private void HandleMapClick(System.Windows.Point pos)
+    {
+        bool ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+        bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+
+        switch (_mode)
+        {
+            case EditMode.Draw:
+            {
+                if (_active is null)
+                {
+                    NewTrack_Click(this, new RoutedEventArgs());
+                    if (_active is null) return;
+                }
+                var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
+                _doc.Snapshot(ActiveIndex());
+                var p = new TrackPoint { Lat = lat, Lon = lon };
+                if (SrtmActive && _srtm.GetElevation(lat, lon) is double ele) { p.Ele = ele; _active.ElevationEstimated = true; }
+                _active.Points.Add(p);
+                RefreshAll();
+                StatusInfo.Text = $"Added point {_active.Points.Count - 1} ({lat:F5}, {lon:F5})";
+                break;
+            }
+            case EditMode.Insert:
+            {
+                if (_active is null) return;
+                var sel = SelectedIndices();
+                if (sel.Count == 0)
+                {
+                    StatusInfo.Text = "Insert: first select the point after which to insert (list or map)";
+                    return;
+                }
+                int anchor = sel[^1];
+                var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
+                _doc.Snapshot(ActiveIndex());
+                var p = new TrackPoint { Lat = lat, Lon = lon };
+                if (SrtmActive && _srtm.GetElevation(lat, lon) is double ele) { p.Ele = ele; _active.ElevationEstimated = true; }
+                _active.Points.Insert(anchor + 1, p);
+                RefreshAll();
+                SelectPointInGrid(anchor + 1); // chain: next click inserts after the new point
+                StatusInfo.Text = $"Inserted point at index {anchor + 1}";
+                break;
+            }
+            default: // View: select point / switch active track
+            {
+                if (_active is not null && _active.Points.Count > 0)
+                {
+                    int idx = _mapMgr.FindNearestPointIndex(_active, pos.X, pos.Y, 12);
+                    if (idx >= 0)
+                    {
+                        SelectPointInGrid(idx, ctrl, shift);
+                        return;
+                    }
+                }
+                var hit = _mapMgr.FindNearestTrack(_doc.Tracks, pos.X, pos.Y, 8);
+                if (hit is not null && !ReferenceEquals(hit, _active))
+                {
+                    SetActive(hit);
+                    RefreshTracksList();
+                    RefreshPointsGrid();
+                    _mapMgr.RebuildTracks(_doc.Tracks, _active);
+                    UpdateFlags();
+                    RefreshPlots();
+                    RefreshStats();
+                    StatusInfo.Text = $"Active track: {hit.Name}";
+                }
+                break;
+            }
+        }
+    }
+
+    // ======================= mileage flags =======================
+
+    private void ViewportTimer_Tick(object? sender, EventArgs e)
+    {
+        var vp = _mapMgr.ViewportState();
+        if (vp != _lastViewport)
+        {
+            _lastViewport = vp;
+            if (FlagsCheck.IsChecked == true) UpdateFlags();
+        }
+    }
+
+    private void FlagsToggle_Click(object sender, RoutedEventArgs e)
+    {
+        bool on = ReferenceEquals(sender, MenuFlags) ? MenuFlags.IsChecked : FlagsCheck.IsChecked == true;
+        _syncingUi = true;
+        FlagsCheck.IsChecked = on;
+        MenuFlags.IsChecked = on;
+        _syncingUi = false;
+        UpdateFlags();
+    }
+
+    private void FlagContent_Changed(object sender, RoutedEventArgs e)
+    {
+        if (FlagsCheck is null) return; // during InitializeComponent
+        UpdateFlags();
+    }
+
+    /// <summary>
+    /// Rebuilds the flag layer: walks the active track in order and places a flag on every
+    /// point whose label rectangle does not overlap any already-placed one (greedy skip).
+    /// </summary>
+    private void UpdateFlags()
+    {
+        if (_mapMgr is null) return; // during InitializeComponent
+        if (FlagsCheck.IsChecked != true || _active is null || _active.Points.Count < 2)
+        {
+            _mapMgr.ClearFlags();
+            return;
+        }
+
+        int contentMode = FlagContent.SelectedIndex; // 0 dist, 1 time, 2 both
+        var pts = _active.Points;
+        var placed = new List<Rect>();
+        var flags = new List<(TrackPoint, string)>();
+        double w = MapCtrl.ActualWidth, h = MapCtrl.ActualHeight;
+        DateTime? t0 = pts[0].Time;
+
+        for (int i = 0; i < pts.Count && flags.Count < 400; i++)
+        {
+            var s = _mapMgr.WorldToScreen(pts[i]);
+            if (s is null) return; // viewport not ready
+            if (s.X < -100 || s.Y < -100 || s.X > w + 100 || s.Y > h + 100) continue;
+
+            string text = BuildFlagText(i, contentMode, t0);
+            if (text.Length == 0) continue;
+
+            double rw = 7.5 * text.Length + 16;
+            double rh = 26;
+            var rect = new Rect(s.X - rw / 2, s.Y - 14 - rh, rw, rh);
+            if (placed.Any(r => r.IntersectsWith(rect))) continue;
+
+            placed.Add(rect);
+            flags.Add((pts[i], text));
+        }
+
+        _mapMgr.SetFlags(flags);
+    }
+
+    private string BuildFlagText(int idx, int contentMode, DateTime? t0)
+    {
+        string dist = $"{_cumDist[idx] / 1000:F1} km";
+        string time = "";
+        if (_active!.Points[idx].Time is DateTime t && t0 is DateTime start && t >= start)
+            time = FmtSpan(t - start);
+
+        return contentMode switch
+        {
+            0 => dist,
+            1 => time,
+            _ => time.Length > 0 ? $"{dist} | {time}" : dist,
+        };
+    }
+
+    // ======================= plots =======================
+
+    /// <summary>Altitude (left axis) and speed (right axis) on one plot; checkboxes pick which show.</summary>
+    private void RefreshPlots()
+    {
+        var plt = ProfilePlot.Plot;
+        plt.Clear();
+        plt.Axes.Remove(ScottPlot.Edge.Right); // drop any right axis added on the previous refresh
+        _marker = null;
+        _hover = null;
+        _hoverIdx = -1;
+
+        bool showAlt = ChkAlt?.IsChecked == true;
+        bool showSpeed = ChkSpeed?.IsChecked == true;
+        // Elevation is stored on the track (filled from SRTM/online when applicable), so the plot
+        // just reads Points[i].Ele — no per-refresh DEM lookups.
+        bool eleEstimated = _active?.ElevationEstimated == true;
+        var altColor = _active is not null ? ScottPlot.Color.FromHex(_active.ColorHex) : ScottPlot.Colors.SteelBlue;
+        var spdColor = ScottPlot.Color.FromHex("#E67E22"); // distinct from the track color
+
+        bool hasAlt = false, hasSpeed = false;
+        if (_active is not null && _active.Points.Count > 1)
+        {
+            var xsE = new List<double>();
+            var ysE = new List<double>();
+            var xsS = new List<double>();
+            var ysS = new List<double>();
+            for (int i = 0; i < _active.Points.Count; i++)
+            {
+                double km = _cumDist[i] / 1000;
+                if (_active.Points[i].Ele is double ele) { xsE.Add(km); ysE.Add(ele); }
+                if (_speeds[i] is double v) { xsS.Add(km); ysS.Add(v * 3.6); }
+            }
+
+            if (showAlt && xsE.Count > 1)
+            {
+                var sc = plt.Add.Scatter(xsE.ToArray(), ysE.ToArray());
+                sc.MarkerSize = 0;
+                sc.LineWidth = 2;
+                sc.Color = altColor;
+                sc.LegendText = "Altitude";
+                sc.Axes.YAxis = plt.Axes.Left;
+                // Dashed line signals the heights are estimated (DEM/online), not recorded.
+                if (eleEstimated) sc.LinePattern = ScottPlot.LinePattern.Dashed;
+                StyleYAxis(plt.Axes.Left, eleEstimated ? "Altitude, m (est.)" : "Altitude, m", altColor);
+                hasAlt = true;
+            }
+
+            if (showSpeed && xsS.Count > 1)
+            {
+                var sc = plt.Add.Scatter(xsS.ToArray(), ysS.ToArray());
+                sc.MarkerSize = 0;
+                sc.LineWidth = 2;
+                sc.Color = spdColor;
+                sc.LegendText = "Speed";
+                // Altitude keeps the left axis; speed goes on a right axis, or on the left if alone.
+                ScottPlot.IYAxis yax = hasAlt ? plt.Axes.AddRightAxis() : plt.Axes.Left;
+                sc.Axes.YAxis = yax;
+                StyleYAxis(yax, "Speed, km/h", spdColor);
+                hasSpeed = true;
+            }
+        }
+
+        plt.Axes.Bottom.Label.Text = "km";
+        if (!hasAlt && !hasSpeed) plt.Axes.Left.Label.Text = "";
+        if (hasAlt && hasSpeed) plt.ShowLegend(ScottPlot.Alignment.UpperLeft);
+        else plt.HideLegend();
+
+        plt.Axes.AutoScale();
+        ProfilePlot.Refresh();
+    }
+
+    private static void StyleYAxis(ScottPlot.IYAxis axis, string label, ScottPlot.Color color)
+    {
+        axis.Label.Text = label;
+        axis.Label.ForeColor = color;
+        axis.TickLabelStyle.ForeColor = color;
+    }
+
+    private void UpdatePlotMarkers(int idx)
+    {
+        if (_active is null || idx < 0 || idx >= _cumDist.Length) return;
+        double x = _cumDist[idx] / 1000;
+
+        if (_marker is null)
+        {
+            _marker = ProfilePlot.Plot.Add.VerticalLine(x);
+            _marker.Color = ScottPlot.Colors.Gray;
+            _marker.LineWidth = 1;
+        }
+        else _marker.X = x;
+        ProfilePlot.Refresh();
+    }
+
+    private void ProfilePlot_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => PlotClickSelect(ProfilePlot, e);
+    private void ProfilePlot_MouseMove(object sender, MouseEventArgs e) => PlotHover(ProfilePlot, e);
+    private void Plot_MouseLeave(object sender, MouseEventArgs e) => HideHover();
+
+    private void PlotSeriesToggle(object sender, RoutedEventArgs e)
+    {
+        if (ProfilePlot is null) return; // fires during InitializeComponent before the plot exists
+        RefreshPlots();
+    }
+
+    /// <summary>Track point index under the plot cursor (nearest by distance-from-start), or -1.</summary>
+    private int PlotHitIndex(ScottPlot.WPF.WpfPlot plot, MouseEventArgs e)
+    {
+        if (_active is null || _cumDist.Length == 0) return -1;
+        var pos = e.GetPosition(plot);
+        var px = new ScottPlot.Pixel((float)(pos.X * plot.DisplayScale), (float)(pos.Y * plot.DisplayScale));
+        var coord = plot.Plot.GetCoordinates(px);
+        return NearestIndexByDistance(coord.X * 1000);
+    }
+
+    /// <summary>Binary search for the point nearest to a cumulative distance (meters).</summary>
+    private int NearestIndexByDistance(double targetM)
+    {
+        if (_cumDist.Length == 0) return -1;
+        if (_cumDist.Length == 1) return 0;
+        int lo = 0, hi = _cumDist.Length - 1;
+        while (hi - lo > 1)
+        {
+            int mid = (lo + hi) / 2;
+            if (_cumDist[mid] < targetM) lo = mid; else hi = mid;
+        }
+        return Math.Abs(_cumDist[lo] - targetM) <= Math.Abs(_cumDist[hi] - targetM) ? lo : hi;
+    }
+
+    /// <summary>
+    /// Click on a plot selects the nearest track point by distance-from-start.
+    /// Shift extends the range from the anchor; Ctrl toggles the point (same as the map/grid).
+    /// </summary>
+    private void PlotClickSelect(ScottPlot.WPF.WpfPlot plot, MouseButtonEventArgs e)
+    {
+        int idx = PlotHitIndex(plot, e);
+        if (idx < 0) return;
+        bool ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+        bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+        SelectPointInGrid(idx, ctrl, shift);
+    }
+
+    /// <summary>Hover over a plot highlights the point on the map and shows its info popup.</summary>
+    private void PlotHover(ScottPlot.WPF.WpfPlot plot, MouseEventArgs e)
+    {
+        int idx = PlotHitIndex(plot, e);
+        SetHoverPoint(idx);
+        if (idx >= 0)
+            ShowHoverPopup(plot, e.GetPosition(plot), idx);
+        else
+            HoverPopup.IsOpen = false;
+    }
+
+}
