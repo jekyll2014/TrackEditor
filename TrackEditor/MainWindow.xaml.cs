@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     private (double Lat, double Lon)? _measureA; // first click of a map measurement
     private bool _syncingUi;
     private int _paletteCursor;
+    private int _flagContent; // 0 dist, 1 time, 2 both (chosen from View → Mileage Flag Content)
 
     public MainWindow()
     {
@@ -97,6 +98,7 @@ public partial class MainWindow : Window
         _online.OpenTopoDataset = _settings.OpenTopoDataset;
         _mapMgr.SetBaseMap(_settings.BaseMap);
         _mapMgr.SetTileCacheLimit(_settings.TileCacheLimitMB);
+        _mapMgr.SetWaypointColors(_settings.WaypointLabelBackHex, _settings.WaypointLabelTextHex);
     }
 
     private void ClearTileCache_Click(object sender, RoutedEventArgs e)
@@ -208,33 +210,15 @@ public partial class MainWindow : Window
 
     private void Exit_Click(object sender, RoutedEventArgs e) => Close();
 
-    /// <summary>Adds a "Save plot image…" entry to the profile plot's right-click menu.</summary>
+    /// <summary>Adds a "Reset plot" entry to the profile plot's right-click menu. (Saving is
+    /// already covered by ScottPlot's built-in "Save Image" item, so we don't duplicate it.)</summary>
     private void SetupPlotMenu()
     {
-        ProfilePlot.Menu?.Add("Save plot image…", _ => SavePlotImage());
-    }
-
-    /// <summary>Saves the profile plot exactly as shown (current zoom, scales and axes) to a PNG.</summary>
-    private void SavePlotImage()
-    {
-        if (_active is null || _active.Points.Count < 2)
+        ProfilePlot.Menu?.Add("Reset plot (fit all)", _ =>
         {
-            StatusInfo.Text = "Nothing to export — the profile plot is empty";
-            return;
-        }
-        var dlg = new SaveFileDialog { Filter = "PNG image|*.png", FileName = "profile.png" };
-        if (dlg.ShowDialog() != true) return;
-        try
-        {
-            int w = Math.Max(200, (int)(ProfilePlot.ActualWidth * ProfilePlot.DisplayScale));
-            int h = Math.Max(150, (int)(ProfilePlot.ActualHeight * ProfilePlot.DisplayScale));
-            ProfilePlot.Plot.SavePng(dlg.FileName, w, h);
-            StatusInfo.Text = $"Saved {dlg.FileName}";
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, ex.Message, "Save Plot", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+            ProfilePlot.Plot.Axes.AutoScale();
+            ProfilePlot.Refresh();
+        });
     }
 
     private async void ExportMap_Click(object sender, RoutedEventArgs e)
@@ -322,17 +306,21 @@ public partial class MainWindow : Window
     private void TracksList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_syncingUi) return;
-        if (TracksList.SelectedItem is TrackRow row && !ReferenceEquals(row.T, _active))
-        {
-            SetActive(row.T);
-            RefreshTracksList();
-            RefreshPointsGrid();
-            _mapMgr.RebuildTracks(_doc.Tracks, _active);
-            _mapMgr.SetSelection(null, Array.Empty<int>());
-            UpdateFlags();
-            RefreshPlots();
-            RefreshStats();
-        }
+        if (TracksList.SelectedItem is TrackRow row) MakeActive(row.T);
+    }
+
+    /// <summary>Switches the active track and refreshes every view. No-op if already active.</summary>
+    private void MakeActive(Track t)
+    {
+        if (ReferenceEquals(_active, t)) return;
+        SetActive(t);
+        RefreshTracksList();
+        RefreshPointsGrid();
+        _mapMgr.RebuildTracks(_doc.Tracks, _active);
+        _mapMgr.SetSelection(null, Array.Empty<int>());
+        UpdateFlags();
+        RefreshPlots();
+        RefreshStats();
     }
 
     private void TrackVisible_Click(object sender, RoutedEventArgs e)
@@ -396,6 +384,8 @@ public partial class MainWindow : Window
                         EleStr = p.Ele is double ele ? ele.ToString("F0") : "",
                         TimeStr = p.Time is DateTime t ? t.ToLocalTime().ToString("HH:mm:ss") : "",
                         DistStr = (_cumDist[i] / 1000).ToString("F2"),
+                        NameStr = p.Name ?? "",
+                        IsWaypoint = p.IsWaypoint,
                     });
                 }
             }
@@ -421,6 +411,94 @@ public partial class MainWindow : Window
         if (PointsGrid.CurrentItem is PointRow row && row.Index >= 0 && row.Index < _active.Points.Count)
             _mapMgr.CenterOn(_active.Points[row.Index]);
     }
+
+    /// <summary>Right-clicking a grid row selects it (unless it is already part of the selection),
+    /// so the context-menu point operations act on what the user pointed at.</summary>
+    private void PointsGrid_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var dep = e.OriginalSource as DependencyObject;
+        while (dep is not null and not DataGridRow) dep = VisualTreeHelper.GetParent(dep);
+        if (dep is DataGridRow rc && rc.Item is PointRow pr && !PointsGrid.SelectedItems.Contains(pr))
+        {
+            PointsGrid.SelectedItems.Clear();
+            PointsGrid.SelectedItems.Add(pr);
+        }
+    }
+
+    /// <summary>Point-list context menu: bring the first selected point to the map centre.</summary>
+    private void CtxCenterPoint_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null) return;
+        var idx = SelectedIndices();
+        if (idx.Count > 0 && idx[0] < _active.Points.Count) _mapMgr.CenterOn(_active.Points[idx[0]]);
+    }
+
+    /// <summary>Names the single selected point, turning it into a waypoint/marker.</summary>
+    private void CtxSetWaypoint_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null) return;
+        var idx = SelectedIndices();
+        if (idx.Count != 1 || idx[0] >= _active.Points.Count)
+        {
+            StatusInfo.Text = "Waypoint: select exactly one point to name";
+            return;
+        }
+        int i = idx[0];
+        var p = _active.Points[i];
+        string? name = InputDialog.Ask(this, "Waypoint", "Waypoint name:", p.Name ?? "");
+        if (name is null || name == p.Name) return;
+        _doc.Snapshot(ActiveIndex());
+        p.Name = name;
+        AfterWaypointChange(i);
+        StatusInfo.Text = $"Waypoint “{name}” set at point {i}";
+    }
+
+    /// <summary>Clears the waypoint mark from any selected point(s).</summary>
+    private void CtxRemoveWaypoint_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null) return;
+        var idx = SelectedIndices().Where(i => i < _active.Points.Count && _active.Points[i].IsWaypoint).ToList();
+        if (idx.Count == 0)
+        {
+            StatusInfo.Text = "No waypoint on the selected point(s)";
+            return;
+        }
+        _doc.Snapshot(ActiveIndex());
+        foreach (int i in idx) _active.Points[i].Name = null;
+        AfterWaypointChange(idx[0]);
+        StatusInfo.Text = $"Removed {idx.Count} waypoint mark(s)";
+    }
+
+    /// <summary>Refresh the views affected by a waypoint edit and reselect the edited point.</summary>
+    private void AfterWaypointChange(int reselect)
+    {
+        RefreshTracksList(); // updates the '*' modified marker
+        RefreshPointsGrid();
+        _mapMgr.RebuildTracks(_doc.Tracks, _active); // draw/remove the waypoint marker on the map
+        RefreshPlots();
+        SelectPointInGrid(reselect);
+    }
+
+    // ======================= map context-menu ops =======================
+
+    private void MapFitAll_Click(object sender, RoutedEventArgs e)
+    {
+        if (_doc.Tracks.Count > 0) _mapMgr.ZoomToTracks(_doc.Tracks);
+    }
+
+    private void MapClearMeasure_Click(object sender, RoutedEventArgs e)
+    {
+        _measureA = null;
+        _mapMgr.ClearMeasure();
+        MeasureText.Text = _mode == EditMode.Measure
+            ? "Click two points on the map" : "Measure mode: click two points on the map";
+    }
+
+    // Map context-menu mode switches drive the toolbar radios (Mode_Checked does the real work).
+    private void MapModeView_Click(object sender, RoutedEventArgs e) => ModeView.IsChecked = true;
+    private void MapModeDraw_Click(object sender, RoutedEventArgs e) => ModeDraw.IsChecked = true;
+    private void MapModeInsert_Click(object sender, RoutedEventArgs e) => ModeInsert.IsChecked = true;
+    private void MapModeMeasure_Click(object sender, RoutedEventArgs e) => ModeMeasure.IsChecked = true;
 
     /// <summary>Selects a point in the grid programmatically (map click, plot click).</summary>
     private void SelectPointInGrid(int index, bool ctrl = false, bool shift = false)
@@ -523,6 +601,19 @@ public partial class MainWindow : Window
             new TrackInfoWindow(row.T) { Owner = this }.ShowDialog();
     }
 
+    /// <summary>Makes the right-clicked track active so a track-wide op runs on it; false if none.</summary>
+    private bool SelectCtxTrack(object sender)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not TrackRow row) return false;
+        MakeActive(row.T);
+        return true;
+    }
+
+    // Track-list context menu ops: activate the clicked track, then reuse the existing command.
+    private void CtxSaveTrack_Click(object sender, RoutedEventArgs e) { if (SelectCtxTrack(sender)) SaveActive_Click(sender, e); }
+    private void CtxReverse_Click(object sender, RoutedEventArgs e) { if (SelectCtxTrack(sender)) Reverse_Click(sender, e); }
+    private void CtxSimplify_Click(object sender, RoutedEventArgs e) { if (SelectCtxTrack(sender)) Simplify_Click(sender, e); }
+
     private void TracksList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (TracksList.SelectedItem is TrackRow row) _mapMgr.ZoomToTracks(new[] { row.T });
@@ -593,8 +684,14 @@ public partial class MainWindow : Window
 
     private void Simplify_Click(object sender, RoutedEventArgs e)
     {
-        if (_active is null || _active.Points.Count < 3) return;
-        if (!double.TryParse(TolBox.Text.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double tol) || tol <= 0)
+        if (_active is null || _active.Points.Count < 3)
+        {
+            StatusInfo.Text = "Simplify: need an active track with 3+ points";
+            return;
+        }
+        string? input = InputDialog.Ask(this, "Simplify Track", "Tolerance (meters):", "10");
+        if (input is null) return;
+        if (!double.TryParse(input.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double tol) || tol <= 0)
         {
             StatusInfo.Text = "Simplify: enter a positive tolerance in meters";
             return;
@@ -915,4 +1012,6 @@ public class PointRow
     public string EleStr { get; set; } = "";
     public string TimeStr { get; set; } = "";
     public string DistStr { get; set; } = "";
+    public string NameStr { get; set; } = "";
+    public bool IsWaypoint { get; set; }
 }

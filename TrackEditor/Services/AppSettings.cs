@@ -26,6 +26,11 @@ public class AppSettings
     /// <summary>Per-map tile cache size cap in MB; 0 or negative means no limit (LRU eviction above it).</summary>
     public int TileCacheLimitMB { get; set; } = 500;
 
+    /// <summary>Waypoint label background/marker colour (hex) on the map and profile plot.</summary>
+    public string WaypointLabelBackHex { get; set; } = "#6A1B9A";
+    /// <summary>Waypoint label text colour (hex) on the map and profile plot.</summary>
+    public string WaypointLabelTextHex { get; set; } = "#FFFFFF";
+
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         WriteIndented = true,

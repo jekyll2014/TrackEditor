@@ -25,6 +25,7 @@ public class MapManager : IDisposable
     private readonly MemoryLayer _lineLayer = new() { Name = "TrackLines", Style = null };
     private readonly MemoryLayer _vertexLayer = new() { Name = "TrackVertices", Style = null };
     private readonly MemoryLayer _flagLayer = new() { Name = "Flags", Style = null };
+    private readonly MemoryLayer _waypointLayer = new() { Name = "Waypoints", Style = null };
     private readonly MemoryLayer _selLayer = new() { Name = "Selection", Style = null };
     private readonly MemoryLayer _hoverLayer = new() { Name = "Hover", Style = null };
     private readonly MemoryLayer _measureLayer = new() { Name = "Measure", Style = null };
@@ -33,6 +34,8 @@ public class MapManager : IDisposable
     private BaseMapProvider _provider;
     private int _tileLimitMB;
     private int _baseMaxZoom = 19;
+    private Color _wpBack = new(106, 27, 154); // purple
+    private Color _wpText = Color.White;
 
     public MapManager(Mapsui.UI.Wpf.MapControl ctrl, BaseMapProvider provider = BaseMapProvider.OpenStreetMap, int tileLimitMB = 0)
     {
@@ -45,6 +48,7 @@ public class MapManager : IDisposable
         map.Layers.Add(_lineLayer);
         map.Layers.Add(_vertexLayer);
         map.Layers.Add(_flagLayer);
+        map.Layers.Add(_waypointLayer);
         map.Layers.Add(_selLayer);
         map.Layers.Add(_hoverLayer);
         map.Layers.Add(_measureLayer);
@@ -243,11 +247,16 @@ public class MapManager : IDisposable
     {
         var lineFeatures = new List<IFeature>();
         var vertexFeatures = new List<IFeature>();
+        var waypointFeatures = new List<IFeature>();
 
         foreach (var track in tracks.Where(t => t.Visible && t.Points.Count > 0))
         {
             bool isActive = ReferenceEquals(track, activeTrack);
             var color = ParseColor(track.ColorHex);
+
+            // Named waypoints are drawn for every visible track so key route points stay on the map.
+            foreach (var p in track.Points)
+                if (p.IsWaypoint) waypointFeatures.Add(WaypointFeature(p, p.Name!));
 
             if (track.Points.Count > 1)
             {
@@ -296,9 +305,44 @@ public class MapManager : IDisposable
 
         _lineLayer.Features = lineFeatures;
         _vertexLayer.Features = vertexFeatures;
+        _waypointLayer.Features = waypointFeatures;
         _lineLayer.DataHasChanged();
         _vertexLayer.DataHasChanged();
+        _waypointLayer.DataHasChanged();
         _ctrl.RefreshGraphics();
+    }
+
+    /// <summary>Sets the waypoint label/marker background and text colours (hex), then redraws.</summary>
+    public void SetWaypointColors(string backHex, string textHex)
+    {
+        _wpBack = ParseColor(backHex);
+        _wpText = ParseColor(textHex);
+    }
+
+    /// <summary>A named waypoint: a diamond marker with the name labelled above it (colours from settings).</summary>
+    private IFeature WaypointFeature(TrackPoint p, string name)
+    {
+        var m = ToMercator(p);
+        var f = new GeometryFeature(new NetTopologySuite.Geometries.Point(m.X, m.Y));
+        f.Styles.Add(new SymbolStyle
+        {
+            SymbolType = SymbolType.Rectangle,
+            SymbolScale = 0.45,
+            SymbolRotation = 45, // a diamond, distinct from round vertices and triangular flags
+            Fill = new Mapsui.Styles.Brush(_wpBack),
+            Outline = new Pen(Color.White, 2),
+        });
+        f.Styles.Add(new LabelStyle
+        {
+            Text = name,
+            Font = new Font { Size = 12 },
+            ForeColor = _wpText,
+            BackColor = new Mapsui.Styles.Brush(_wpBack),
+            Offset = new Offset(0, -16),
+            HorizontalAlignment = LabelStyle.HorizontalAlignmentEnum.Center,
+            VerticalAlignment = LabelStyle.VerticalAlignmentEnum.Bottom,
+        });
+        return f;
     }
 
     private static IFeature MarkerFeature(TrackPoint p, Color color, double scale)

@@ -9,7 +9,14 @@ public class TrackPoint
     public double? Ele { get; set; }
     public DateTime? Time { get; set; }
 
-    public TrackPoint Clone() => new() { Lat = Lat, Lon = Lon, Ele = Ele, Time = Time };
+    /// <summary>Optional label. A named point is a waypoint/marker highlighting a key spot on the route.</summary>
+    public string? Name { get; set; }
+
+    /// <summary>True when this point is a named waypoint/marker.</summary>
+    [JsonIgnore]
+    public bool IsWaypoint => !string.IsNullOrWhiteSpace(Name);
+
+    public TrackPoint Clone() => new() { Lat = Lat, Lon = Lon, Ele = Ele, Time = Time, Name = Name };
 }
 
 public class Track
@@ -47,6 +54,7 @@ public class Track
                 Mix(BitConverter.DoubleToInt64Bits(p.Lon));
                 Mix(BitConverter.DoubleToInt64Bits(p.Ele ?? double.NaN));
                 Mix(p.Time?.Ticks ?? 0);
+                foreach (char c in p.Name ?? "") { h ^= c; h *= 1099511628211UL; }
             }
             return h.ToString("x");
         }

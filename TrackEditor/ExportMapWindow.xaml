@@ -16,18 +16,8 @@
         <TextBlock Grid.Row="0" Text="Save the current map view as a PNG image." Margin="0,0,0,10"/>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
-            <TextBlock Text="Detail (zoom level):" VerticalAlignment="Center" Width="130"/>
+            <TextBlock Text="Detail (map scale):" VerticalAlignment="Center" Width="130"/>
             <ComboBox x:Name="CmbZoom" Width="180" SelectionChanged="Selection_Changed"/>
-        </StackPanel>
-
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
-            <TextBlock Text="Output scale:" VerticalAlignment="Center" Width="130"/>
-            <ComboBox x:Name="CmbScale" Width="180" SelectionChanged="Selection_Changed">
-                <ComboBoxItem Content="1× (native)" Tag="1"/>
-                <ComboBoxItem Content="2×" Tag="2"/>
-                <ComboBoxItem Content="3×" Tag="3"/>
-                <ComboBoxItem Content="4×" Tag="4"/>
-            </ComboBox>
         </StackPanel>
 
         <TextBlock x:Name="EstimateText" Grid.Row="3" Foreground="#666" TextWrapping="Wrap"/>

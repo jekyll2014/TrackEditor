@@ -17,6 +17,18 @@ public static class MapExporter
 
     public static double ResolutionAtZoom(int zoom) => 2 * Origin / (256.0 * Math.Pow(2, zoom));
 
+    /// <summary>Ground distance (metres) spanned by one 256px tile at the extent's centre latitude —
+    /// a human-friendly "map scale" for a zoom level, corrected for Mercator latitude stretch.</summary>
+    public static double MetersPerTile((double MinX, double MinY, double MaxX, double MaxY) e, int zoom)
+    {
+        var (_, latC) = SphericalMercator.ToLonLat((e.MinX + e.MaxX) / 2, (e.MinY + e.MaxY) / 2);
+        return ResolutionAtZoom(zoom) * 256.0 * Math.Cos(latC * Math.PI / 180.0);
+    }
+
+    /// <summary>Formats a ground distance as a short scale label, e.g. "220 m" or "1.7 km".</summary>
+    public static string ScaleLabel(double meters) =>
+        meters >= 1000 ? $"{meters / 1000:0.#} km" : $"{Math.Round(meters / 10) * 10:0} m";
+
     /// <summary>Output pixel size and tile count for an extent at a zoom level and output scale.</summary>
     public static (int W, int H, long Tiles) EstimateSize(
         (double MinX, double MinY, double MaxX, double MaxY) e, int zoom, double scale)

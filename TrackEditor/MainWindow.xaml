@@ -6,6 +6,30 @@
         Title="Track Editor" Height="900" Width="1500"
         WindowStartupLocation="CenterScreen"
         PreviewKeyDown="Window_PreviewKeyDown">
+    <Window.Resources>
+        <!-- Toolbar icons: Bootstrap Icons (MIT License) path data, viewBox 0 0 16 16. -->
+        <Geometry x:Key="IcoOpen">F1 M1 3.5A1.5 1.5 0 0 1 2.5 2h2.764c.958 0 1.76.56 2.311 1.184C7.985 3.648 8.48 4 9 4h4.5A1.5 1.5 0 0 1 15 5.5v.64c.57.265.94.876.856 1.546l-.64 5.124A2.5 2.5 0 0 1 12.733 15H3.266a2.5 2.5 0 0 1-2.481-2.19l-.64-5.124A1.5 1.5 0 0 1 1 6.14zM2 6h12v-.5a.5.5 0 0 0-.5-.5H9c-.964 0-1.71-.629-2.174-1.154C6.374 3.334 5.82 3 5.264 3H2.5a.5.5 0 0 0-.5.5zm-.367 1a.5.5 0 0 0-.496.562l.64 5.124A1.5 1.5 0 0 0 3.266 14h9.468a1.5 1.5 0 0 0 1.489-1.314l.64-5.124A.5.5 0 0 0 14.367 7z</Geometry>
+        <Geometry x:Key="IcoSave">F1 M11 2H9v3h2z M1.5 0h11.586a1.5 1.5 0 0 1 1.06.44l1.415 1.414A1.5 1.5 0 0 1 16 2.914V14.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5v-13A1.5 1.5 0 0 1 1.5 0M1 1.5v13a.5.5 0 0 0 .5.5H2v-4.5A1.5 1.5 0 0 1 3.5 9h9a1.5 1.5 0 0 1 1.5 1.5V15h.5a.5.5 0 0 0 .5-.5V2.914a.5.5 0 0 0-.146-.353l-1.415-1.415A.5.5 0 0 0 13.086 1H13v4.5A1.5 1.5 0 0 1 11.5 7h-7A1.5 1.5 0 0 1 3 5.5V1H1.5a.5.5 0 0 0-.5.5m3 4a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5V1H4zM3 15h10v-4.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5z</Geometry>
+        <Geometry x:Key="IcoUndo">F0 M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2z M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466</Geometry>
+        <Geometry x:Key="IcoRedo">F0 M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466</Geometry>
+        <Geometry x:Key="IcoView">F1 M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0</Geometry>
+        <Geometry x:Key="IcoDraw">F1 M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325</Geometry>
+        <Geometry x:Key="IcoInsert">F0 M11 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8M6.025 7.5a5 5 0 1 1 0 1H4A1.5 1.5 0 0 1 2.5 10h-1A1.5 1.5 0 0 1 0 8.5v-1A1.5 1.5 0 0 1 1.5 6h1A1.5 1.5 0 0 1 4 7.5zM11 5a.5.5 0 0 1 .5.5v2h2a.5.5 0 0 1 0 1h-2v2a.5.5 0 0 1-1 0v-2h-2a.5.5 0 0 1 0-1h2v-2A.5.5 0 0 1 11 5M1.5 7a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5z</Geometry>
+        <Geometry x:Key="IcoMeasure">F1 M1 0a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h5v-1H2v-1h4v-1H4v-1h2v-1H2v-1h4V9H4V8h2V7H2V6h4V2h1v4h1V4h1v2h1V2h1v4h1V4h1v2h1V2h1v4h1V1a1 1 0 0 0-1-1z</Geometry>
+        <Geometry x:Key="IcoNewTrack">F1 M8 6.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V11a.5.5 0 0 1-1 0V9.5H6a.5.5 0 0 1 0-1h1.5V7a.5.5 0 0 1 .5-.5 M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z</Geometry>
+        <Geometry x:Key="IcoDelete">F1 M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z</Geometry>
+        <Geometry x:Key="IcoFlag">F1 M14.778.085A.5.5 0 0 1 15 .5V8a.5.5 0 0 1-.314.464L14.5 8l.186.464-.003.001-.006.003-.023.009a12 12 0 0 1-.397.15c-.264.095-.631.223-1.047.35-.816.252-1.879.523-2.71.523-.847 0-1.548-.28-2.158-.525l-.028-.01C7.68 8.71 7.14 8.5 6.5 8.5c-.7 0-1.638.23-2.437.477A20 20 0 0 0 3 9.342V15.5a.5.5 0 0 1-1 0V.5a.5.5 0 0 1 1 0v.282c.226-.079.496-.17.79-.26C4.606.272 5.67 0 6.5 0c.84 0 1.524.277 2.121.519l.043.018C9.286.788 9.828 1 10.5 1c.7 0 1.638-.23 2.437-.477a20 20 0 0 0 1.349-.476l.019-.007.004-.002h.001M14 1.221c-.22.078-.48.167-.766.255-.81.252-1.872.523-2.734.523-.886 0-1.592-.286-2.203-.534l-.008-.003C7.662 1.21 7.139 1 6.5 1c-.669 0-1.606.229-2.415.478A21 21 0 0 0 3 1.845v6.433c.22-.078.48-.167.766-.255C4.576 7.77 5.638 7.5 6.5 7.5c.847 0 1.548.28 2.158.525l.028.01C9.32 8.29 9.86 8.5 10.5 8.5c.668 0 1.606-.229 2.415-.478A21 21 0 0 0 14 7.655V1.222z</Geometry>
+
+        <!-- Icon+label content style for toolbar controls. -->
+        <Style x:Key="ToolIcon" TargetType="Path">
+            <Setter Property="Fill" Value="#444"/>
+            <Setter Property="Width" Value="16"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="Stretch" Value="Uniform"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,5,0"/>
+        </Style>
+    </Window.Resources>
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
@@ -27,6 +51,8 @@
             </MenuItem>
             <MenuItem Header="_Track">
                 <MenuItem Header="_New Empty Track (draw mode)" Click="NewTrack_Click"/>
+                <MenuItem Header="Delete _Last Point" Click="DeleteLast_Click"/>
+                <Separator/>
                 <MenuItem Header="_Split at Selected Point" Click="Split_Click"/>
                 <MenuItem Header="_Crop to Selected Range" Click="Crop_Click"/>
                 <MenuItem Header="_Delete Selected Range" Click="DeletePoints_Click"/>
@@ -38,8 +64,27 @@
                 <MenuItem Header="_Zoom to Track" Click="ZoomToTrack_Click"/>
                 <MenuItem Header="Remove Track from _List" Click="RemoveTrack_Click"/>
             </MenuItem>
+            <MenuItem Header="_Mode">
+                <MenuItem Header="_View" IsCheckable="True"
+                          IsChecked="{Binding IsChecked, ElementName=ModeView, Mode=TwoWay}"/>
+                <MenuItem Header="_Draw" IsCheckable="True"
+                          IsChecked="{Binding IsChecked, ElementName=ModeDraw, Mode=TwoWay}"/>
+                <MenuItem Header="_Insert" IsCheckable="True"
+                          IsChecked="{Binding IsChecked, ElementName=ModeInsert, Mode=TwoWay}"/>
+                <MenuItem Header="Meas_ure" IsCheckable="True"
+                          IsChecked="{Binding IsChecked, ElementName=ModeMeasure, Mode=TwoWay}"/>
+            </MenuItem>
             <MenuItem Header="_View">
                 <MenuItem x:Name="MenuFlags" Header="Show _Mileage Flags" IsCheckable="True" Click="FlagsToggle_Click"/>
+                <MenuItem Header="Mileage Flag _Content">
+                    <MenuItem x:Name="FlagContentDist" Header="_Distance" IsCheckable="True" IsChecked="True"
+                              Tag="0" Click="FlagContentMenu_Click"/>
+                    <MenuItem x:Name="FlagContentTime" Header="_Time" IsCheckable="True"
+                              Tag="1" Click="FlagContentMenu_Click"/>
+                    <MenuItem x:Name="FlagContentBoth" Header="Distance + t_ime" IsCheckable="True"
+                              Tag="2" Click="FlagContentMenu_Click"/>
+                </MenuItem>
+                <Separator/>
                 <MenuItem Header="_Altitude on Profile" IsCheckable="True"
                           IsChecked="{Binding IsChecked, ElementName=ChkAlt, Mode=TwoWay}"/>
                 <MenuItem Header="_Speed on Profile" IsCheckable="True"
@@ -52,44 +97,84 @@
             </MenuItem>
         </Menu>
 
+        <!-- Toolbar = quick access only; every command here is also in the top menu. -->
         <ToolBarTray DockPanel.Dock="Top">
             <ToolBar Band="0" BandIndex="0">
-                <Button Content="Open" Click="OpenFile_Click" ToolTip="Open GPX / KML / KMZ (Ctrl+O)"/>
-                <Button Content="Save" Click="SaveAll_Click" ToolTip="Save all tracks as GPX (Ctrl+S)"/>
+                <Button Click="OpenFile_Click" ToolTip="Open GPX / KML / KMZ (Ctrl+O)">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource IcoOpen}" Style="{StaticResource ToolIcon}"/>
+                        <TextBlock Text="Open" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="SaveAll_Click" ToolTip="Save all tracks as GPX (Ctrl+S)">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource IcoSave}" Style="{StaticResource ToolIcon}"/>
+                        <TextBlock Text="Save" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Separator/>
-                <Button x:Name="BtnUndo" Content="Undo" Click="Undo_Click" ToolTip="Ctrl+Z"/>
-                <Button x:Name="BtnRedo" Content="Redo" Click="Redo_Click" ToolTip="Ctrl+Y"/>
+                <Button x:Name="BtnUndo" Click="Undo_Click" ToolTip="Ctrl+Z">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource IcoUndo}" Style="{StaticResource ToolIcon}"/>
+                        <TextBlock Text="Undo" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnRedo" Click="Redo_Click" ToolTip="Ctrl+Y">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource IcoRedo}" Style="{StaticResource ToolIcon}"/>
+                        <TextBlock Text="Redo" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Separator/>
-                <RadioButton x:Name="ModeView" Content="View" IsChecked="True" GroupName="Mode" Checked="Mode_Checked"
-                             ToolTip="Click a point to select it; Ctrl/Shift extend selection"/>
-                <RadioButton x:Name="ModeDraw" Content="Draw" GroupName="Mode" Checked="Mode_Checked"
-                             ToolTip="Click on map to append points to the active track; right-click removes last point"/>
-                <RadioButton x:Name="ModeInsert" Content="Insert" GroupName="Mode" Checked="Mode_Checked"
-                             ToolTip="Click on map to insert a point after the selected point"/>
-                <RadioButton x:Name="ModeMeasure" Content="Measure" GroupName="Mode" Checked="Mode_Checked"
-                             ToolTip="Click two points on the map to measure distance and elevation between them"/>
+                <RadioButton x:Name="ModeView" IsChecked="True" GroupName="Mode" Checked="Mode_Checked"
+                             ToolTip="Click a point to select it; Ctrl/Shift extend selection">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource IcoView}" Style="{StaticResource ToolIcon}"/>
+                        <TextBlock Text="View" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </RadioButton>
+                <RadioButton x:Name="ModeDraw" GroupName="Mode" Checked="Mode_Checked"
+                             ToolTip="Click on map to append points to the active track; right-click removes last point">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource IcoDraw}" Style="{StaticResource ToolIcon}"/>
+                        <TextBlock Text="Draw" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </RadioButton>
+                <RadioButton x:Name="ModeInsert" GroupName="Mode" Checked="Mode_Checked"
+                             ToolTip="Click on map to insert a point after the selected point">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource IcoInsert}" Style="{StaticResource ToolIcon}"/>
+                        <TextBlock Text="Insert" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </RadioButton>
+                <RadioButton x:Name="ModeMeasure" GroupName="Mode" Checked="Mode_Checked"
+                             ToolTip="Click two points on the map to measure distance and elevation between them">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource IcoMeasure}" Style="{StaticResource ToolIcon}"/>
+                        <TextBlock Text="Measure" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </RadioButton>
                 <Separator/>
-                <Button Content="New track" Click="NewTrack_Click" ToolTip="Create empty track and switch to Draw mode"/>
-                <Button Content="Del last" Click="DeleteLast_Click" ToolTip="Delete last point of active track (Draw mode helper)"/>
+                <Button Click="NewTrack_Click" ToolTip="Create empty track and switch to Draw mode">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource IcoNewTrack}" Style="{StaticResource ToolIcon}"/>
+                        <TextBlock Text="New track" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="DeletePoints_Click" ToolTip="Delete selected points (Del)">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource IcoDelete}" Style="{StaticResource ToolIcon}"/>
+                        <TextBlock Text="Del pts" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Separator/>
-                <Button Content="Split" Click="Split_Click" ToolTip="Split track at the selected point"/>
-                <Button Content="Crop" Click="Crop_Click" ToolTip="Keep only the selected range, trim the rest"/>
-                <Button Content="Del pts" Click="DeletePoints_Click" ToolTip="Delete selected points (Del)"/>
-                <Separator/>
-                <TextBlock Text=" Tol, m: " VerticalAlignment="Center"/>
-                <TextBox x:Name="TolBox" Width="40" Text="10" VerticalContentAlignment="Center"/>
-                <Button Content="Simplify" Click="Simplify_Click" ToolTip="Douglas-Peucker simplify with tolerance in meters"/>
-                <Separator/>
-                <Button Content="Copy" Click="CopyPoints_Click" ToolTip="Copy selected points (Ctrl+C)"/>
-                <Button Content="Paste" Click="PastePoints_Click" ToolTip="Paste after selected point (Ctrl+V)"/>
-                <Separator/>
-                <CheckBox x:Name="FlagsCheck" Content="Flags" Click="FlagsToggle_Click" VerticalAlignment="Center"
-                          ToolTip="Show mileage/time flags along the track"/>
-                <ComboBox x:Name="FlagContent" Width="110" SelectedIndex="0" SelectionChanged="FlagContent_Changed">
-                    <ComboBoxItem Content="Distance"/>
-                    <ComboBoxItem Content="Time"/>
-                    <ComboBoxItem Content="Distance + time"/>
-                </ComboBox>
+                <CheckBox x:Name="FlagsCheck" Click="FlagsToggle_Click" VerticalAlignment="Center"
+                          ToolTip="Show mileage/time flags along the track">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource IcoFlag}" Style="{StaticResource ToolIcon}"/>
+                        <TextBlock Text="Flags" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </CheckBox>
             </ToolBar>
         </ToolBarTray>
 
@@ -143,8 +228,12 @@
                                         <MenuItem Header="Rename…" Click="CtxRenameTrack_Click"/>
                                         <MenuItem Header="Track Information…" Click="CtxTrackInfo_Click"/>
                                         <Separator/>
-                                        <MenuItem Header="Zoom to Track" Click="CtxZoomTrack_Click"/>
+                                        <MenuItem Header="Save Track as GPX…" Click="CtxSaveTrack_Click"/>
+                                        <MenuItem Header="Reverse Track" Click="CtxReverse_Click"/>
+                                        <MenuItem Header="Simplify…" Click="CtxSimplify_Click"/>
                                         <MenuItem Header="Re-evaluate Elevation (SRTM / Online)" Click="CtxReevalElevation_Click"/>
+                                        <Separator/>
+                                        <MenuItem Header="Zoom to Track" Click="CtxZoomTrack_Click"/>
                                         <MenuItem Header="Remove from List" Click="CtxRemoveTrack_Click"/>
                                     </ContextMenu>
                                 </StackPanel.ContextMenu>
@@ -172,15 +261,43 @@
                           VirtualizingPanel.VirtualizationMode="Recycling"
                           HeadersVisibility="Column"
                           SelectionChanged="PointsGrid_SelectionChanged"
-                          MouseDoubleClick="PointsGrid_MouseDoubleClick">
+                          MouseDoubleClick="PointsGrid_MouseDoubleClick"
+                          PreviewMouseRightButtonDown="PointsGrid_PreviewMouseRightButtonDown">
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Copy Points" Click="CopyPoints_Click" InputGestureText="Ctrl+C"/>
+                            <MenuItem Header="Paste Points After Selected" Click="PastePoints_Click" InputGestureText="Ctrl+V"/>
+                            <MenuItem Header="Delete Selected Points" Click="DeletePoints_Click" InputGestureText="Del"/>
+                            <Separator/>
+                            <MenuItem Header="Split at Selected Point" Click="Split_Click"/>
+                            <MenuItem Header="Crop to Selected Range" Click="Crop_Click"/>
+                            <Separator/>
+                            <MenuItem Header="Set Waypoint Name…" Click="CtxSetWaypoint_Click"/>
+                            <MenuItem Header="Remove Waypoint" Click="CtxRemoveWaypoint_Click"/>
+                            <Separator/>
+                            <MenuItem Header="Center Point in Map" Click="CtxCenterPoint_Click"/>
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="#" Binding="{Binding Index}" Width="46"/>
-                        <DataGridTextColumn Header="Lat" Binding="{Binding LatStr}" Width="76"/>
-                        <DataGridTextColumn Header="Lon" Binding="{Binding LonStr}" Width="76"/>
-                        <DataGridTextColumn Header="Ele, m" Binding="{Binding EleStr}" Width="52"/>
-                        <DataGridTextColumn Header="Time" Binding="{Binding TimeStr}" Width="66"/>
-                        <DataGridTextColumn Header="Km" Binding="{Binding DistStr}" Width="54"/>
+                        <DataGridTextColumn Header="#" Binding="{Binding Index}" Width="40"/>
+                        <DataGridTextColumn Header="⚑ Waypoint" Binding="{Binding NameStr}" Width="Auto" MinWidth="70"/>
+                        <DataGridTextColumn Header="Lat" Binding="{Binding LatStr}" Width="72"/>
+                        <DataGridTextColumn Header="Lon" Binding="{Binding LonStr}" Width="72"/>
+                        <DataGridTextColumn Header="Ele, m" Binding="{Binding EleStr}" Width="50"/>
+                        <DataGridTextColumn Header="Time" Binding="{Binding TimeStr}" Width="62"/>
+                        <DataGridTextColumn Header="Km" Binding="{Binding DistStr}" Width="50"/>
                     </DataGrid.Columns>
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Style.Triggers>
+                                <!-- Highlight named waypoint rows so key points stand out in the list. -->
+                                <DataTrigger Binding="{Binding IsWaypoint}" Value="True">
+                                    <Setter Property="Background" Value="#FFF3E0"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
                 </DataGrid>
 
                 <StackPanel Grid.Row="4" Margin="6,0,6,6">
@@ -213,7 +330,25 @@
                                    MouseLeave="MapCtrl_MouseLeave"
                                    PreviewMouseLeftButtonDown="MapCtrl_PreviewMouseLeftButtonDown"
                                    PreviewMouseLeftButtonUp="MapCtrl_PreviewMouseLeftButtonUp"
-                                   PreviewMouseRightButtonUp="MapCtrl_PreviewMouseRightButtonUp"/>
+                                   PreviewMouseRightButtonUp="MapCtrl_PreviewMouseRightButtonUp">
+                    <mapsui:MapControl.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Fit All Tracks" Click="MapFitAll_Click"/>
+                            <MenuItem Header="Zoom to Active Track" Click="ZoomToTrack_Click"/>
+                            <Separator/>
+                            <MenuItem Header="Mode">
+                                <MenuItem Header="View" Click="MapModeView_Click"/>
+                                <MenuItem Header="Draw" Click="MapModeDraw_Click"/>
+                                <MenuItem Header="Insert" Click="MapModeInsert_Click"/>
+                                <MenuItem Header="Measure" Click="MapModeMeasure_Click"/>
+                            </MenuItem>
+                            <MenuItem Header="New Track (draw mode)" Click="NewTrack_Click"/>
+                            <MenuItem Header="Clear Measurement" Click="MapClearMeasure_Click"/>
+                            <Separator/>
+                            <MenuItem Header="Export Map Image…" Click="ExportMap_Click"/>
+                        </ContextMenu>
+                    </mapsui:MapControl.ContextMenu>
+                </mapsui:MapControl>
 
                 <Popup x:Name="HoverPopup" Placement="Relative" PlacementTarget="{Binding ElementName=MapCtrl}"
                        AllowsTransparency="True" IsHitTestVisible="False">

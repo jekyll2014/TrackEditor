@@ -50,6 +50,9 @@ public static class GpxIo
         if (DateTime.TryParse(ChildValue(pt, "time"), CultureInfo.InvariantCulture,
                 DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out DateTime t))
             p.Time = DateTime.SpecifyKind(t, DateTimeKind.Utc);
+        // A <name> on a trkpt/rtept marks it as a named waypoint (valid GPX wptType member).
+        string? name = ChildValue(pt, "name");
+        if (!string.IsNullOrWhiteSpace(name)) p.Name = name.Trim();
         return p;
     }
 
@@ -68,10 +71,16 @@ public static class GpxIo
                 var pt = new XElement(ns + "trkpt",
                     new XAttribute("lat", p.Lat.ToString("F7", CultureInfo.InvariantCulture)),
                     new XAttribute("lon", p.Lon.ToString("F7", CultureInfo.InvariantCulture)));
+                // GPX wptType element order: ele, time, then name — keep it so strict parsers accept it.
                 if (p.Ele is double ele)
                     pt.Add(new XElement(ns + "ele", ele.ToString("F1", CultureInfo.InvariantCulture)));
                 if (p.Time is DateTime t)
                     pt.Add(new XElement(ns + "time", t.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")));
+                if (p.IsWaypoint)
+                {
+                    pt.Add(new XElement(ns + "name", p.Name));
+                    pt.Add(new XElement(ns + "sym", "Flag"));
+                }
                 seg.Add(pt);
             }
             gpx.Add(new XElement(ns + "trk", new XElement(ns + "name", track.Name), seg));

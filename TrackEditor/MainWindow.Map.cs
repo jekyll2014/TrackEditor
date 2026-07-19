@@ -117,8 +117,27 @@ public partial class MainWindow
 
     private void MapCtrl_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        // Double-click centres the nearest point in the viewport (same as double-click in the list),
+        // and suppresses Mapsui's default zoom-in so the zoom level is preserved.
+        if (e.ClickCount == 2 && CenterNearestPoint(e.GetPosition(MapCtrl)))
+        {
+            _leftDown = false;
+            e.Handled = true;
+            return;
+        }
         _leftDown = true;
         _mouseDownPos = e.GetPosition(MapCtrl);
+    }
+
+    /// <summary>Centres the active track's nearest point (within a pixel threshold) in the map
+    /// viewport without changing zoom. Returns false if no point is close enough.</summary>
+    private bool CenterNearestPoint(System.Windows.Point pos)
+    {
+        if (_active is null || _active.Points.Count == 0) return false;
+        int idx = _mapMgr.FindNearestPointIndex(_active, pos.X, pos.Y, 20);
+        if (idx < 0) return false;
+        _mapMgr.CenterOn(_active.Points[idx]);
+        return true;
     }
 
     private void MapCtrl_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -251,9 +270,14 @@ public partial class MainWindow
         UpdateFlags();
     }
 
-    private void FlagContent_Changed(object sender, RoutedEventArgs e)
+    /// <summary>View → Mileage Flag Content radio items: pick distance / time / both.</summary>
+    private void FlagContentMenu_Click(object sender, RoutedEventArgs e)
     {
-        if (FlagsCheck is null) return; // during InitializeComponent
+        if (sender is not System.Windows.Controls.MenuItem mi) return;
+        _flagContent = int.Parse((string)mi.Tag);
+        FlagContentDist.IsChecked = _flagContent == 0;
+        FlagContentTime.IsChecked = _flagContent == 1;
+        FlagContentBoth.IsChecked = _flagContent == 2;
         UpdateFlags();
     }
 
@@ -270,7 +294,7 @@ public partial class MainWindow
             return;
         }
 
-        int contentMode = FlagContent.SelectedIndex; // 0 dist, 1 time, 2 both
+        int contentMode = _flagContent; // 0 dist, 1 time, 2 both
         var pts = _active.Points;
         var placed = new List<Rect>();
         var flags = new List<(TrackPoint, string)>();
@@ -382,7 +406,31 @@ public partial class MainWindow
         else plt.HideLegend();
 
         plt.Axes.AutoScale();
+        AddWaypointMarkers(plt);
         ProfilePlot.Refresh();
+    }
+
+    /// <summary>Draws a labelled vertical line on the profile at each named waypoint of the active track.</summary>
+    private void AddWaypointMarkers(ScottPlot.Plot plt)
+    {
+        if (_active is null) return;
+        // Colours come from settings; the label tag's background defaults to the line colour.
+        var wpBack = ScottPlot.Color.FromHex(_settings.WaypointLabelBackHex);
+        var wpText = ScottPlot.Color.FromHex(_settings.WaypointLabelTextHex);
+        for (int i = 0; i < _active.Points.Count && i < _cumDist.Length; i++)
+        {
+            if (!_active.Points[i].IsWaypoint) continue;
+            var vl = plt.Add.VerticalLine(_cumDist[i] / 1000);
+            vl.Color = wpBack;
+            vl.LineWidth = 1;
+            vl.LinePattern = ScottPlot.LinePattern.Dashed;
+            vl.Text = _active.Points[i].Name!;
+            vl.LabelOppositeAxis = true; // label rides along the top edge, clear of the x-axis ticks
+            vl.LabelStyle.FontSize = 11;
+            vl.LabelStyle.Bold = true;
+            vl.LabelStyle.ForeColor = wpText;
+            vl.LabelStyle.OffsetY = 9; // nudge down so the top of the tag isn't clipped by the frame edge
+        }
     }
 
     private static void StyleYAxis(ScottPlot.IYAxis axis, string label, ScottPlot.Color color)
@@ -407,7 +455,18 @@ public partial class MainWindow
         ProfilePlot.Refresh();
     }
 
-    private void ProfilePlot_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => PlotClickSelect(ProfilePlot, e);
+    private void ProfilePlot_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        // Double-click centres the corresponding point in the map viewport (same as the list).
+        if (e.ClickCount == 2)
+        {
+            int idx = PlotHitIndex(ProfilePlot, e);
+            if (idx >= 0 && _active is not null) _mapMgr.CenterOn(_active.Points[idx]);
+            e.Handled = true;
+            return;
+        }
+        PlotClickSelect(ProfilePlot, e);
+    }
     private void ProfilePlot_MouseMove(object sender, MouseEventArgs e) => PlotHover(ProfilePlot, e);
     private void Plot_MouseLeave(object sender, MouseEventArgs e) => HideHover();
 

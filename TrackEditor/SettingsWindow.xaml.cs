@@ -34,7 +34,49 @@ public partial class SettingsWindow : Window
         CmbBaseMap.SelectedIndex = (int)Result.BaseMap;
         TxtCacheLimit.Text = Result.TileCacheLimitMB.ToString();
 
+        TxtWpBack.Text = Result.WaypointLabelBackHex; // fires WpColor_Changed → updates previews
+        TxtWpText.Text = Result.WaypointLabelTextHex;
+
         UpdateEnabledState();
+    }
+
+    private void WpColor_Changed(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        var back = TryBrush(TxtWpBack?.Text);
+        var text = TryBrush(TxtWpText?.Text);
+        if (back is not null)
+        {
+            if (RectWpBack is not null) RectWpBack.Fill = back;
+            if (WpPreviewBorder is not null) WpPreviewBorder.Background = back;
+        }
+        if (text is not null)
+        {
+            if (RectWpText is not null) RectWpText.Fill = text;
+            if (WpPreviewText is not null) WpPreviewText.Foreground = text;
+        }
+    }
+
+    private static System.Windows.Media.Brush? TryBrush(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return null;
+        try
+        {
+            return new System.Windows.Media.SolidColorBrush(
+                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex.Trim()));
+        }
+        catch { return null; }
+    }
+
+    /// <summary>Normalises a hex colour to #RRGGBB, or returns the fallback if it can't be parsed.</summary>
+    private static string NormalizeHex(string? input, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return fallback;
+        try
+        {
+            var c = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(input.Trim());
+            return $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+        }
+        catch { return fallback; }
     }
 
     private void Srtm_Toggled(object sender, RoutedEventArgs e) => UpdateEnabledState();
@@ -68,6 +110,8 @@ public partial class SettingsWindow : Window
         Result.OpenTopoDataset = string.IsNullOrWhiteSpace(CmbDataset.Text) ? "srtm90m" : CmbDataset.Text.Trim();
         Result.BaseMap = (BaseMapProvider)Math.Max(0, CmbBaseMap.SelectedIndex);
         Result.TileCacheLimitMB = int.TryParse(TxtCacheLimit.Text, out int mb) ? mb : Result.TileCacheLimitMB;
+        Result.WaypointLabelBackHex = NormalizeHex(TxtWpBack.Text, Result.WaypointLabelBackHex);
+        Result.WaypointLabelTextHex = NormalizeHex(TxtWpText.Text, Result.WaypointLabelTextHex);
         DialogResult = true;
     }
 }
