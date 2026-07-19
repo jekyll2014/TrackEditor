@@ -1,9 +1,9 @@
 using System.IO;
 using System.IO.Compression;
 using System.Text.Json;
-using TrackEditor.Models;
+using TrackEditor.Core.Models;
 
-namespace TrackEditor.Services;
+namespace TrackEditor.Core.Services;
 
 /// <summary>
 /// Persists the open track list between runs in a standalone gzipped-JSON file
@@ -27,6 +27,23 @@ public static class SessionStore
     /// <summary>Uncompressed file written by earlier versions; still read (then replaced) for migration.</summary>
     private static string LegacyPath => Path.Combine(Dir, "session.json");
 
+    /// <summary>Reads a gzipped-JSON session from any stream (e.g. browser IndexedDB blob).</summary>
+    public static Session? Load(Stream compressed)
+    {
+        using var gz = new GZipStream(compressed, CompressionMode.Decompress);
+        using var ms = new MemoryStream();
+        gz.CopyTo(ms);
+        return JsonSerializer.Deserialize<Session>(ms.ToArray(), Opts);
+    }
+
+    /// <summary>Writes a gzipped-JSON session to any stream. Leaves <paramref name="target"/> open.</summary>
+    public static void Save(Stream target, Session session)
+    {
+        byte[] json = JsonSerializer.SerializeToUtf8Bytes(session, Opts);
+        using var gz = new GZipStream(target, CompressionLevel.Optimal, leaveOpen: true);
+        gz.Write(json, 0, json.Length);
+    }
+
     public static Session? Load()
     {
         try
@@ -34,10 +51,7 @@ public static class SessionStore
             if (File.Exists(FilePath))
             {
                 using var fs = File.OpenRead(FilePath);
-                using var gz = new GZipStream(fs, CompressionMode.Decompress);
-                using var ms = new MemoryStream();
-                gz.CopyTo(ms);
-                return JsonSerializer.Deserialize<Session>(ms.ToArray(), Opts);
+                return Load(fs);
             }
             if (File.Exists(LegacyPath)) // older uncompressed session
                 return JsonSerializer.Deserialize<Session>(File.ReadAllText(LegacyPath), Opts);
@@ -52,10 +66,8 @@ public static class SessionStore
         {
             if (session.Tracks.Count == 0) { Delete(); return; } // nothing open → no stale file
             Directory.CreateDirectory(Dir);
-            byte[] json = JsonSerializer.SerializeToUtf8Bytes(session, Opts);
             using (var fs = File.Create(FilePath))
-            using (var gz = new GZipStream(fs, CompressionLevel.Optimal))
-                gz.Write(json, 0, json.Length);
+                Save(fs, session);
             if (File.Exists(LegacyPath)) File.Delete(LegacyPath); // drop the old uncompressed file
         }
         catch { /* non-fatal: session just won't persist */ }

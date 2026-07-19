@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!-- SkiaSharp-based map image export. Referenced by the WPF app and (optionally) the server;
+       NOT by the WASM bundle. -->
+  <ItemGroup>
+    <PackageReference Include="Mapsui" Version="4.1.9" />
+    <PackageReference Include="BruTile" Version="5.0.6" />
+    <PackageReference Include="SkiaSharp" Version="2.88.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TrackEditor.Core\TrackEditor.Core.csproj" />
+  </ItemGroup>
+
+</Project>

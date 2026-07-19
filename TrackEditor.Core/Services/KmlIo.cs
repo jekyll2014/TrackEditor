@@ -1,9 +1,9 @@
 using SharpKml.Dom;
 using SharpKml.Engine;
 using System.IO;
-using TrackEditor.Models;
+using TrackEditor.Core.Models;
 
-namespace TrackEditor.Services;
+namespace TrackEditor.Core.Services;
 
 public static class KmlIo
 {
@@ -11,20 +11,26 @@ public static class KmlIo
     public static List<Track> Load(string path)
     {
         using var fs = File.OpenRead(path);
+        return Load(fs, path.EndsWith(".kmz", StringComparison.OrdinalIgnoreCase),
+                    Path.GetFileNameWithoutExtension(path));
+    }
+
+    /// <summary>Stream-based load (browser upload / any source). Set <paramref name="isKmz"/> for zipped KMZ input.</summary>
+    public static List<Track> Load(Stream stream, bool isKmz, string baseName = "Track")
+    {
         KmlFile kml;
-        if (path.EndsWith(".kmz", StringComparison.OrdinalIgnoreCase))
+        if (isKmz)
         {
-            using var kmz = KmzFile.Open(fs);
+            using var kmz = KmzFile.Open(stream);
             kml = kmz.GetDefaultKmlFile()
                   ?? throw new InvalidDataException("KMZ contains no KML document.");
         }
         else
         {
-            kml = KmlFile.Load(fs);
+            kml = KmlFile.Load(stream);
         }
 
         var tracks = new List<Track>();
-        string baseName = Path.GetFileNameWithoutExtension(path);
         if (kml.Root is null) return tracks;
 
         foreach (var pm in kml.Root.Flatten().OfType<Placemark>())

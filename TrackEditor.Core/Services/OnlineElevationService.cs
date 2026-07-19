@@ -3,7 +3,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 
-namespace TrackEditor.Services;
+namespace TrackEditor.Core.Services;
 
 /// <summary>
 /// Fetches elevations from a public web API (OpenTopoData or Open-Elevation) in batches.

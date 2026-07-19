@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace TrackEditor.Models;
+namespace TrackEditor.Core.Models;
 
 public class TrackPoint
 {

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!-- UI-agnostic core shared by the WPF app and the Blazor WASM app. No WPF/Mapsui/Skia. -->
+  <ItemGroup>
+    <PackageReference Include="SharpKml.Core" Version="6.1.0" />
+  </ItemGroup>
+
+</Project>

@@ -13,8 +13,12 @@
     <PackageReference Include="Mapsui.Wpf" Version="4.1.9" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10" />
     <PackageReference Include="ScottPlot.WPF" Version="5.0.47" />
-    <PackageReference Include="SharpKml.Core" Version="6.1.0" />
     <PackageReference Include="SkiaSharp" Version="2.88.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TrackEditor.Core\TrackEditor.Core.csproj" />
+    <ProjectReference Include="..\TrackEditor.Core.Skia\TrackEditor.Core.Skia.csproj" />
   </ItemGroup>
 
 </Project>

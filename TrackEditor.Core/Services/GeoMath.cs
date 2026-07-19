@@ -1,6 +1,6 @@
-using TrackEditor.Models;
+using TrackEditor.Core.Models;
 
-namespace TrackEditor.Services;
+namespace TrackEditor.Core.Services;
 
 public static class GeoMath
 {

@@ -2,18 +2,24 @@ using System.Globalization;
 using System.IO;
 using System.Xml;
 using System.Xml.Linq;
-using TrackEditor.Models;
+using TrackEditor.Core.Models;
 
-namespace TrackEditor.Services;
+namespace TrackEditor.Core.Services;
 
 public static class GpxIo
 {
     /// <summary>Loads all &lt;trk&gt; (segments joined) and &lt;rte&gt; elements. Namespace-agnostic (GPX 1.0/1.1).</summary>
     public static List<Track> Load(string path)
     {
-        var doc = XDocument.Load(path);
+        using var fs = File.OpenRead(path);
+        return Load(fs, Path.GetFileNameWithoutExtension(path));
+    }
+
+    /// <summary>Stream-based load (browser upload / any source). <paramref name="baseName"/> names tracks that lack a &lt;name&gt;.</summary>
+    public static List<Track> Load(Stream stream, string baseName = "Track")
+    {
+        var doc = XDocument.Load(stream);
         var tracks = new List<Track>();
-        string baseName = Path.GetFileNameWithoutExtension(path);
 
         foreach (var trk in doc.Descendants().Where(e => e.Name.LocalName == "trk"))
         {
@@ -58,6 +64,19 @@ public static class GpxIo
 
     public static void Save(string path, IEnumerable<Track> tracks)
     {
+        using var writer = XmlWriter.Create(path, new XmlWriterSettings { Indent = true });
+        Write(writer, tracks);
+    }
+
+    /// <summary>Stream-based save (browser download / any sink).</summary>
+    public static void Save(Stream stream, IEnumerable<Track> tracks)
+    {
+        using var writer = XmlWriter.Create(stream, new XmlWriterSettings { Indent = true });
+        Write(writer, tracks);
+    }
+
+    private static void Write(XmlWriter writer, IEnumerable<Track> tracks)
+    {
         XNamespace ns = "http://www.topografix.com/GPX/1/1";
         var gpx = new XElement(ns + "gpx",
             new XAttribute("version", "1.1"),
@@ -86,8 +105,6 @@ public static class GpxIo
             gpx.Add(new XElement(ns + "trk", new XElement(ns + "name", track.Name), seg));
         }
 
-        var settings = new XmlWriterSettings { Indent = true };
-        using var writer = XmlWriter.Create(path, settings);
         new XDocument(gpx).Save(writer);
     }
 }

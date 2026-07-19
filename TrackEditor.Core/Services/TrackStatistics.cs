@@ -1,7 +1,7 @@
 using System.Text;
-using TrackEditor.Models;
+using TrackEditor.Core.Models;
 
-namespace TrackEditor.Services;
+namespace TrackEditor.Core.Services;
 
 public class TrackStats
 {

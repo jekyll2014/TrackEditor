@@ -1,8 +1,8 @@
 using System.IO;
 using System.Text;
 using System.Windows;
-using TrackEditor.Models;
-using TrackEditor.Services;
+using TrackEditor.Core.Models;
+using TrackEditor.Core.Services;
 
 namespace TrackEditor;
 

@@ -2,7 +2,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 
-namespace TrackEditor.Services;
+namespace TrackEditor.Core.Services;
 
 /// <summary>
 /// Reads SRTM .hgt tiles (SRTM1 3601x3601 or SRTM3 1201x1201, big-endian int16)

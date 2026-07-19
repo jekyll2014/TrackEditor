@@ -10,7 +10,8 @@ using Mapsui.Styles;
 using Mapsui.Tiling.Layers;
 using NetTopologySuite.Geometries;
 using System.IO;
-using TrackEditor.Models;
+using TrackEditor.Core.Models;
+using TrackEditor.Core.Services;
 using Color = Mapsui.Styles.Color;
 
 namespace TrackEditor.Services;

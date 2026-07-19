@@ -1,7 +1,8 @@
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
-using TrackEditor.Models;
+using TrackEditor.Core.Models;
+using TrackEditor.Core.Services;
 using TrackEditor.Services;
 
 namespace TrackEditor;

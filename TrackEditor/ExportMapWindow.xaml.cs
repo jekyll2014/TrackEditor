@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
-using TrackEditor.Services;
+using TrackEditor.Core.Models;
+using TrackEditor.Core.Skia;
 
 namespace TrackEditor;
 

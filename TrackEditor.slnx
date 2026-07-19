@@ -1,4 +1,6 @@
 <Solution>
+  <Project Path="TrackEditor.Core/TrackEditor.Core.csproj" />
+  <Project Path="TrackEditor.Core.Skia/TrackEditor.Core.Skia.csproj" />
   <Project Path="TrackEditor.ParseTest/TrackEditor.ParseTest.csproj" />
   <Project Path="TrackEditor/TrackEditor.csproj" />
 </Solution>

@@ -2,9 +2,9 @@ using BruTile;
 using Mapsui.Projections;
 using SkiaSharp;
 using System.IO;
-using TrackEditor.Models;
+using TrackEditor.Core.Models;
 
-namespace TrackEditor.Services;
+namespace TrackEditor.Core.Skia;
 
 /// <summary>
 /// Renders a map region to a PNG by fetching basemap tiles at a chosen zoom level and drawing the

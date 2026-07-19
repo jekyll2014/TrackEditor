@@ -7,7 +7,9 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
-using TrackEditor.Models;
+using TrackEditor.Core.Models;
+using TrackEditor.Core.Services;
+using TrackEditor.Core.Skia;
 using TrackEditor.Services;
 
 namespace TrackEditor;
