@@ -64,44 +64,47 @@ public class MapManager : IDisposable
         });
     }
 
-    /// <summary>Draws the measurement overlay: endpoint markers plus the A→B line when B is set.</summary>
-    public void SetMeasure((double Lat, double Lon)? a, (double Lat, double Lon)? b)
+    /// <summary>Draws the measurement overlay: a marker per clicked point plus the dashed path joining them.</summary>
+    public void SetMeasure(IReadOnlyList<(double Lat, double Lon)> pts)
     {
         var features = new List<IFeature>();
         var color = new Color(233, 30, 99); // magenta, distinct from tracks/selection
 
-        if (a is not null && b is not null)
+        if (pts.Count >= 2)
         {
-            var (ax, ay) = SphericalMercator.FromLonLat(a.Value.Lon, a.Value.Lat);
-            var (bx, by) = SphericalMercator.FromLonLat(b.Value.Lon, b.Value.Lat);
-            var lf = new GeometryFeature(new LineString(new[] { new Coordinate(ax, ay), new Coordinate(bx, by) }));
+            var coords = pts.Select(p =>
+            {
+                var (x, y) = SphericalMercator.FromLonLat(p.Lon, p.Lat);
+                return new Coordinate(x, y);
+            }).ToArray();
+            var lf = new GeometryFeature(new LineString(coords));
             lf.Styles.Add(new VectorStyle
             {
                 Line = new Pen(color, 3) { PenStyle = PenStyle.Dash, PenStrokeCap = PenStrokeCap.Round },
             });
             features.Add(lf);
         }
-        foreach (var p in new[] { a, b })
-            if (p is not null)
+
+        foreach (var p in pts)
+        {
+            var (x, y) = SphericalMercator.FromLonLat(p.Lon, p.Lat);
+            var f = new GeometryFeature(new NetTopologySuite.Geometries.Point(x, y));
+            f.Styles.Add(new SymbolStyle
             {
-                var (x, y) = SphericalMercator.FromLonLat(p.Value.Lon, p.Value.Lat);
-                var f = new GeometryFeature(new NetTopologySuite.Geometries.Point(x, y));
-                f.Styles.Add(new SymbolStyle
-                {
-                    SymbolType = SymbolType.Ellipse,
-                    SymbolScale = 0.35,
-                    Fill = new Mapsui.Styles.Brush(color),
-                    Outline = new Pen(Color.White, 2),
-                });
-                features.Add(f);
-            }
+                SymbolType = SymbolType.Ellipse,
+                SymbolScale = 0.35,
+                Fill = new Mapsui.Styles.Brush(color),
+                Outline = new Pen(Color.White, 2),
+            });
+            features.Add(f);
+        }
 
         _measureLayer.Features = features;
         _measureLayer.DataHasChanged();
         _ctrl.RefreshGraphics();
     }
 
-    public void ClearMeasure() => SetMeasure(null, null);
+    public void ClearMeasure() => SetMeasure(Array.Empty<(double, double)>());
 
     /// <summary>Recenters the viewport on a point, keeping the current zoom level.</summary>
     public void CenterOn(TrackPoint p)
@@ -476,27 +479,6 @@ public class MapManager : IDisposable
             if (s is null) return -1;
             double d = Math.Sqrt((s.X - screenX) * (s.X - screenX) + (s.Y - screenY) * (s.Y - screenY));
             if (d < bestDist) { bestDist = d; best = i; }
-        }
-        return best;
-    }
-
-    /// <summary>Index i of the nearest segment (points i..i+1) of <paramref name="track"/> to a screen
-    /// position, within <paramref name="maxPx"/> pixels. Insert position for a new point is i+1. -1 if none.</summary>
-    public int FindNearestSegmentIndex(Track track, double screenX, double screenY, double maxPx)
-    {
-        int best = -1;
-        double bestDist = maxPx;
-        MPoint? prev = null;
-        for (int i = 0; i < track.Points.Count; i++)
-        {
-            var s = WorldToScreen(track.Points[i]);
-            if (s is null) return -1;
-            if (prev is not null)
-            {
-                double d = GeoMath.PointToSegmentDist(screenX, screenY, prev.X, prev.Y, s.X, s.Y);
-                if (d < bestDist) { bestDist = d; best = i - 1; }
-            }
-            prev = s;
         }
         return best;
     }

@@ -227,8 +227,8 @@ public partial class MainWindow
         HandleMapClick(pos);
     }
 
-    /// <summary>Inserts a new point on the active track's nearest segment at the given screen position
-    /// (Edit-mode double-click). Elevation is filled from SRTM when available.</summary>
+    /// <summary>Inserts a new point directly after the currently selected one (Edit-mode double-click);
+    /// with no selection it appends. Elevation is filled from SRTM when available.</summary>
     private void InsertPointAtScreen(System.Windows.Point pos)
     {
         if (_active is null)
@@ -241,20 +241,18 @@ public partial class MainWindow
         if (SrtmActive && _srtm.GetElevation(lat, lon) is double ele) { p.Ele = ele; _active.ElevationEstimated = true; }
 
         _doc.Snapshot(ActiveIndex());
-        // Insert on the nearest segment; for a 0/1-point track just append.
-        int seg = _active.Points.Count >= 2
-            ? _mapMgr.FindNearestSegmentIndex(_active, pos.X, pos.Y, double.MaxValue)
-            : -1;
-        int at = seg >= 0 ? seg + 1 : _active.Points.Count;
+        var sel = SelectedIndices();
+        int at = sel.Count > 0 ? sel[^1] + 1 : _active.Points.Count;
+        at = Math.Clamp(at, 0, _active.Points.Count);
         _active.Points.Insert(at, p);
         RefreshAll();
-        SelectPointInGrid(at);
+        SelectPointInGrid(at); // chain: the next insert goes after this one
         StatusInfo.Text = $"Inserted point at index {at}";
     }
 
     private void MapCtrl_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (_mode == EditMode.Draw && _active is not null && _active.Points.Count > 0)
+        if (_mode == EditMode.Edit && _active is not null && _active.Points.Count > 0)
         {
             DeleteLast_Click(sender, e);
             e.Handled = true;
@@ -280,12 +278,22 @@ public partial class MainWindow
 
         switch (_mode)
         {
-            case EditMode.Draw:
+            case EditMode.Edit:
                 {
+                    // Appending only happens when the end of the track is the current insertion point,
+                    // i.e. nothing is selected or the last point is selected. Otherwise the user is
+                    // working mid-track and should double-click to insert after the selection.
                     if (_active is null)
                     {
                         NewTrack_Click(this, new RoutedEventArgs());
                         if (_active is null) return;
+                    }
+                    var sel = SelectedIndices();
+                    bool atEnd = _active.Points.Count == 0 || sel.Count == 0 || sel[^1] == _active.Points.Count - 1;
+                    if (!atEnd)
+                    {
+                        StatusInfo.Text = "Double-click to insert after the selected point (or select the last point to append)";
+                        return;
                     }
                     var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
                     _doc.Snapshot(ActiveIndex());
@@ -293,30 +301,21 @@ public partial class MainWindow
                     if (SrtmActive && _srtm.GetElevation(lat, lon) is double ele) { p.Ele = ele; _active.ElevationEstimated = true; }
                     _active.Points.Add(p);
                     RefreshAll();
+                    SelectPointInGrid(_active.Points.Count - 1); // keep appending on the next click
                     StatusInfo.Text = $"Added point {_active.Points.Count - 1} ({lat:F5}, {lon:F5})";
                     break;
                 }
-            case EditMode.Edit:
-                // Point moves (drag), inserts (double-click) and selection (click on a vertex) are handled
-                // in the mouse down/up path; a click on empty space does nothing here.
-                break;
             case EditMode.Measure:
                 {
                     var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
-                    if (_measureA is null)
+                    _measurePts.Add((lat, lon));
+                    _mapMgr.SetMeasure(_measurePts);
+                    if (_measurePts.Count < 2)
                     {
-                        _measureA = (lat, lon);
-                        _mapMgr.SetMeasure(_measureA, null);
-                        MeasureText.Text = "Click the second point";
-                        StatusInfo.Text = "Measure: click the second point";
+                        MeasureText.Text = "Click the next point (click Measure again to reset)";
+                        StatusInfo.Text = "Measure: click the next point";
                     }
-                    else
-                    {
-                        var a = _measureA.Value;
-                        _measureA = null; // the next click starts a fresh measurement
-                        _mapMgr.SetMeasure(a, (lat, lon));
-                        _ = ComputeMeasurementAsync(a, (lat, lon));
-                    }
+                    else _ = ComputeMeasurementAsync(_measurePts.ToList());
                     break;
                 }
             default: // View: click on another track's line switches the active track
@@ -497,6 +496,7 @@ public partial class MainWindow
 
         plt.Axes.AutoScale();
         AddWaypointMarkers(plt);
+        plt.Benchmark.IsVisible = false; // no "Rendered in … ms" debug overlay
         ProfilePlot.Refresh();
     }
 

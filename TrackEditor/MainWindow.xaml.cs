@@ -16,7 +16,8 @@ namespace TrackEditor;
 
 public partial class MainWindow : Window
 {
-    private enum EditMode { View, Draw, Edit, Measure }
+    /// <summary>Edit combines the old Draw and Insert modes: click appends, drag moves, double-click inserts.</summary>
+    private enum EditMode { View, Edit, Measure }
 
     private static readonly (string Name, string Hex)[] Palette =
     {
@@ -37,7 +38,7 @@ public partial class MainWindow : Window
     private double[] _cumDist = Array.Empty<double>();
     private double?[] _speeds = Array.Empty<double?>();
     private EditMode _mode = EditMode.View;
-    private (double Lat, double Lon)? _measureA; // first click of a map measurement
+    private readonly List<(double Lat, double Lon)> _measurePts = new(); // multi-point map measurement
     private bool _syncingUi;
     private int _paletteCursor;
     private int _flagContent; // 0 dist, 1 time, 2 both (chosen from View → Mileage Flag Content)
@@ -101,11 +102,27 @@ public partial class MainWindow : Window
         _mapMgr.SetBaseMap(_settings.BaseMap);
         _mapMgr.SetTileCacheLimit(_settings.TileCacheLimitMB);
         _mapMgr.SetWaypointColors(_settings.WaypointLabelBackHex, _settings.WaypointLabelTextHex);
+        ApplyColumnVisibility();
+    }
+
+    /// <summary>Shows/hides the optional points-list columns per settings (the index column always shows).</summary>
+    private void ApplyColumnVisibility()
+    {
+        if (ColWaypoint is null) return; // during InitializeComponent
+        static Visibility V(bool on) => on ? Visibility.Visible : Visibility.Collapsed;
+        ColWaypoint.Visibility = V(_settings.ColWaypoint);
+        ColLat.Visibility = V(_settings.ColLat);
+        ColLon.Visibility = V(_settings.ColLon);
+        ColEle.Visibility = V(_settings.ColEle);
+        ColTime.Visibility = V(_settings.ColTime);
+        ColDist.Visibility = V(_settings.ColDist);
     }
 
     private void ClearTileCache_Click(object sender, RoutedEventArgs e)
     {
-        if (MessageBox.Show(this,
+        // Owner is the settings dialog when invoked from there, otherwise the main window.
+        Window owner = sender as Window ?? this;
+        if (MessageBox.Show(owner,
                 "Delete all cached map tiles for every basemap? They will re-download as you browse.",
                 "Clear tile cache", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK)
             return;
@@ -116,6 +133,8 @@ public partial class MainWindow : Window
     private void Settings_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new SettingsWindow(_settings) { Owner = this };
+        // The dialog hosts the "Clear tile cache" button but the cache lives on the map manager.
+        dlg.ClearTileCacheRequested += (_, _) => ClearTileCache_Click(dlg, new RoutedEventArgs());
         if (dlg.ShowDialog() != true) return;
         _settings = dlg.Result;
         _settings.Save();
@@ -488,17 +507,24 @@ public partial class MainWindow : Window
         if (_doc.Tracks.Count > 0) _mapMgr.ZoomToTracks(_doc.Tracks);
     }
 
-    private void MapClearMeasure_Click(object sender, RoutedEventArgs e)
+    private void MapClearMeasure_Click(object sender, RoutedEventArgs e) => ResetMeasurement();
+
+    /// <summary>Clicking the Measure button while already in Measure mode starts a fresh measurement.</summary>
+    private void ModeMeasure_Click(object sender, RoutedEventArgs e)
     {
-        _measureA = null;
-        _mapMgr.ClearMeasure();
-        MeasureText.Text = _mode == EditMode.Measure
-            ? "Click two points on the map" : "Measure mode: click two points on the map";
+        if (_mode == EditMode.Measure) ResetMeasurement();
+    }
+
+    /// <summary>Drops all measurement points and clears the overlay.</summary>
+    private void ResetMeasurement()
+    {
+        _measurePts.Clear();
+        _mapMgr?.ClearMeasure();
+        if (MeasureText is not null) MeasureText.Text = "Click points on the map to measure";
     }
 
     // Map context-menu mode switches drive the toolbar radios (Mode_Checked does the real work).
     private void MapModeView_Click(object sender, RoutedEventArgs e) => ModeView.IsChecked = true;
-    private void MapModeDraw_Click(object sender, RoutedEventArgs e) => ModeDraw.IsChecked = true;
     private void MapModeEdit_Click(object sender, RoutedEventArgs e) => ModeEdit.IsChecked = true;
     private void MapModeMeasure_Click(object sender, RoutedEventArgs e) => ModeMeasure.IsChecked = true;
 
@@ -558,8 +584,8 @@ public partial class MainWindow : Window
         _doc.Tracks.Add(track);
         _active = track;
         RefreshAll();
-        ModeDraw.IsChecked = true;
-        StatusInfo.Text = "Draw mode: click on the map to add points, right-click removes the last one";
+        ModeEdit.IsChecked = true;
+        StatusInfo.Text = "Edit mode: click on the map to add points, right-click removes the last one";
     }
 
     private void RemoveTrack_Click(object sender, RoutedEventArgs e)
@@ -865,16 +891,19 @@ public partial class MainWindow : Window
 
     private void Mode_Checked(object sender, RoutedEventArgs e)
     {
-        if (ModeDraw is null || ModeEdit is null || ModeMeasure is null) return; // during InitializeComponent
-        _mode = ModeDraw.IsChecked == true ? EditMode.Draw
-              : ModeEdit.IsChecked == true ? EditMode.Edit
+        if (ModeEdit is null || ModeMeasure is null) return; // during InitializeComponent
+        _mode = ModeEdit.IsChecked == true ? EditMode.Edit
               : ModeMeasure.IsChecked == true ? EditMode.Measure
               : EditMode.View;
         if (StatusMode is not null)
             StatusMode.Text = $"Mode: {_mode}";
 
-        if (_mode != EditMode.Measure) { _measureA = null; _mapMgr.ClearMeasure(); }
-        else if (MeasureText is not null) MeasureText.Text = "Click two points on the map";
+        // The measurement panel is only meaningful in Measure mode.
+        if (MeasurePanel is not null)
+            MeasurePanel.Visibility = _mode == EditMode.Measure ? Visibility.Visible : Visibility.Collapsed;
+
+        if (_mode != EditMode.Measure) ResetMeasurement();
+        else if (MeasureText is not null) MeasureText.Text = "Click points on the map to measure";
     }
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -930,9 +959,11 @@ public partial class MainWindow : Window
     /// <summary>Statistics for the selected span (first→last selected index, inclusive).</summary>
     private void RefreshSelectionStats()
     {
-        if (_active is null) { SelStatsText.Text = "Select 2+ points"; return; }
-        var idx = SelectedIndices();
-        if (idx.Count < 2) { SelStatsText.Text = "Select 2+ points"; return; }
+        // The panel only appears once a span of 2+ points is selected.
+        var idx = _active is null ? new List<int>() : SelectedIndices();
+        if (SelStatsPanel is not null)
+            SelStatsPanel.Visibility = idx.Count >= 2 ? Visibility.Visible : Visibility.Collapsed;
+        if (_active is null || idx.Count < 2) { SelStatsText.Text = "Select 2+ points"; return; }
 
         int lo = idx[0], hi = idx[^1];
         var span = _active.Points.GetRange(lo, hi - lo + 1);
@@ -942,14 +973,29 @@ public partial class MainWindow : Window
 
     // ======================= map measurement =======================
 
-    /// <summary>Straight-line distance + elevation stats between two map points (elevation sampled like a track).</summary>
-    private async Task ComputeMeasurementAsync((double Lat, double Lon) a, (double Lat, double Lon) b)
+    /// <summary>Path length + elevation stats along all measurement points (elevation sampled like a track).</summary>
+    private async Task ComputeMeasurementAsync(List<(double Lat, double Lon)> pts)
     {
-        double dist = GeoMath.HaversineM(a.Lat, a.Lon, b.Lat, b.Lon);
+        if (pts.Count < 2) return;
+        var a = pts[0];
+        var b = pts[^1];
+
+        // Total travelled along every leg, plus the straight line from the first to the last point.
+        double dist = 0;
+        for (int i = 0; i + 1 < pts.Count; i++)
+            dist += GeoMath.HaversineM(pts[i].Lat, pts[i].Lon, pts[i + 1].Lat, pts[i + 1].Lon);
+        double direct = GeoMath.HaversineM(a.Lat, a.Lon, b.Lat, b.Lon);
         double bearing = GeoMath.BearingDeg(a.Lat, a.Lon, b.Lat, b.Lon);
 
-        // Sample the line and pull elevation for the samples the same way tracks are filled.
-        var temp = new Track { Points = SampleLine(a, b) };
+        // Sample every leg and pull elevation for the samples the same way tracks are filled.
+        var sampled = new List<TrackPoint>();
+        for (int i = 0; i + 1 < pts.Count; i++)
+        {
+            var leg = SampleLine(pts[i], pts[i + 1]);
+            if (i > 0 && leg.Count > 0) leg.RemoveAt(0); // avoid duplicating the shared vertex
+            sampled.AddRange(leg);
+        }
+        var temp = new Track { Points = sampled };
         if (!_elevBusy && (SrtmActive || _settings.OnlineEnabled))
         {
             _elevBusy = true;
@@ -961,8 +1007,10 @@ public partial class MainWindow : Window
 
         var s = TrackStatistics.Compute(temp.Points);
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine("A → B");
-        sb.AppendLine($"Distance:        {dist / 1000:F2} km");
+        sb.AppendLine($"{pts.Count} points, {pts.Count - 1} leg(s)");
+        sb.AppendLine($"Path length:     {dist / 1000:F2} km");
+        if (pts.Count > 2)
+            sb.AppendLine($"Straight line:   {direct / 1000:F2} km");
         sb.AppendLine($"Bearing:         {bearing:F0}°");
         if (s.MinEleM is not null)
         {

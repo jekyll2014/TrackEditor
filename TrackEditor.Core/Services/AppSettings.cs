@@ -31,6 +31,14 @@ public class AppSettings
     /// <summary>Waypoint label text colour (hex) on the map and profile plot.</summary>
     public string WaypointLabelTextHex { get; set; } = "#FFFFFF";
 
+    /// <summary>Which optional columns the points list shows (the index column is always visible).</summary>
+    public bool ColWaypoint { get; set; } = true;
+    public bool ColLat { get; set; } = true;
+    public bool ColLon { get; set; } = true;
+    public bool ColEle { get; set; } = true;
+    public bool ColTime { get; set; } = true;
+    public bool ColDist { get; set; } = true;
+
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         WriteIndented = true,

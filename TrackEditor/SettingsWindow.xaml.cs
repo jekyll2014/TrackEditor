@@ -9,6 +9,12 @@ public partial class SettingsWindow : Window
     /// <summary>Populated with the edited settings when the dialog returns true.</summary>
     public AppSettings Result { get; private set; }
 
+    /// <summary>Raised by the "Clear tile cache" button; the owner performs the clear (it owns the map).</summary>
+    public event EventHandler? ClearTileCacheRequested;
+
+    private void ClearCache_Click(object sender, RoutedEventArgs e) =>
+        ClearTileCacheRequested?.Invoke(this, EventArgs.Empty);
+
     /// <summary>Public global datasets on api.opentopodata.org (see opentopodata.org/datasets).</summary>
     private static readonly string[] OpenTopoDatasets =
     {
@@ -36,6 +42,13 @@ public partial class SettingsWindow : Window
 
         TxtWpBack.Text = Result.WaypointLabelBackHex; // fires WpColor_Changed → updates previews
         TxtWpText.Text = Result.WaypointLabelTextHex;
+
+        ChkColWaypoint.IsChecked = Result.ColWaypoint;
+        ChkColLat.IsChecked = Result.ColLat;
+        ChkColLon.IsChecked = Result.ColLon;
+        ChkColEle.IsChecked = Result.ColEle;
+        ChkColTime.IsChecked = Result.ColTime;
+        ChkColDist.IsChecked = Result.ColDist;
 
         UpdateEnabledState();
     }
@@ -112,6 +125,12 @@ public partial class SettingsWindow : Window
         Result.TileCacheLimitMB = int.TryParse(TxtCacheLimit.Text, out int mb) ? mb : Result.TileCacheLimitMB;
         Result.WaypointLabelBackHex = NormalizeHex(TxtWpBack.Text, Result.WaypointLabelBackHex);
         Result.WaypointLabelTextHex = NormalizeHex(TxtWpText.Text, Result.WaypointLabelTextHex);
+        Result.ColWaypoint = ChkColWaypoint.IsChecked == true;
+        Result.ColLat = ChkColLat.IsChecked == true;
+        Result.ColLon = ChkColLon.IsChecked == true;
+        Result.ColEle = ChkColEle.IsChecked == true;
+        Result.ColTime = ChkColTime.IsChecked == true;
+        Result.ColDist = ChkColDist.IsChecked == true;
         DialogResult = true;
     }
 }

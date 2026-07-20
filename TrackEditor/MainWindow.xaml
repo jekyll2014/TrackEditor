@@ -35,7 +35,8 @@
             <MenuItem Header="_File">
                 <MenuItem Header="_Open GPX/KML/KMZ…" Click="OpenFile_Click" InputGestureText="Ctrl+O"/>
                 <MenuItem Header="Save _Active Track as GPX…" Click="SaveActive_Click"/>
-                <MenuItem Header="Save A_ll Tracks as GPX…" Click="SaveAll_Click" InputGestureText="Ctrl+S"/>
+                <MenuItem Header="_Save Active Track as GPX…" Click="SaveActive_Click" InputGestureText="Ctrl+S"/>
+                <MenuItem Header="Save A_ll Tracks as GPX…" Click="SaveAll_Click"/>
                 <Separator/>
                 <MenuItem Header="_Export Map Image…" Click="ExportMap_Click"/>
                 <Separator/>
@@ -67,9 +68,7 @@
             <MenuItem Header="_Mode">
                 <MenuItem Header="_View" IsCheckable="True"
                           IsChecked="{Binding IsChecked, ElementName=ModeView, Mode=TwoWay}"/>
-                <MenuItem Header="_Draw" IsCheckable="True"
-                          IsChecked="{Binding IsChecked, ElementName=ModeDraw, Mode=TwoWay}"/>
-                <MenuItem Header="_Edit" IsCheckable="True"
+                <MenuItem Header="_Edit (draw / move / insert)" IsCheckable="True"
                           IsChecked="{Binding IsChecked, ElementName=ModeEdit, Mode=TwoWay}"/>
                 <MenuItem Header="Meas_ure" IsCheckable="True"
                           IsChecked="{Binding IsChecked, ElementName=ModeMeasure, Mode=TwoWay}"/>
@@ -92,8 +91,6 @@
             </MenuItem>
             <MenuItem Header="T_ools">
                 <MenuItem Header="_Settings…" Click="Settings_Click"/>
-                <Separator/>
-                <MenuItem Header="_Clear Tile Cache…" Click="ClearTileCache_Click"/>
             </MenuItem>
         </Menu>
 
@@ -106,10 +103,16 @@
                         <TextBlock Text="Open" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
-                <Button Click="SaveAll_Click" ToolTip="Save all tracks as GPX (Ctrl+S)">
+                <Button Click="SaveActive_Click" ToolTip="Save the active track as GPX (Ctrl+S)">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IcoSave}" Style="{StaticResource ToolIcon}"/>
                         <TextBlock Text="Save" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="NewTrack_Click" ToolTip="Create an empty track and switch to Edit mode">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="{StaticResource IcoNewTrack}" Style="{StaticResource ToolIcon}"/>
+                        <TextBlock Text="New track" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
                 <Separator/>
@@ -133,34 +136,21 @@
                         <TextBlock Text="View" VerticalAlignment="Center"/>
                     </StackPanel>
                 </RadioButton>
-                <RadioButton x:Name="ModeDraw" GroupName="Mode" Checked="Mode_Checked"
-                             ToolTip="Click on map to append points to the active track; right-click removes last point">
+                <RadioButton x:Name="ModeEdit" GroupName="Mode" Checked="Mode_Checked"
+                             ToolTip="Draw &amp; edit: click adds a point at the end (when the last point is selected), drag a point to move it, double-click inserts after the selected point; right-click removes the last point">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IcoDraw}" Style="{StaticResource ToolIcon}"/>
-                        <TextBlock Text="Draw" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </RadioButton>
-                <RadioButton x:Name="ModeEdit" GroupName="Mode" Checked="Mode_Checked"
-                             ToolTip="Drag a point to move it; double-click on the line to insert a point; single-click selects">
-                    <StackPanel Orientation="Horizontal">
-                        <Path Data="{StaticResource IcoInsert}" Style="{StaticResource ToolIcon}"/>
                         <TextBlock Text="Edit" VerticalAlignment="Center"/>
                     </StackPanel>
                 </RadioButton>
-                <RadioButton x:Name="ModeMeasure" GroupName="Mode" Checked="Mode_Checked"
-                             ToolTip="Click two points on the map to measure distance and elevation between them">
+                <RadioButton x:Name="ModeMeasure" GroupName="Mode" Checked="Mode_Checked" Click="ModeMeasure_Click"
+                             ToolTip="Click points on the map to measure a path; click this button again to reset">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IcoMeasure}" Style="{StaticResource ToolIcon}"/>
                         <TextBlock Text="Measure" VerticalAlignment="Center"/>
                     </StackPanel>
                 </RadioButton>
                 <Separator/>
-                <Button Click="NewTrack_Click" ToolTip="Create empty track and switch to Draw mode">
-                    <StackPanel Orientation="Horizontal">
-                        <Path Data="{StaticResource IcoNewTrack}" Style="{StaticResource ToolIcon}"/>
-                        <TextBlock Text="New track" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
                 <Button Click="DeletePoints_Click" ToolTip="Delete selected points (Del)">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IcoDelete}" Style="{StaticResource ToolIcon}"/>
@@ -220,9 +210,18 @@
                          SelectionChanged="TracksList_SelectionChanged"
                          MouseDoubleClick="TracksList_MouseDoubleClick"
                          ToolTip="Double-click a track to fit it in the map; right-click for more">
+                    <!-- Stretch the row content to the full list width so a right-click anywhere on the
+                         row - including the empty space right of the name - hits the item's context menu. -->
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal">
+                            <!-- Background is required so the stretched (otherwise empty) area is hit-testable.
+                                 The menu lives in the template so each row gets its own instance. -->
+                            <StackPanel Orientation="Horizontal" Background="Transparent">
                                 <StackPanel.ContextMenu>
                                     <ContextMenu>
                                         <MenuItem Header="Rename…" Click="CtxRenameTrack_Click"/>
@@ -280,12 +279,12 @@
                     </DataGrid.ContextMenu>
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="#" Binding="{Binding Index}" Width="40"/>
-                        <DataGridTextColumn Header="⚑ Waypoint" Binding="{Binding NameStr}" Width="Auto" MinWidth="70"/>
-                        <DataGridTextColumn Header="Lat" Binding="{Binding LatStr}" Width="72"/>
-                        <DataGridTextColumn Header="Lon" Binding="{Binding LonStr}" Width="72"/>
-                        <DataGridTextColumn Header="Ele, m" Binding="{Binding EleStr}" Width="50"/>
-                        <DataGridTextColumn Header="Time" Binding="{Binding TimeStr}" Width="62"/>
-                        <DataGridTextColumn Header="Km" Binding="{Binding DistStr}" Width="50"/>
+                        <DataGridTextColumn x:Name="ColWaypoint" Header="⚑ Waypoint" Binding="{Binding NameStr}" Width="Auto" MinWidth="70"/>
+                        <DataGridTextColumn x:Name="ColLat" Header="Lat" Binding="{Binding LatStr}" Width="72"/>
+                        <DataGridTextColumn x:Name="ColLon" Header="Lon" Binding="{Binding LonStr}" Width="72"/>
+                        <DataGridTextColumn x:Name="ColEle" Header="Ele, m" Binding="{Binding EleStr}" Width="50"/>
+                        <DataGridTextColumn x:Name="ColTime" Header="Time" Binding="{Binding TimeStr}" Width="62"/>
+                        <DataGridTextColumn x:Name="ColDist" Header="Km" Binding="{Binding DistStr}" Width="50"/>
                     </DataGrid.Columns>
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow">
@@ -304,13 +303,17 @@
                     <Expander Header="Statistics" IsExpanded="True">
                         <TextBlock x:Name="StatsText" FontFamily="Consolas" FontSize="12" Margin="4" Text="—"/>
                     </Expander>
-                    <Expander Header="Selection statistics" IsExpanded="True" Margin="0,4,0,0">
+                    <!-- Shown only while 2+ points are selected. -->
+                    <Expander x:Name="SelStatsPanel" Header="Selection statistics" IsExpanded="True"
+                              Margin="0,4,0,0" Visibility="Collapsed">
                         <TextBlock x:Name="SelStatsText" FontFamily="Consolas" FontSize="12" Margin="4"
                                    Text="Select 2+ points"/>
                     </Expander>
-                    <Expander Header="Measurement" IsExpanded="True" Margin="0,4,0,0">
+                    <!-- Shown only in Measure mode. -->
+                    <Expander x:Name="MeasurePanel" Header="Measurement" IsExpanded="True"
+                              Margin="0,4,0,0" Visibility="Collapsed">
                         <TextBlock x:Name="MeasureText" FontFamily="Consolas" FontSize="12" Margin="4"
-                                   Text="Measure mode: click two points on the map"/>
+                                   Text="Click points on the map to measure"/>
                     </Expander>
                 </StackPanel>
             </Grid>
@@ -338,12 +341,13 @@
                             <Separator/>
                             <MenuItem Header="Mode">
                                 <MenuItem Header="View" Click="MapModeView_Click"/>
-                                <MenuItem Header="Draw" Click="MapModeDraw_Click"/>
-                                <MenuItem Header="Edit" Click="MapModeEdit_Click"/>
+                                <MenuItem Header="Edit (draw / move / insert)" Click="MapModeEdit_Click"/>
                                 <MenuItem Header="Measure" Click="MapModeMeasure_Click"/>
                             </MenuItem>
-                            <MenuItem Header="New Track (draw mode)" Click="NewTrack_Click"/>
-                            <MenuItem Header="Clear Measurement" Click="MapClearMeasure_Click"/>
+                            <MenuItem Header="New Track" Click="NewTrack_Click"/>
+                            <Separator/>
+                            <MenuItem Header="Delete Selected Points" Click="DeletePoints_Click" InputGestureText="Del"/>
+                            <MenuItem Header="Reset Measurement" Click="MapClearMeasure_Click"/>
                             <Separator/>
                             <MenuItem Header="Export Map Image…" Click="ExportMap_Click"/>
                         </ContextMenu>
