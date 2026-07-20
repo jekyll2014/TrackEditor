@@ -42,6 +42,7 @@ public partial class MainWindow : Window
     private readonly RoutingService _router = new();
     private Map3DWindow? _map3D; // non-null while the 3D view is open
     private bool _syncingUi;
+    private bool _syncingRoute; // guards the toolbar Route combo while it is set programmatically
     private int _paletteCursor;
     private int _flagContent; // 0 dist, 1 time, 2 both (chosen from View → Mileage Flag Content)
 
@@ -56,6 +57,7 @@ public partial class MainWindow : Window
             SessionStore.Save(new SessionStore.Session { Active = ActiveIndex(), Tracks = _doc.Tracks });
         };
         BuildColorCombo();
+        BuildRouteCombo();
         ApplySettings();
         SetupPlotMenu();
 
@@ -105,18 +107,46 @@ public partial class MainWindow : Window
         _mapMgr.SetTileCacheLimit(_settings.TileCacheLimitMB);
         _mapMgr.SetWaypointColors(_settings.WaypointLabelBackHex, _settings.WaypointLabelTextHex);
         _router.Profile = _settings.RoutingProfile;
-        if (AutoRouteCheck is not null) AutoRouteCheck.IsChecked = _settings.AutoRoute;
+        SyncRouteCombo();
         ApplyColumnVisibility();
     }
 
-    /// <summary>Runtime toggle: new points either follow real paths or connect in a straight line.</summary>
-    private void AutoRoute_Click(object sender, RoutedEventArgs e)
+    /// <summary>The toolbar Route combo is "Off" plus every routing profile.</summary>
+    private void BuildRouteCombo()
     {
-        _settings.AutoRoute = AutoRouteCheck.IsChecked == true;
+        AutoRouteCombo.Items.Add("Off");
+        foreach (var p in RoutingService.Profiles) AutoRouteCombo.Items.Add(p);
+    }
+
+    /// <summary>Reflects the current auto-route state (off / which profile) in the toolbar combo.</summary>
+    private void SyncRouteCombo()
+    {
+        if (AutoRouteCombo is null) return;
+        _syncingRoute = true;
+        AutoRouteCombo.SelectedItem =
+            _settings.AutoRoute && RoutingService.Profiles.Contains(_settings.RoutingProfile)
+                ? _settings.RoutingProfile
+                : "Off";
+        _syncingRoute = false;
+    }
+
+    /// <summary>Runtime control: "Off" draws straight segments, any profile turns auto-route on with it.</summary>
+    private void AutoRouteCombo_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_syncingRoute || AutoRouteCombo.SelectedItem is not string sel) return;
+        if (sel == "Off")
+        {
+            _settings.AutoRoute = false;
+            StatusInfo.Text = "Auto-route off — new points connect in a straight line";
+        }
+        else
+        {
+            _settings.AutoRoute = true;
+            _settings.RoutingProfile = sel;
+            _router.Profile = sel;
+            StatusInfo.Text = $"Auto-route on ({sel}) — new points follow paths";
+        }
         _settings.Save();
-        StatusInfo.Text = _settings.AutoRoute
-            ? $"Auto-route on ({_router.Profile}) — new points follow paths"
-            : "Auto-route off — new points connect in a straight line";
     }
 
     /// <summary>

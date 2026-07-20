@@ -160,10 +160,10 @@
                     </StackPanel>
                 </Button>
                 <Separator/>
-                <CheckBox x:Name="AutoRouteCheck" Click="AutoRoute_Click" VerticalAlignment="Center"
-                          ToolTip="Auto-route: new points follow real paths (BRouter) instead of a straight line">
-                    <TextBlock Text="Auto-route" VerticalAlignment="Center"/>
-                </CheckBox>
+                <TextBlock Text="Route:" VerticalAlignment="Center" Margin="2,0,4,0"/>
+                <ComboBox x:Name="AutoRouteCombo" Width="108" VerticalAlignment="Center"
+                          SelectionChanged="AutoRouteCombo_Changed"
+                          ToolTip="Auto-route new points along real paths (BRouter). 'Off' draws straight segments."/>
                 <Separator/>
                 <CheckBox x:Name="FlagsCheck" Click="FlagsToggle_Click" VerticalAlignment="Center"
                           ToolTip="Show mileage/time flags along the track">
