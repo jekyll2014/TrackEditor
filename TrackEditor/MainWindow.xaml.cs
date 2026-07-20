@@ -398,7 +398,7 @@ public partial class MainWindow : Window
         try
         {
             await MapExporter.ExportAsync(_mapMgr.BaseTileSource, extent, dlg.Zoom, dlg.Scale,
-                _doc.Tracks, save.FileName, new Progress<string>(UpdateBusy));
+                _doc.Tracks, save.FileName, BusyProgress());
             StatusInfo.Text = $"Exported {save.FileName}";
         }
         catch (Exception ex)
@@ -995,7 +995,7 @@ public partial class MainWindow : Window
             if (_srtm.AutoDownload)
             {
                 var need = track.Points.Where(p => overwrite || p.Ele is null).Select(p => (p.Lat, p.Lon));
-                await _srtm.EnsureTilesAsync(need, new Progress<string>(UpdateBusy));
+                await _srtm.EnsureTilesAsync(need, BusyProgress());
             }
             foreach (var p in track.Points)
                 if ((overwrite || p.Ele is null) && _srtm.GetElevation(p.Lat, p.Lon) is double ele)
@@ -1013,8 +1013,8 @@ public partial class MainWindow : Window
             if (missing.Count > 0)
             {
                 var coords = missing.Select(i => (track.Points[i].Lat, track.Points[i].Lon)).ToList();
-                var progress = new Progress<(int Done, int Total)>(pr =>
-                    UpdateBusy($"Fetching elevation online… {pr.Done}/{pr.Total}"));
+                var progress = BusyProgress<(int Done, int Total)>(
+                    pr => $"Fetching elevation online… {pr.Done}/{pr.Total}");
                 var elevs = await _online.GetElevationsAsync(coords, progress);
                 for (int k = 0; k < missing.Count; k++)
                     if (elevs[k] is double ele) { track.Points[missing[k]].Ele = ele; onlineApplied++; }
@@ -1067,6 +1067,7 @@ public partial class MainWindow : Window
     // ======================= background-activity indicator =======================
 
     private int _busyDepth;
+    private int _busyGen; // bumped when the indicator clears, so late Progress reports can't re-show it
 
     /// <summary>Show the status-bar busy indicator for a background task. Pair with EndBusy in a finally.</summary>
     private void BeginBusy(string message)
@@ -1082,10 +1083,24 @@ public partial class MainWindow : Window
         StatusBusyItem.Visibility = Visibility.Visible;
     }
 
+    /// <summary>
+    /// A progress reporter for the busy indicator that ignores reports delivered after the task ended.
+    /// <see cref="Progress{T}"/> posts asynchronously, so its last report can arrive after EndBusy has
+    /// cleared the text — which would otherwise leave a stale "…N/N" frozen on the status bar.
+    /// </summary>
+    private IProgress<T> BusyProgress<T>(Func<T, string> format)
+    {
+        int gen = _busyGen;
+        return new Progress<T>(v => { if (gen == _busyGen) UpdateBusy(format(v)); });
+    }
+
+    private IProgress<string> BusyProgress() => BusyProgress<string>(s => s);
+
     private void EndBusy()
     {
         if (--_busyDepth > 0) return;
         _busyDepth = 0;
+        _busyGen++;
         StatusBusy.Text = "";
         StatusBusyItem.Visibility = Visibility.Collapsed;
     }

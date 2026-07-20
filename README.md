@@ -4,6 +4,8 @@ A Windows desktop app for viewing and editing GPS tracks — GPX, KML and KMZ �
 on an interactive map, with an elevation/speed profile, real-path auto-routing,
 and a 3D terrain view. Built with WPF (.NET 9), Mapsui, ScottPlot and HelixToolkit.
 
+![The TrackEditor main window: track list and points grid on the left, topographic map with a highlighted route, and the elevation/speed profile below.](docs/ui.png)
+
 This document is also the in-app **Help ▸ User Guide** (press **F1**).
 
 ---
@@ -176,10 +178,15 @@ Open it from the **3D View** toolbar button or File ▸ 3D View. It builds a 3D
 terrain surface for the region currently shown on the 2D map, from SRTM
 elevation, and drapes the current map (tracks included) over it as a texture.
 
+![The 3D terrain view: the route draped over a shaded relief surface, with the compass at top-right and the navigation, exaggeration and detail controls at bottom-left.](docs/3d_map.png)
+
 - **Mouse:** left-drag pans, right-drag rotates and tilts, the wheel zooms.
 - **On-screen controls:** a movement cross (pan across the ground plus up/down),
   Rotate / Tilt / Zoom buttons, a reset-view button, and a vertical-exaggeration
   slider to accentuate relief.
+- **Detail:** a **Detail** dropdown re-drapes the terrain with finer or coarser
+  basemap tiles over the same region — independent of the 2D map's zoom, so you
+  can add map detail (or simplify it) in 3D without changing the area shown.
 - **Compass:** a needle and numeric heading show the view direction.
 - **Viewpoint marker:** a teal marker on the 2D map shows where the 3D camera
   stands and which way it looks — drag it to move the 3D viewpoint.
@@ -195,6 +202,8 @@ if auto-download is on.
 File ▸ Export Map Image renders the current map region — basemap tiles plus your
 tracks — to a PNG at a chosen level of detail (shown as a map scale), with a
 scale bar.
+
+![An exported map-image PNG: the route drawn over topographic tiles with a scale bar in the corner.](docs/map.png)
 
 ---
 

@@ -63,7 +63,9 @@ public partial class HelpWindow : Window
 
         foreach (string raw in markdown.Replace("\r\n", "\n").Split('\n'))
         {
-            string line = raw.TrimEnd();
+            // Drop image markdown — the README's screenshots live on disk (not embedded), so the
+            // in-app guide stays text-only. An image on its own line then reads as a blank line.
+            string line = Regex.Replace(raw, @"!\[[^\]]*\]\([^)]*\)", "").TrimEnd();
 
             if (line.Length == 0) { FlushParagraph(); continue; }
 

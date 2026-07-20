@@ -27,7 +27,9 @@ public partial class Map3DWindow : Window
     private readonly ITileSource _tiles;
     private readonly IReadOnlyList<Track> _tracks;
     private readonly SrtmService _srtm;
-    private readonly int _zoom;
+    private readonly int _maxZoom;
+    private int _zoom;                  // basemap tile zoom for the draped texture (user-selectable)
+    private bool _detailReady;          // gate Detail_Changed until the first build finishes
 
     private readonly double _cx, _cy;   // extent centre in Web-Mercator metres
     private readonly double _k;         // Mercator -> true ground metres at the centre latitude
@@ -51,6 +53,7 @@ public partial class Map3DWindow : Window
         _tiles = tiles;
         _tracks = tracks;
         _srtm = srtm;
+        _maxZoom = maxZoom;
 
         _cx = (extent.MinX + extent.MaxX) / 2;
         _cy = (extent.MinY + extent.MaxY) / 2;
@@ -64,6 +67,7 @@ public partial class Map3DWindow : Window
         int z = Math.Min(zoom, maxZoom);
         while (z > 1 && MapExporter.EstimateSize(extent, z, 1.0).W > MaxTexturePx) z--;
         _zoom = z;
+        PopulateDetailLevels();
 
         // Google-Earth-style mouse mapping: left drag pans (Helix), right drag orbits/tilts and the
         // wheel zooms (both handled here so the behaviour is identical to the on-screen buttons).
@@ -103,6 +107,7 @@ public partial class Map3DWindow : Window
             StatusText.Text = withEle == 0
                 ? "No SRTM elevation for this area — terrain is flat (set an SRTM folder in Settings)"
                 : $"Terrain {_minEle:F0}–{_maxEle:F0} m   ({withEle * 100 / (Grid * Grid)}% sampled)";
+            _detailReady = true;
         }
         catch (Exception ex)
         {
@@ -399,6 +404,72 @@ public partial class Map3DWindow : Window
         // Report where the camera stands so the 2D map can draw the viewer icon.
         var (lon, lat) = SphericalMercator.ToLonLat(_cx + Cam.Position.X / _k, _cy + Cam.Position.Y / _k);
         ViewpointChanged?.Invoke(lat, lon, heading);
+    }
+
+    // ======================= basemap detail (texture zoom) =======================
+
+    private const int MaxDetailPx = 4096; // upper bound for the on-demand draped texture
+
+    /// <summary>A selectable basemap detail level = one tile zoom, labelled with its ground scale.</summary>
+    private sealed record DetailLevel(int Zoom, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
+    /// <summary>
+    /// Offers the tile zooms that render the current region within a sane texture size, so the 3D map can
+    /// be draped with finer or coarser basemap detail than the 2D view. The auto-picked zoom is preselected.
+    /// </summary>
+    private void PopulateDetailLevels()
+    {
+        if (DetailCombo is null) return;
+
+        int hi = _maxZoom;
+        while (hi > 1 && MapExporter.EstimateSize(_extent, hi, 1.0).W > MaxDetailPx) hi--;
+        int lo = hi;
+        while (lo > 2 && MapExporter.EstimateSize(_extent, lo - 1, 1.0).W >= 384) lo--;
+        lo = Math.Max(lo, hi - 6);        // keep the list short
+        lo = Math.Min(lo, _zoom);         // always include the current default
+        hi = Math.Max(hi, _zoom);
+
+        DetailCombo.Items.Clear();
+        DetailLevel? current = null;
+        for (int z = lo; z <= hi; z++)
+        {
+            var item = new DetailLevel(z, $"z{z} · {MapExporter.ScaleLabel(MapExporter.MetersPerTile(_extent, z))}");
+            DetailCombo.Items.Add(item);
+            if (z == _zoom) current = item;
+        }
+        DetailCombo.SelectedItem = current ?? DetailCombo.Items[^1];
+    }
+
+    /// <summary>Re-renders the draped texture at the chosen zoom, keeping the same terrain and region.</summary>
+    private async void Detail_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (!_detailReady || DetailCombo.SelectedItem is not DetailLevel lvl || lvl.Zoom == _zoom) return;
+
+        _zoom = lvl.Zoom;
+        DetailCombo.IsEnabled = false;
+        StatusText.Text = $"Rendering basemap at z{_zoom}…";
+        try
+        {
+            _material = await BuildMaterialAsync();
+            if (TerrainVisual.Content is GeometryModel3D gm)
+            {
+                gm.Material = _material;
+                gm.BackMaterial = _material;
+            }
+            else RebuildMesh();
+            StatusText.Text = $"Terrain {_minEle:F0}–{_maxEle:F0} m   ·   basemap z{_zoom}";
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = "Texture render failed: " + ex.Message;
+        }
+        finally
+        {
+            DetailCombo.IsEnabled = true;
+        }
     }
 
     private static string Compass(double deg) =>

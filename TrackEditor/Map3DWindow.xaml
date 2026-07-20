@@ -131,6 +131,15 @@
                         <TextBlock x:Name="ExagLabel" Text="1.0×" Width="34" Margin="4,0,0,0"
                                    VerticalAlignment="Center" FontSize="11"/>
                     </StackPanel>
+
+                    <!-- Basemap detail (tile zoom) for the draped texture — same region, finer/coarser tiles -->
+                    <StackPanel Orientation="Horizontal" Margin="0,7,0,0">
+                        <TextBlock Text="Detail" FontSize="10" Foreground="#555"
+                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <ComboBox x:Name="DetailCombo" Width="132" Height="21" FontSize="10"
+                                  VerticalContentAlignment="Center" SelectionChanged="Detail_Changed"
+                                  ToolTip="Basemap detail level for the 3D texture (same region, finer or coarser tiles)"/>
+                    </StackPanel>
                 </StackPanel>
             </StackPanel>
         </Border>
