@@ -158,6 +158,11 @@
                     </StackPanel>
                 </Button>
                 <Separator/>
+                <CheckBox x:Name="AutoRouteCheck" Click="AutoRoute_Click" VerticalAlignment="Center"
+                          ToolTip="Auto-route: new points follow real paths (BRouter) instead of a straight line">
+                    <TextBlock Text="Auto-route" VerticalAlignment="Center"/>
+                </CheckBox>
+                <Separator/>
                 <CheckBox x:Name="FlagsCheck" Click="FlagsToggle_Click" VerticalAlignment="Center"
                           ToolTip="Show mileage/time flags along the track">
                     <StackPanel Orientation="Horizontal">

@@ -296,6 +296,14 @@ public partial class MainWindow
                         return;
                     }
                     var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
+
+                    // Auto-route draws the leg along real paths instead of a straight line.
+                    if (_settings.AutoRoute && _active.Points.Count > 0)
+                    {
+                        _ = AppendRoutedAsync(lat, lon);
+                        break;
+                    }
+
                     _doc.Snapshot(ActiveIndex());
                     var p = new TrackPoint { Lat = lat, Lon = lon };
                     if (SrtmActive && _srtm.GetElevation(lat, lon) is double ele) { p.Ele = ele; _active.ElevationEstimated = true; }

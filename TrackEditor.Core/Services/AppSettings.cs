@@ -31,6 +31,11 @@ public class AppSettings
     /// <summary>Waypoint label text colour (hex) on the map and profile plot.</summary>
     public string WaypointLabelTextHex { get; set; } = "#FFFFFF";
 
+    /// <summary>When on, drawing a new point routes along real paths instead of a straight line.</summary>
+    public bool AutoRoute { get; set; }
+    /// <summary>BRouter profile used for auto-routing (see RoutingService.Profiles).</summary>
+    public string RoutingProfile { get; set; } = "trekking";
+
     /// <summary>Which optional columns the points list shows (the index column is always visible).</summary>
     public bool ColWaypoint { get; set; } = true;
     public bool ColLat { get; set; } = true;

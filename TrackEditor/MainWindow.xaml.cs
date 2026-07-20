@@ -39,6 +39,7 @@ public partial class MainWindow : Window
     private double?[] _speeds = Array.Empty<double?>();
     private EditMode _mode = EditMode.View;
     private readonly List<(double Lat, double Lon)> _measurePts = new(); // multi-point map measurement
+    private readonly RoutingService _router = new();
     private bool _syncingUi;
     private int _paletteCursor;
     private int _flagContent; // 0 dist, 1 time, 2 both (chosen from View → Mileage Flag Content)
@@ -102,7 +103,56 @@ public partial class MainWindow : Window
         _mapMgr.SetBaseMap(_settings.BaseMap);
         _mapMgr.SetTileCacheLimit(_settings.TileCacheLimitMB);
         _mapMgr.SetWaypointColors(_settings.WaypointLabelBackHex, _settings.WaypointLabelTextHex);
+        _router.Profile = _settings.RoutingProfile;
+        if (AutoRouteCheck is not null) AutoRouteCheck.IsChecked = _settings.AutoRoute;
         ApplyColumnVisibility();
+    }
+
+    /// <summary>Runtime toggle: new points either follow real paths or connect in a straight line.</summary>
+    private void AutoRoute_Click(object sender, RoutedEventArgs e)
+    {
+        _settings.AutoRoute = AutoRouteCheck.IsChecked == true;
+        _settings.Save();
+        StatusInfo.Text = _settings.AutoRoute
+            ? $"Auto-route on ({_router.Profile}) — new points follow paths"
+            : "Auto-route off — new points connect in a straight line";
+    }
+
+    /// <summary>
+    /// Appends a routed leg from the track's last point to the clicked one. Falls back to a plain
+    /// straight segment when the routing service can't help (offline, no route, rate limited).
+    /// </summary>
+    private async Task AppendRoutedAsync(double lat, double lon)
+    {
+        if (_active is null || _active.Points.Count == 0) return;
+        var last = _active.Points[^1];
+        var from = (last.Lat, last.Lon);
+
+        _doc.Snapshot(ActiveIndex());
+        BeginBusy("Routing…");
+        List<TrackPoint>? route;
+        try { route = await _router.RouteAsync(from, (lat, lon)); }
+        finally { EndBusy(); }
+
+        if (_active is null) return; // the active track could have changed while awaiting
+
+        if (route is null || route.Count < 2)
+        {
+            var p = new TrackPoint { Lat = lat, Lon = lon };
+            if (SrtmActive && _srtm.GetElevation(lat, lon) is double ele) { p.Ele = ele; _active.ElevationEstimated = true; }
+            _active.Points.Add(p);
+            StatusInfo.Text = "No route found — added a straight segment";
+        }
+        else
+        {
+            // route[0] duplicates the current last point, so start at 1.
+            for (int i = 1; i < route.Count; i++) _active.Points.Add(route[i]);
+            if (route.Any(p => p.Ele is not null)) _active.ElevationEstimated = true;
+            StatusInfo.Text = $"Routed +{route.Count - 1} points ({_router.Profile})";
+        }
+
+        RefreshAll();
+        SelectPointInGrid(_active.Points.Count - 1);
     }
 
     /// <summary>Shows/hides the optional points-list columns per settings (the index column always shows).</summary>
