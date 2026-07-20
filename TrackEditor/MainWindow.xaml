@@ -19,6 +19,8 @@
         <Geometry x:Key="IcoNewTrack">F1 M8 6.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V11a.5.5 0 0 1-1 0V9.5H6a.5.5 0 0 1 0-1h1.5V7a.5.5 0 0 1 .5-.5 M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z</Geometry>
         <Geometry x:Key="IcoDelete">F1 M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z</Geometry>
         <Geometry x:Key="IcoFlag">F1 M14.778.085A.5.5 0 0 1 15 .5V8a.5.5 0 0 1-.314.464L14.5 8l.186.464-.003.001-.006.003-.023.009a12 12 0 0 1-.397.15c-.264.095-.631.223-1.047.35-.816.252-1.879.523-2.71.523-.847 0-1.548-.28-2.158-.525l-.028-.01C7.68 8.71 7.14 8.5 6.5 8.5c-.7 0-1.638.23-2.437.477A20 20 0 0 0 3 9.342V15.5a.5.5 0 0 1-1 0V.5a.5.5 0 0 1 1 0v.282c.226-.079.496-.17.79-.26C4.606.272 5.67 0 6.5 0c.84 0 1.524.277 2.121.519l.043.018C9.286.788 9.828 1 10.5 1c.7 0 1.638-.23 2.437-.477a20 20 0 0 0 1.349-.476l.019-.007.004-.002h.001M14 1.221c-.22.078-.48.167-.766.255-.81.252-1.872.523-2.734.523-.886 0-1.592-.286-2.203-.534l-.008-.003C7.662 1.21 7.139 1 6.5 1c-.669 0-1.606.229-2.415.478A21 21 0 0 0 3 1.845v6.433c.22-.078.48-.167.766-.255C4.576 7.77 5.638 7.5 6.5 7.5c.847 0 1.548.28 2.158.525l.028.01C9.32 8.29 9.86 8.5 10.5 8.5c.668 0 1.606-.229 2.415-.478A21 21 0 0 0 14 7.655V1.222z</Geometry>
+        <!-- Mountain silhouette, stands in for the 3D terrain view. -->
+        <Geometry x:Key="Ico3D">F1 M0.5 14 L5 3.5 L7.7 8 L10.5 5 L15.5 14 Z</Geometry>
 
         <!-- Icon+label content style for toolbar controls. -->
         <Style x:Key="ToolIcon" TargetType="Path">
@@ -32,11 +34,10 @@
     </Window.Resources>
     <DockPanel>
         <Menu DockPanel.Dock="Top">
-            <MenuItem Header="_File">
+            <MenuItem Header="_File" SubmenuOpened="FileMenu_Opened">
                 <MenuItem Header="_Open GPX/KML/KMZ…" Click="OpenFile_Click" InputGestureText="Ctrl+O"/>
-                <MenuItem Header="Save _Active Track as GPX…" Click="SaveActive_Click"/>
-                <MenuItem Header="_Save Active Track as GPX…" Click="SaveActive_Click" InputGestureText="Ctrl+S"/>
-                <MenuItem Header="Save A_ll Tracks as GPX…" Click="SaveAll_Click"/>
+                <MenuItem x:Name="MenuSaveActive" Header="_Save Active Track as GPX…" Click="SaveActive_Click" InputGestureText="Ctrl+S"/>
+                <MenuItem x:Name="MenuSaveAll" Header="Save A_ll Tracks as GPX…" Click="SaveAll_Click"/>
                 <Separator/>
                 <MenuItem Header="_3D View of Current Map…" Click="Open3D_Click"/>
                 <Separator/>
@@ -44,28 +45,28 @@
                 <Separator/>
                 <MenuItem Header="E_xit" Click="Exit_Click"/>
             </MenuItem>
-            <MenuItem Header="_Edit">
-                <MenuItem Header="_Undo" Click="Undo_Click" InputGestureText="Ctrl+Z"/>
-                <MenuItem Header="_Redo" Click="Redo_Click" InputGestureText="Ctrl+Y"/>
+            <MenuItem Header="_Edit" SubmenuOpened="EditMenu_Opened">
+                <MenuItem x:Name="MenuUndo" Header="_Undo" Click="Undo_Click" InputGestureText="Ctrl+Z"/>
+                <MenuItem x:Name="MenuRedo" Header="_Redo" Click="Redo_Click" InputGestureText="Ctrl+Y"/>
                 <Separator/>
-                <MenuItem Header="_Copy Points" Click="CopyPoints_Click" InputGestureText="Ctrl+C"/>
-                <MenuItem Header="_Paste Points After Selected" Click="PastePoints_Click" InputGestureText="Ctrl+V"/>
-                <MenuItem Header="_Delete Selected Points" Click="DeletePoints_Click" InputGestureText="Del"/>
+                <MenuItem x:Name="MenuCopy" Header="_Copy Points" Click="CopyPoints_Click" InputGestureText="Ctrl+C"/>
+                <MenuItem x:Name="MenuPaste" Header="_Paste Points After Selected" Click="PastePoints_Click" InputGestureText="Ctrl+V"/>
+                <MenuItem x:Name="MenuDelete" Header="_Delete Selected Points" Click="DeletePoints_Click" InputGestureText="Del"/>
             </MenuItem>
-            <MenuItem Header="_Track">
+            <MenuItem Header="_Track" SubmenuOpened="TrackMenu_Opened">
                 <MenuItem Header="_New Empty Track (draw mode)" Click="NewTrack_Click"/>
-                <MenuItem Header="Delete _Last Point" Click="DeleteLast_Click"/>
+                <MenuItem x:Name="MenuDeleteLast" Header="Delete _Last Point" Click="DeleteLast_Click"/>
                 <Separator/>
-                <MenuItem Header="_Split at Selected Point" Click="Split_Click"/>
-                <MenuItem Header="_Crop to Selected Range" Click="Crop_Click"/>
-                <MenuItem Header="_Delete Selected Range" Click="DeletePoints_Click"/>
-                <MenuItem Header="Si_mplify…" Click="Simplify_Click"/>
+                <MenuItem x:Name="MenuSplit" Header="_Split at Selected Point" Click="Split_Click"/>
+                <MenuItem x:Name="MenuCrop" Header="_Crop to Selected Range" Click="Crop_Click"/>
+                <MenuItem x:Name="MenuDeleteRange" Header="_Delete Selected Range" Click="DeletePoints_Click"/>
+                <MenuItem x:Name="MenuSimplify" Header="Si_mplify…" Click="Simplify_Click"/>
                 <Separator/>
-                <MenuItem Header="_Reverse Track" Click="Reverse_Click"/>
-                <MenuItem Header="Apply _Elevation to Track (SRTM / Online)" Click="ApplyElevation_Click"/>
+                <MenuItem x:Name="MenuReverse" Header="_Reverse Track" Click="Reverse_Click"/>
+                <MenuItem x:Name="MenuApplyEle" Header="Apply _Elevation to Track (SRTM / Online)" Click="ApplyElevation_Click"/>
                 <Separator/>
-                <MenuItem Header="_Zoom to Track" Click="ZoomToTrack_Click"/>
-                <MenuItem Header="Remove Track from _List" Click="RemoveTrack_Click"/>
+                <MenuItem x:Name="MenuZoomTrack" Header="_Zoom to Track" Click="ZoomToTrack_Click"/>
+                <MenuItem x:Name="MenuRemoveTrack" Header="Remove Track from _List" Click="RemoveTrack_Click"/>
             </MenuItem>
             <MenuItem Header="_Mode">
                 <MenuItem Header="_View" IsCheckable="True"
@@ -76,7 +77,8 @@
                           IsChecked="{Binding IsChecked, ElementName=ModeMeasure, Mode=TwoWay}"/>
             </MenuItem>
             <MenuItem Header="_View">
-                <MenuItem x:Name="MenuFlags" Header="Show _Mileage Flags" IsCheckable="True" Click="FlagsToggle_Click"/>
+                <MenuItem x:Name="MenuFlags" Header="Show _Mileage Flags" IsCheckable="True" Click="FlagsToggle_Click"
+                          IsEnabled="{Binding IsEnabled, ElementName=FlagsCheck}"/>
                 <MenuItem Header="Mileage Flag _Content">
                     <MenuItem x:Name="FlagContentDist" Header="_Distance" IsCheckable="True" IsChecked="True"
                               Tag="0" Click="FlagContentMenu_Click"/>
@@ -87,9 +89,11 @@
                 </MenuItem>
                 <Separator/>
                 <MenuItem Header="_Altitude on Profile" IsCheckable="True"
-                          IsChecked="{Binding IsChecked, ElementName=ChkAlt, Mode=TwoWay}"/>
+                          IsChecked="{Binding IsChecked, ElementName=ChkAlt, Mode=TwoWay}"
+                          IsEnabled="{Binding IsEnabled, ElementName=ChkAlt}"/>
                 <MenuItem Header="_Speed on Profile" IsCheckable="True"
-                          IsChecked="{Binding IsChecked, ElementName=ChkSpeed, Mode=TwoWay}"/>
+                          IsChecked="{Binding IsChecked, ElementName=ChkSpeed, Mode=TwoWay}"
+                          IsEnabled="{Binding IsEnabled, ElementName=ChkSpeed}"/>
             </MenuItem>
             <MenuItem Header="T_ools">
                 <MenuItem Header="_Settings…" Click="Settings_Click"/>
@@ -105,7 +109,7 @@
                         <TextBlock Text="Open" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
-                <Button Click="SaveActive_Click" ToolTip="Save the active track as GPX (Ctrl+S)">
+                <Button x:Name="BtnSave" Click="SaveActive_Click" ToolTip="Save the active track as GPX (Ctrl+S)">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IcoSave}" Style="{StaticResource ToolIcon}"/>
                         <TextBlock Text="Save" VerticalAlignment="Center"/>
@@ -153,10 +157,10 @@
                     </StackPanel>
                 </RadioButton>
                 <Separator/>
-                <Button Click="DeletePoints_Click" ToolTip="Delete selected points (Del)">
+                <Button Click="Open3D_Click" ToolTip="3D view of the current map region">
                     <StackPanel Orientation="Horizontal">
-                        <Path Data="{StaticResource IcoDelete}" Style="{StaticResource ToolIcon}"/>
-                        <TextBlock Text="Del pts" VerticalAlignment="Center"/>
+                        <Path Data="{StaticResource Ico3D}" Style="{StaticResource ToolIcon}"/>
+                        <TextBlock Text="3D View" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
                 <Separator/>
@@ -270,18 +274,18 @@
                           MouseDoubleClick="PointsGrid_MouseDoubleClick"
                           PreviewMouseRightButtonDown="PointsGrid_PreviewMouseRightButtonDown">
                     <DataGrid.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="Copy Points" Click="CopyPoints_Click" InputGestureText="Ctrl+C"/>
-                            <MenuItem Header="Paste Points After Selected" Click="PastePoints_Click" InputGestureText="Ctrl+V"/>
-                            <MenuItem Header="Delete Selected Points" Click="DeletePoints_Click" InputGestureText="Del"/>
+                        <ContextMenu Opened="PointsCtx_Opened">
+                            <MenuItem x:Name="CtxCopy" Header="Copy Points" Click="CopyPoints_Click" InputGestureText="Ctrl+C"/>
+                            <MenuItem x:Name="CtxPaste" Header="Paste Points After Selected" Click="PastePoints_Click" InputGestureText="Ctrl+V"/>
+                            <MenuItem x:Name="CtxDeletePts" Header="Delete Selected Points" Click="DeletePoints_Click" InputGestureText="Del"/>
                             <Separator/>
-                            <MenuItem Header="Split at Selected Point" Click="Split_Click"/>
-                            <MenuItem Header="Crop to Selected Range" Click="Crop_Click"/>
+                            <MenuItem x:Name="CtxSplit" Header="Split at Selected Point" Click="Split_Click"/>
+                            <MenuItem x:Name="CtxCrop" Header="Crop to Selected Range" Click="Crop_Click"/>
                             <Separator/>
-                            <MenuItem Header="Set Waypoint Name…" Click="CtxSetWaypoint_Click"/>
-                            <MenuItem Header="Remove Waypoint" Click="CtxRemoveWaypoint_Click"/>
+                            <MenuItem x:Name="CtxSetWp" Header="Set Waypoint Name…" Click="CtxSetWaypoint_Click"/>
+                            <MenuItem x:Name="CtxRemoveWp" Header="Remove Waypoint" Click="CtxRemoveWaypoint_Click"/>
                             <Separator/>
-                            <MenuItem Header="Center Point in Map" Click="CtxCenterPoint_Click"/>
+                            <MenuItem x:Name="CtxCenter" Header="Center Point in Map" Click="CtxCenterPoint_Click"/>
                         </ContextMenu>
                     </DataGrid.ContextMenu>
                     <DataGrid.Columns>
@@ -356,9 +360,9 @@
                                    PreviewMouseLeftButtonUp="MapCtrl_PreviewMouseLeftButtonUp"
                                    PreviewMouseRightButtonUp="MapCtrl_PreviewMouseRightButtonUp">
                     <mapsui:MapControl.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="Fit All Tracks" Click="MapFitAll_Click"/>
-                            <MenuItem Header="Zoom to Active Track" Click="ZoomToTrack_Click"/>
+                        <ContextMenu Opened="MapCtx_Opened">
+                            <MenuItem x:Name="MapFitAll" Header="Fit All Tracks" Click="MapFitAll_Click"/>
+                            <MenuItem x:Name="MapZoomActive" Header="Zoom to Active Track" Click="ZoomToTrack_Click"/>
                             <Separator/>
                             <MenuItem Header="Mode">
                                 <MenuItem Header="View" Click="MapModeView_Click"/>
@@ -367,8 +371,8 @@
                             </MenuItem>
                             <MenuItem Header="New Track" Click="NewTrack_Click"/>
                             <Separator/>
-                            <MenuItem Header="Delete Selected Points" Click="DeletePoints_Click" InputGestureText="Del"/>
-                            <MenuItem Header="Reset Measurement" Click="MapClearMeasure_Click"/>
+                            <MenuItem x:Name="MapDeletePts" Header="Delete Selected Points" Click="DeletePoints_Click" InputGestureText="Del"/>
+                            <MenuItem x:Name="MapResetMeasure" Header="Reset Measurement" Click="MapClearMeasure_Click"/>
                             <Separator/>
                             <MenuItem Header="3D View of Current Map…" Click="Open3D_Click"/>
                             <MenuItem Header="Export Map Image…" Click="ExportMap_Click"/>

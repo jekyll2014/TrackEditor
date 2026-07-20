@@ -66,6 +66,7 @@ public partial class MainWindow : Window
         _viewportTimer.Start();
 
         RefreshPlots();
+        UpdateCommandStates(); // start with the right things greyed out (no track loaded yet)
 
         // Restore the last session, then open any files passed on the command line.
         Loaded += (_, _) =>
@@ -1064,8 +1065,87 @@ public partial class MainWindow : Window
 
     // ======================= statistics =======================
 
+    // ======================= command enable states =======================
+
+    private bool HasActive => _active is not null;
+    private bool HasTracks => _doc.Tracks.Count > 0;
+    private bool HasEle => _active is not null && _active.Points.Any(p => p.Ele is not null);
+    private bool HasTime => _active is not null && _active.Points.Any(p => p.Time is not null);
+    private bool CanFlag => _active is not null && _active.Points.Count >= 2;
+    private bool HasClipboard => _doc.Clipboard.Count > 0;
+    private bool ElevationSourceOn => SrtmActive || _settings.OnlineEnabled;
+
+    /// <summary>Enables/disables the always-visible controls (toolbar Save, Flags, profile toggles).</summary>
+    private void UpdateCommandStates()
+    {
+        if (BtnSave is not null) BtnSave.IsEnabled = HasActive;
+        if (FlagsCheck is not null) FlagsCheck.IsEnabled = CanFlag;
+        if (ChkAlt is not null) ChkAlt.IsEnabled = HasEle;   // no elevation -> nothing to plot
+        if (ChkSpeed is not null) ChkSpeed.IsEnabled = HasTime; // speed needs timestamps
+    }
+
+    // Menus and context menus compute their item states just before opening.
+
+    private void FileMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        MenuSaveActive.IsEnabled = HasActive;
+        MenuSaveAll.IsEnabled = HasTracks;
+    }
+
+    private void EditMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        bool sel = SelectedIndices().Count > 0;
+        MenuUndo.IsEnabled = _doc.CanUndo;
+        MenuRedo.IsEnabled = _doc.CanRedo;
+        MenuCopy.IsEnabled = sel;
+        MenuPaste.IsEnabled = HasClipboard && HasActive;
+        MenuDelete.IsEnabled = sel;
+    }
+
+    private void TrackMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        var idx = SelectedIndices();
+        int n = _active?.Points.Count ?? 0;
+        MenuDeleteLast.IsEnabled = HasActive && n > 0;
+        MenuSplit.IsEnabled = idx.Count == 1;
+        MenuCrop.IsEnabled = idx.Count >= 2;
+        MenuDeleteRange.IsEnabled = idx.Count > 0;
+        MenuSimplify.IsEnabled = HasActive && n >= 3;
+        MenuReverse.IsEnabled = HasActive && n >= 2;
+        MenuApplyEle.IsEnabled = HasActive && ElevationSourceOn;
+        MenuZoomTrack.IsEnabled = HasActive;
+        MenuRemoveTrack.IsEnabled = HasActive;
+    }
+
+    private void PointsCtx_Opened(object sender, RoutedEventArgs e)
+    {
+        var idx = SelectedIndices();
+        bool one = idx.Count == 1;
+        bool selectedIsWaypoint = one && _active is not null
+            && idx[0] < _active.Points.Count && _active.Points[idx[0]].IsWaypoint;
+        CtxCopy.IsEnabled = idx.Count > 0;
+        CtxPaste.IsEnabled = HasClipboard && HasActive;
+        CtxDeletePts.IsEnabled = idx.Count > 0;
+        CtxSplit.IsEnabled = one;
+        CtxCrop.IsEnabled = idx.Count >= 2;
+        CtxSetWp.IsEnabled = one;
+        CtxRemoveWp.IsEnabled = selectedIsWaypoint;
+        CtxCenter.IsEnabled = idx.Count > 0;
+    }
+
+    private void MapCtx_Opened(object sender, RoutedEventArgs e)
+    {
+        MapFitAll.IsEnabled = HasTracks;
+        MapZoomActive.IsEnabled = HasActive;
+        MapDeletePts.IsEnabled = SelectedIndices().Count > 0;
+        MapResetMeasure.IsEnabled = _mode == EditMode.Measure && _measurePts.Count > 0;
+    }
+
+    // ======================= statistics =======================
+
     private void RefreshStats()
     {
+        UpdateCommandStates();
         StatsText.Text = _active is null || _active.Points.Count < 2
             ? "—"
             : TrackStatistics.Compute(_active.Points).ToDisplayString();

@@ -85,10 +85,6 @@
                 <GroupBox Header="Auto-route (drawing)" Margin="0,10,0,0">
                     <StackPanel Margin="6">
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="Routing profile:" VerticalAlignment="Center" Width="120"/>
-                            <ComboBox x:Name="CmbRoutingProfile" Width="180"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Width="120"/>
                             <CheckBox x:Name="ChkRouteSimplify" VerticalAlignment="Center"
                                       Content="Simplify routed legs"
@@ -102,7 +98,7 @@
                                        Margin="6,0,0,0" Foreground="#666"/>
                         </StackPanel>
                         <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11"
-                                   Text="Routing uses the public BRouter service (brouter.de) — no API key needed. Toggle auto-route on the toolbar while drawing; when a route can't be found the new point is joined with a straight segment."/>
+                                   Text="Auto-route on/off and the routing profile are chosen from the Route dropdown on the toolbar. Routing uses the public BRouter service (brouter.de) — no API key. When a route can't be found the new point is joined with a straight segment."/>
                     </StackPanel>
                 </GroupBox>
 

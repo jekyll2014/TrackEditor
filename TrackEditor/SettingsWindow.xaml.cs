@@ -44,9 +44,6 @@ public partial class SettingsWindow : Window
         TxtWpBack.Text = Result.WaypointLabelBackHex; // fires WpColor_Changed → updates previews
         TxtWpText.Text = Result.WaypointLabelTextHex;
 
-        foreach (var p in RoutingService.Profiles) CmbRoutingProfile.Items.Add(p);
-        CmbRoutingProfile.SelectedItem = RoutingService.Profiles.Contains(Result.RoutingProfile)
-            ? Result.RoutingProfile : RoutingService.Profiles[0];
         ChkRouteSimplify.IsChecked = Result.AutoRouteSimplify;
         TxtRouteTolerance.Text = Result.AutoRouteToleranceM.ToString(CultureInfo.CurrentCulture);
 
@@ -135,7 +132,6 @@ public partial class SettingsWindow : Window
         Result.TileCacheLimitMB = int.TryParse(TxtCacheLimit.Text, out int mb) ? mb : Result.TileCacheLimitMB;
         Result.WaypointLabelBackHex = NormalizeHex(TxtWpBack.Text, Result.WaypointLabelBackHex);
         Result.WaypointLabelTextHex = NormalizeHex(TxtWpText.Text, Result.WaypointLabelTextHex);
-        Result.RoutingProfile = CmbRoutingProfile.SelectedItem as string ?? Result.RoutingProfile;
         Result.AutoRouteSimplify = ChkRouteSimplify.IsChecked == true;
         Result.AutoRouteToleranceM =
             double.TryParse(TxtRouteTolerance.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out double tol) && tol > 0
