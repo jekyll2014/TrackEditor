@@ -98,6 +98,11 @@
             <MenuItem Header="T_ools">
                 <MenuItem Header="_Settings…" Click="Settings_Click"/>
             </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_User Guide" Click="Help_Click" InputGestureText="F1"/>
+                <Separator/>
+                <MenuItem Header="_About TrackEditor…" Click="About_Click"/>
+            </MenuItem>
         </Menu>
 
         <!-- Toolbar = quick access only; every command here is also in the top menu. -->

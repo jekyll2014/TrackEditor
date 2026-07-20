@@ -22,4 +22,9 @@
     <ProjectReference Include="..\TrackEditor.Core.Skia\TrackEditor.Core.Skia.csproj" />
   </ItemGroup>
 
+  <!-- Embed the repo README so the in-app Help ▸ User Guide renders the same doc (single source). -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\README.md" LogicalName="TrackEditor.UserGuide.md" />
+  </ItemGroup>
+
 </Project>

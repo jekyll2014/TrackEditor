@@ -247,6 +247,32 @@ public partial class MainWindow : Window
         StatusInfo.Text = "3D view opened — drag the teal marker on the map to move the viewpoint";
     }
 
+    private HelpWindow? _help; // reused so repeated opens don't stack windows
+
+    private void Help_Click(object sender, RoutedEventArgs e)
+    {
+        if (_help is null)
+        {
+            _help = new HelpWindow { Owner = this };
+            _help.Closed += (_, _) => _help = null;
+            _help.Show();
+        }
+        else _help.Activate();
+    }
+
+    private void About_Click(object sender, RoutedEventArgs e)
+    {
+        var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        MessageBox.Show(this,
+            $"TrackEditor {v?.ToString(3)}\n\n" +
+            "A desktop editor for GPX / KML / KMZ tracks with an interactive map, " +
+            "elevation & speed profile, real-path auto-routing and a 3D terrain view.\n\n" +
+            "Built with WPF (.NET 9), Mapsui, ScottPlot, HelixToolkit, SkiaSharp and SharpKml.\n" +
+            "Map data © OpenStreetMap contributors. Routing by BRouter.\n\n" +
+            "See Help ▸ User Guide (F1) for the full guide.",
+            "About TrackEditor", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
     private void Settings_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new SettingsWindow(_settings) { Owner = this };
@@ -1033,8 +1059,9 @@ public partial class MainWindow : Window
         else if (ctrl && e.Key == Key.C) { CopyPoints_Click(sender, e); e.Handled = true; }
         else if (ctrl && e.Key == Key.V) { PastePoints_Click(sender, e); e.Handled = true; }
         else if (ctrl && e.Key == Key.O) { OpenFile_Click(sender, e); e.Handled = true; }
-        else if (ctrl && e.Key == Key.S) { SaveAll_Click(sender, e); e.Handled = true; }
+        else if (ctrl && e.Key == Key.S) { SaveActive_Click(sender, e); e.Handled = true; }
         else if (e.Key == Key.Delete) { DeletePoints_Click(sender, e); e.Handled = true; }
+        else if (e.Key == Key.F1) { Help_Click(sender, e); e.Handled = true; }
     }
 
     // ======================= background-activity indicator =======================
