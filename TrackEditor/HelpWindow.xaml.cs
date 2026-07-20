@@ -20,6 +20,14 @@ public partial class HelpWindow : Window
         Viewer.Document = BuildDocument(LoadGuide());
     }
 
+    // The window is non-modal (Show, not ShowDialog), so IsCancel can't set DialogResult — close explicitly.
+    private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
+    private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Escape) { Close(); e.Handled = true; }
+    }
+
     private static string LoadGuide()
     {
         var asm = Assembly.GetExecutingAssembly();
