@@ -36,6 +36,11 @@ public class AppSettings
     /// <summary>BRouter profile used for auto-routing (see RoutingService.Profiles).</summary>
     public string RoutingProfile { get; set; } = "trekking";
 
+    /// <summary>Thin out routed legs, which come back very densely sampled from the router.</summary>
+    public bool AutoRouteSimplify { get; set; } = true;
+    /// <summary>Douglas-Peucker tolerance (metres) applied to a routed leg when simplification is on.</summary>
+    public double AutoRouteToleranceM { get; set; } = 10;
+
     /// <summary>Which optional columns the points list shows (the index column is always visible).</summary>
     public bool ColWaypoint { get; set; } = true;
     public bool ColLat { get; set; } = true;

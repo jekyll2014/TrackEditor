@@ -88,6 +88,19 @@
                             <TextBlock Text="Routing profile:" VerticalAlignment="Center" Width="120"/>
                             <ComboBox x:Name="CmbRoutingProfile" Width="180"/>
                         </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Width="120"/>
+                            <CheckBox x:Name="ChkRouteSimplify" VerticalAlignment="Center"
+                                      Content="Simplify routed legs"
+                                      Checked="RouteSimplify_Toggled" Unchecked="RouteSimplify_Toggled"
+                                      ToolTip="Routers return very dense geometry; thinning it keeps tracks manageable."/>
+                        </StackPanel>
+                        <StackPanel x:Name="RouteToleranceRow" Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="Tolerance:" VerticalAlignment="Center" Width="120"/>
+                            <TextBox x:Name="TxtRouteTolerance" Width="70" VerticalContentAlignment="Center"/>
+                            <TextBlock Text="metres  (larger = fewer points)" VerticalAlignment="Center"
+                                       Margin="6,0,0,0" Foreground="#666"/>
+                        </StackPanel>
                         <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11"
                                    Text="Routing uses the public BRouter service (brouter.de) — no API key needed. Toggle auto-route on the toolbar while drawing; when a route can't be found the new point is joined with a straight segment."/>
                     </StackPanel>

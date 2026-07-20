@@ -1,4 +1,5 @@
 using Microsoft.Win32;
+using System.Globalization;
 using System.Windows;
 using TrackEditor.Core.Services;
 
@@ -46,6 +47,8 @@ public partial class SettingsWindow : Window
         foreach (var p in RoutingService.Profiles) CmbRoutingProfile.Items.Add(p);
         CmbRoutingProfile.SelectedItem = RoutingService.Profiles.Contains(Result.RoutingProfile)
             ? Result.RoutingProfile : RoutingService.Profiles[0];
+        ChkRouteSimplify.IsChecked = Result.AutoRouteSimplify;
+        TxtRouteTolerance.Text = Result.AutoRouteToleranceM.ToString(CultureInfo.CurrentCulture);
 
         ChkColWaypoint.IsChecked = Result.ColWaypoint;
         ChkColLat.IsChecked = Result.ColLat;
@@ -96,6 +99,7 @@ public partial class SettingsWindow : Window
         catch { return fallback; }
     }
 
+    private void RouteSimplify_Toggled(object sender, RoutedEventArgs e) => UpdateEnabledState();
     private void Srtm_Toggled(object sender, RoutedEventArgs e) => UpdateEnabledState();
     private void Online_Toggled(object sender, RoutedEventArgs e) => UpdateEnabledState();
     private void Provider_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e) => UpdateEnabledState();
@@ -106,6 +110,8 @@ public partial class SettingsWindow : Window
         if (OnlinePanel is not null) OnlinePanel.IsEnabled = ChkOnline.IsChecked == true;
         // The dataset field only applies to OpenTopoData.
         if (DatasetRow is not null) DatasetRow.IsEnabled = CmbProvider.SelectedIndex == 0;
+        // The tolerance only matters when route simplification is on.
+        if (RouteToleranceRow is not null) RouteToleranceRow.IsEnabled = ChkRouteSimplify.IsChecked == true;
     }
 
     private void BrowseSrtm_Click(object sender, RoutedEventArgs e)
@@ -130,6 +136,10 @@ public partial class SettingsWindow : Window
         Result.WaypointLabelBackHex = NormalizeHex(TxtWpBack.Text, Result.WaypointLabelBackHex);
         Result.WaypointLabelTextHex = NormalizeHex(TxtWpText.Text, Result.WaypointLabelTextHex);
         Result.RoutingProfile = CmbRoutingProfile.SelectedItem as string ?? Result.RoutingProfile;
+        Result.AutoRouteSimplify = ChkRouteSimplify.IsChecked == true;
+        Result.AutoRouteToleranceM =
+            double.TryParse(TxtRouteTolerance.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out double tol) && tol > 0
+                ? tol : Result.AutoRouteToleranceM;
         Result.ColWaypoint = ChkColWaypoint.IsChecked == true;
         Result.ColLat = ChkColLat.IsChecked == true;
         Result.ColLon = ChkColLon.IsChecked == true;

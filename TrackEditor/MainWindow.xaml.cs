@@ -146,10 +146,21 @@ public partial class MainWindow : Window
         }
         else
         {
+            // Routers return very dense geometry, so optionally thin it before it lands in the track.
+            int raw = route.Count;
+            if (_settings.AutoRouteSimplify && _settings.AutoRouteToleranceM > 0 && route.Count > 2)
+            {
+                var keep = GeoMath.DouglasPeucker(route, _settings.AutoRouteToleranceM);
+                // Douglas-Peucker keeps the endpoints, so index 0 still duplicates the last track point.
+                if (keep.Count >= 2) route = keep.Select(i => route[i]).ToList();
+            }
+
             // route[0] duplicates the current last point, so start at 1.
             for (int i = 1; i < route.Count; i++) _active.Points.Add(route[i]);
             if (route.Any(p => p.Ele is not null)) _active.ElevationEstimated = true;
-            StatusInfo.Text = $"Routed +{route.Count - 1} points ({_router.Profile})";
+            StatusInfo.Text = raw != route.Count
+                ? $"Routed +{route.Count - 1} points ({_router.Profile}, simplified from {raw - 1} at {_settings.AutoRouteToleranceM:0.#} m)"
+                : $"Routed +{route.Count - 1} points ({_router.Profile})";
         }
 
         RefreshAll();
