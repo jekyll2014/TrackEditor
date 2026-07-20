@@ -87,6 +87,41 @@
                     <Button Style="{StaticResource NavBtn}" Content="⤓" Click="MoveDown_Click" ToolTip="Move down (−Z)"/>
                 </StackPanel>
 
+                <!-- Rotate / tilt / zoom around the point being looked at -->
+                <Grid Margin="12,0,0,0" VerticalAlignment="Center">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Rotate" FontSize="10" Foreground="#555"
+                               VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <Button Grid.Row="0" Grid.Column="1" Style="{StaticResource NavBtn}" Content="↺"
+                            Click="RotateLeft_Click" ToolTip="Rotate view left (horizontal)"/>
+                    <Button Grid.Row="0" Grid.Column="2" Style="{StaticResource NavBtn}" Content="↻"
+                            Click="RotateRight_Click" ToolTip="Rotate view right (horizontal)"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Tilt" FontSize="10" Foreground="#555"
+                               VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource NavBtn}" Content="▲"
+                            Click="TiltUp_Click" ToolTip="Tilt up — look from higher (vertical)"/>
+                    <Button Grid.Row="1" Grid.Column="2" Style="{StaticResource NavBtn}" Content="▼"
+                            Click="TiltDown_Click" ToolTip="Tilt down — look from nearer the ground (vertical)"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Zoom" FontSize="10" Foreground="#555"
+                               VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <Button Grid.Row="2" Grid.Column="1" Style="{StaticResource NavBtn}" Content="+"
+                            Click="ZoomIn_Click" ToolTip="Zoom in (mouse wheel up)"/>
+                    <Button Grid.Row="2" Grid.Column="2" Style="{StaticResource NavBtn}" Content="−"
+                            Click="ZoomOut_Click" ToolTip="Zoom out (mouse wheel down)"/>
+                </Grid>
+
                 <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
                     <TextBlock Text="Vertical exaggeration" FontSize="10" Foreground="#555"/>
                     <StackPanel Orientation="Horizontal">

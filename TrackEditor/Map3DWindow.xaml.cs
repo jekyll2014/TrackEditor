@@ -65,12 +65,19 @@ public partial class Map3DWindow : Window
         while (z > 1 && MapExporter.EstimateSize(extent, z, 1.0).W > MaxTexturePx) z--;
         _zoom = z;
 
-        // Google-Earth-style mouse mapping: left drag pans, right drag orbits/tilts, wheel zooms.
+        // Google-Earth-style mouse mapping: left drag pans (Helix), right drag orbits/tilts and the
+        // wheel zooms (both handled here so the behaviour is identical to the on-screen buttons).
         Viewport.CameraMode = CameraMode.Inspect;
         Viewport.CameraRotationMode = CameraRotationMode.Turntable;
         Viewport.PanGesture = new MouseGesture(MouseAction.LeftClick);
-        Viewport.RotateGesture = new MouseGesture(MouseAction.RightClick);
+        Viewport.IsRotationEnabled = false;
+        Viewport.IsZoomEnabled = false;
         Viewport.CameraChanged += (_, _) => UpdateHeading();
+
+        Viewport.PreviewMouseWheel += Viewport_PreviewMouseWheel;
+        Viewport.PreviewMouseRightButtonDown += Viewport_RightDown;
+        Viewport.PreviewMouseMove += Viewport_MouseMoveOrbit;
+        Viewport.PreviewMouseRightButtonUp += Viewport_RightUp;
 
         Loaded += async (_, _) => await BuildAsync();
     }
@@ -260,6 +267,117 @@ public partial class Map3DWindow : Window
     private void MoveLeft_Click(object sender, RoutedEventArgs e) => Translate(-GroundAxes().Right * StepSize);
     private void MoveUp_Click(object sender, RoutedEventArgs e) => Translate(new Vector3D(0, 0, StepSize));
     private void MoveDown_Click(object sender, RoutedEventArgs e) => Translate(new Vector3D(0, 0, -StepSize));
+
+    // ======================= rotation / tilt / zoom =======================
+
+    private const double RotateStepDeg = 15;
+    private const double TiltStepDeg = 8;
+    private const double ZoomStep = 1.25;
+
+    /// <summary>The ground point the camera is looking at — the pivot for orbiting and zooming.</summary>
+    private Point3D Target => Cam.Position + Cam.LookDirection;
+
+    /// <summary>Re-aims the camera at <paramref name="target"/> from a new offset, keeping Z up.</summary>
+    private void ApplyOrbit(Point3D target, Vector3D offset)
+    {
+        Cam.Position = target + offset;
+        Cam.LookDirection = target - Cam.Position;
+        Cam.UpDirection = new Vector3D(0, 0, 1);
+        UpdateHeading();
+    }
+
+    /// <summary>Horizontal rotation: swings the camera around the target about the vertical axis.</summary>
+    private void OrbitHorizontal(double deg)
+    {
+        var target = Target;
+        var offset = Cam.Position - target;
+        var m = new Matrix3D();
+        m.Rotate(new Quaternion(new Vector3D(0, 0, 1), deg));
+        ApplyOrbit(target, m.Transform(offset));
+    }
+
+    /// <summary>
+    /// Vertical rotation: raises/lowers the camera along its orbit. Clamped between just above the
+    /// ground and near-overhead so the view can never flip past vertical.
+    /// </summary>
+    private void OrbitVertical(double deg)
+    {
+        var target = Target;
+        var offset = Cam.Position - target;
+        double r = offset.Length;
+        if (r < 1e-6) return;
+
+        double horiz = Math.Sqrt(offset.X * offset.X + offset.Y * offset.Y);
+        double elevation = Math.Atan2(offset.Z, horiz) * 180.0 / Math.PI;
+        double newElev = Math.Clamp(elevation + deg, 2, 88) * Math.PI / 180.0;
+        double azimuth = Math.Atan2(offset.Y, offset.X);
+
+        ApplyOrbit(target, new Vector3D(
+            r * Math.Cos(newElev) * Math.Cos(azimuth),
+            r * Math.Cos(newElev) * Math.Sin(azimuth),
+            r * Math.Sin(newElev)));
+    }
+
+    /// <summary>Zoom by moving the camera along its view ray; distance is clamped to the terrain size.</summary>
+    private void ZoomBy(double factor)
+    {
+        var target = Target;
+        var offset = Cam.Position - target;
+        double r = offset.Length;
+        if (r < 1e-6) return;
+
+        double span = Math.Max(_sizeX, _sizeY);
+        double clamped = Math.Clamp(r * factor, Math.Max(span * 0.005, 15), span * 8);
+        offset.Normalize();
+        ApplyOrbit(target, offset * clamped);
+    }
+
+    // Orbiting the camera anticlockwise about +Z swings the view clockwise, so the signs are flipped
+    // to make "rotate right" actually turn the heading to the right (N -> E -> S -> W).
+    private void RotateLeft_Click(object sender, RoutedEventArgs e) => OrbitHorizontal(RotateStepDeg);
+    private void RotateRight_Click(object sender, RoutedEventArgs e) => OrbitHorizontal(-RotateStepDeg);
+    private void TiltUp_Click(object sender, RoutedEventArgs e) => OrbitVertical(TiltStepDeg);
+    private void TiltDown_Click(object sender, RoutedEventArgs e) => OrbitVertical(-TiltStepDeg);
+    private void ZoomIn_Click(object sender, RoutedEventArgs e) => ZoomBy(1 / ZoomStep);
+    private void ZoomOut_Click(object sender, RoutedEventArgs e) => ZoomBy(ZoomStep);
+
+    /// <summary>Mouse wheel zooms in/out (one notch per detent).</summary>
+    private void Viewport_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        ZoomBy(e.Delta > 0 ? 1 / ZoomStep : ZoomStep);
+        e.Handled = true;
+    }
+
+    // Right-drag orbits: horizontal drag rotates, vertical drag tilts.
+    private System.Windows.Point _orbitFrom;
+    private bool _orbiting;
+
+    private void Viewport_RightDown(object sender, MouseButtonEventArgs e)
+    {
+        _orbiting = true;
+        _orbitFrom = e.GetPosition(Viewport);
+        Viewport.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void Viewport_MouseMoveOrbit(object sender, MouseEventArgs e)
+    {
+        if (!_orbiting || e.RightButton != MouseButtonState.Pressed) return;
+        var p = e.GetPosition(Viewport);
+        double dx = p.X - _orbitFrom.X, dy = p.Y - _orbitFrom.Y;
+        _orbitFrom = p;
+        // Drag right turns the view right; drag down tilts towards the horizon.
+        if (Math.Abs(dx) > 0) OrbitHorizontal(-dx * 0.4);
+        if (Math.Abs(dy) > 0) OrbitVertical(-dy * 0.3);
+    }
+
+    private void Viewport_RightUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_orbiting) return;
+        _orbiting = false;
+        Viewport.ReleaseMouseCapture();
+        e.Handled = true;
+    }
 
     private void Exaggeration_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
