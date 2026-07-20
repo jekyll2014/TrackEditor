@@ -15,6 +15,12 @@ public partial class MainWindow
     private int _hoverIdx = -1;
     private (double Cx, double Cy, double Res) _lastViewport;
 
+    // Point dragging (Edit mode): index of the vertex being dragged, whether it has actually moved,
+    // and a throttle so the live map rebuild stays smooth on large tracks.
+    private int _dragIdx = -1;
+    private bool _dragging;
+    private int _lastDragTick;
+
     private ScottPlot.Plottables.VerticalLine? _marker; // selection marker on the profile plot
     private ScottPlot.Plottables.VerticalLine? _hover;  // hover marker on the profile plot
 
@@ -71,6 +77,31 @@ public partial class MainWindow
         var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
         StatusCoords.Text = $"{lat:F5}, {lon:F5}";
 
+        // Dragging a vertex (Edit mode): move the point and live-refresh the map (throttled for big tracks).
+        if (_dragIdx >= 0 && e.LeftButton == MouseButtonState.Pressed
+            && _active is not null && _dragIdx < _active.Points.Count)
+        {
+            double moved = Math.Abs(pos.X - _mouseDownPos.X) + Math.Abs(pos.Y - _mouseDownPos.Y);
+            if (!_dragging && moved > 3)
+            {
+                _dragging = true;
+                _doc.Snapshot(ActiveIndex()); // a single undo step covers the whole drag
+            }
+            if (_dragging)
+            {
+                _active.Points[_dragIdx].Lat = lat;
+                _active.Points[_dragIdx].Lon = lon;
+                int now = Environment.TickCount;
+                if (now - _lastDragTick >= 25)
+                {
+                    _lastDragTick = now;
+                    _mapMgr.RebuildTracks(_doc.Tracks, _active);
+                    _mapMgr.SetSelection(_active, new[] { _dragIdx });
+                }
+            }
+            return; // suppress hover while dragging
+        }
+
         if (_active is null || _active.Points.Count == 0)
         {
             HideHover();
@@ -118,16 +149,37 @@ public partial class MainWindow
 
     private void MapCtrl_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        // Double-click centres the nearest point in the viewport (same as double-click in the list),
-        // and suppresses Mapsui's default zoom-in so the zoom level is preserved.
-        if (e.ClickCount == 2 && CenterNearestPoint(e.GetPosition(MapCtrl)))
+        var pos = e.GetPosition(MapCtrl);
+
+        if (e.ClickCount == 2)
         {
+            // In Edit mode a double-click inserts a point on the nearest segment; otherwise it
+            // centres the nearest point in the viewport (same as double-click in the list).
+            // Either way we suppress Mapsui's default double-click zoom.
+            if (_mode == EditMode.Edit) InsertPointAtScreen(pos);
+            else CenterNearestPoint(pos);
             _leftDown = false;
+            _dragIdx = -1;
             e.Handled = true;
             return;
         }
+
         _leftDown = true;
-        _mouseDownPos = e.GetPosition(MapCtrl);
+        _dragging = false;
+        _mouseDownPos = pos;
+
+        // In Edit mode, pressing on an existing vertex begins a drag (and suppresses Mapsui's pan).
+        _dragIdx = -1;
+        if (_mode == EditMode.Edit && _active is not null && _active.Points.Count > 0)
+        {
+            int idx = _mapMgr.FindNearestPointIndex(_active, pos.X, pos.Y, 10);
+            if (idx >= 0)
+            {
+                _dragIdx = idx;
+                Mouse.Capture(MapCtrl);
+                e.Handled = true; // stop Mapsui from panning while we drag the point
+            }
+        }
     }
 
     /// <summary>Centres the active track's nearest point (within a pixel threshold) in the map
@@ -143,11 +195,61 @@ public partial class MainWindow
 
     private void MapCtrl_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        var pos = e.GetPosition(MapCtrl);
+
+        // Finish a vertex drag, or select the vertex if it was pressed without moving (Edit mode).
+        if (_dragIdx >= 0)
+        {
+            Mouse.Capture(null);
+            int idx = _dragIdx;
+            _dragIdx = -1;
+            _leftDown = false;
+            e.Handled = true;
+            if (_dragging)
+            {
+                _dragging = false;
+                RefreshAll();               // recompute distances / plots / stats after the move
+                SelectPointInGrid(idx);
+                StatusInfo.Text = $"Moved point {idx} to {_active!.Points[idx].Lat:F5}, {_active.Points[idx].Lon:F5}";
+            }
+            else
+            {
+                bool ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+                bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+                SelectPointInGrid(idx, ctrl, shift);
+            }
+            return;
+        }
+
         if (!_leftDown) return;
         _leftDown = false;
-        var pos = e.GetPosition(MapCtrl);
         if (Math.Abs(pos.X - _mouseDownPos.X) + Math.Abs(pos.Y - _mouseDownPos.Y) > 5) return; // it was a pan
         HandleMapClick(pos);
+    }
+
+    /// <summary>Inserts a new point on the active track's nearest segment at the given screen position
+    /// (Edit-mode double-click). Elevation is filled from SRTM when available.</summary>
+    private void InsertPointAtScreen(System.Windows.Point pos)
+    {
+        if (_active is null)
+        {
+            StatusInfo.Text = "Insert: no active track (draw or open one first)";
+            return;
+        }
+        var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
+        var p = new TrackPoint { Lat = lat, Lon = lon };
+        if (SrtmActive && _srtm.GetElevation(lat, lon) is double ele) { p.Ele = ele; _active.ElevationEstimated = true; }
+
+        _doc.Snapshot(ActiveIndex());
+        // Insert on the nearest segment; for a 0/1-point track just append.
+        int seg = _active.Points.Count >= 2
+            ? _mapMgr.FindNearestSegmentIndex(_active, pos.X, pos.Y, double.MaxValue)
+            : -1;
+        int at = seg >= 0 ? seg + 1 : _active.Points.Count;
+        _active.Points.Insert(at, p);
+        RefreshAll();
+        SelectPointInGrid(at);
+        StatusInfo.Text = $"Inserted point at index {at}";
     }
 
     private void MapCtrl_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
@@ -163,6 +265,18 @@ public partial class MainWindow
     {
         bool ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
         bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+
+        // Universal: a single click near an existing active-track point selects it (every mode but Measure,
+        // which needs to place its endpoints freely).
+        if (_mode != EditMode.Measure && _active is not null && _active.Points.Count > 0)
+        {
+            int nearIdx = _mapMgr.FindNearestPointIndex(_active, pos.X, pos.Y, 10);
+            if (nearIdx >= 0)
+            {
+                SelectPointInGrid(nearIdx, ctrl, shift);
+                return;
+            }
+        }
 
         switch (_mode)
         {
@@ -182,26 +296,10 @@ public partial class MainWindow
                     StatusInfo.Text = $"Added point {_active.Points.Count - 1} ({lat:F5}, {lon:F5})";
                     break;
                 }
-            case EditMode.Insert:
-                {
-                    if (_active is null) return;
-                    var sel = SelectedIndices();
-                    if (sel.Count == 0)
-                    {
-                        StatusInfo.Text = "Insert: first select the point after which to insert (list or map)";
-                        return;
-                    }
-                    int anchor = sel[^1];
-                    var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
-                    _doc.Snapshot(ActiveIndex());
-                    var p = new TrackPoint { Lat = lat, Lon = lon };
-                    if (SrtmActive && _srtm.GetElevation(lat, lon) is double ele) { p.Ele = ele; _active.ElevationEstimated = true; }
-                    _active.Points.Insert(anchor + 1, p);
-                    RefreshAll();
-                    SelectPointInGrid(anchor + 1); // chain: next click inserts after the new point
-                    StatusInfo.Text = $"Inserted point at index {anchor + 1}";
-                    break;
-                }
+            case EditMode.Edit:
+                // Point moves (drag), inserts (double-click) and selection (click on a vertex) are handled
+                // in the mouse down/up path; a click on empty space does nothing here.
+                break;
             case EditMode.Measure:
                 {
                     var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
@@ -221,17 +319,8 @@ public partial class MainWindow
                     }
                     break;
                 }
-            default: // View: select point / switch active track
+            default: // View: click on another track's line switches the active track
                 {
-                    if (_active is not null && _active.Points.Count > 0)
-                    {
-                        int idx = _mapMgr.FindNearestPointIndex(_active, pos.X, pos.Y, 12);
-                        if (idx >= 0)
-                        {
-                            SelectPointInGrid(idx, ctrl, shift);
-                            return;
-                        }
-                    }
                     var hit = _mapMgr.FindNearestTrack(_doc.Tracks, pos.X, pos.Y, 8);
                     if (hit is not null && !ReferenceEquals(hit, _active))
                     {

@@ -69,8 +69,8 @@
                           IsChecked="{Binding IsChecked, ElementName=ModeView, Mode=TwoWay}"/>
                 <MenuItem Header="_Draw" IsCheckable="True"
                           IsChecked="{Binding IsChecked, ElementName=ModeDraw, Mode=TwoWay}"/>
-                <MenuItem Header="_Insert" IsCheckable="True"
-                          IsChecked="{Binding IsChecked, ElementName=ModeInsert, Mode=TwoWay}"/>
+                <MenuItem Header="_Edit" IsCheckable="True"
+                          IsChecked="{Binding IsChecked, ElementName=ModeEdit, Mode=TwoWay}"/>
                 <MenuItem Header="Meas_ure" IsCheckable="True"
                           IsChecked="{Binding IsChecked, ElementName=ModeMeasure, Mode=TwoWay}"/>
             </MenuItem>
@@ -140,11 +140,11 @@
                         <TextBlock Text="Draw" VerticalAlignment="Center"/>
                     </StackPanel>
                 </RadioButton>
-                <RadioButton x:Name="ModeInsert" GroupName="Mode" Checked="Mode_Checked"
-                             ToolTip="Click on map to insert a point after the selected point">
+                <RadioButton x:Name="ModeEdit" GroupName="Mode" Checked="Mode_Checked"
+                             ToolTip="Drag a point to move it; double-click on the line to insert a point; single-click selects">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IcoInsert}" Style="{StaticResource ToolIcon}"/>
-                        <TextBlock Text="Insert" VerticalAlignment="Center"/>
+                        <TextBlock Text="Edit" VerticalAlignment="Center"/>
                     </StackPanel>
                 </RadioButton>
                 <RadioButton x:Name="ModeMeasure" GroupName="Mode" Checked="Mode_Checked"
@@ -339,7 +339,7 @@
                             <MenuItem Header="Mode">
                                 <MenuItem Header="View" Click="MapModeView_Click"/>
                                 <MenuItem Header="Draw" Click="MapModeDraw_Click"/>
-                                <MenuItem Header="Insert" Click="MapModeInsert_Click"/>
+                                <MenuItem Header="Edit" Click="MapModeEdit_Click"/>
                                 <MenuItem Header="Measure" Click="MapModeMeasure_Click"/>
                             </MenuItem>
                             <MenuItem Header="New Track (draw mode)" Click="NewTrack_Click"/>

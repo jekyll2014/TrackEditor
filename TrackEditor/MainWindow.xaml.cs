@@ -16,7 +16,7 @@ namespace TrackEditor;
 
 public partial class MainWindow : Window
 {
-    private enum EditMode { View, Draw, Insert, Measure }
+    private enum EditMode { View, Draw, Edit, Measure }
 
     private static readonly (string Name, string Hex)[] Palette =
     {
@@ -499,7 +499,7 @@ public partial class MainWindow : Window
     // Map context-menu mode switches drive the toolbar radios (Mode_Checked does the real work).
     private void MapModeView_Click(object sender, RoutedEventArgs e) => ModeView.IsChecked = true;
     private void MapModeDraw_Click(object sender, RoutedEventArgs e) => ModeDraw.IsChecked = true;
-    private void MapModeInsert_Click(object sender, RoutedEventArgs e) => ModeInsert.IsChecked = true;
+    private void MapModeEdit_Click(object sender, RoutedEventArgs e) => ModeEdit.IsChecked = true;
     private void MapModeMeasure_Click(object sender, RoutedEventArgs e) => ModeMeasure.IsChecked = true;
 
     /// <summary>Selects a point in the grid programmatically (map click, plot click).</summary>
@@ -865,9 +865,9 @@ public partial class MainWindow : Window
 
     private void Mode_Checked(object sender, RoutedEventArgs e)
     {
-        if (ModeDraw is null || ModeInsert is null || ModeMeasure is null) return; // during InitializeComponent
+        if (ModeDraw is null || ModeEdit is null || ModeMeasure is null) return; // during InitializeComponent
         _mode = ModeDraw.IsChecked == true ? EditMode.Draw
-              : ModeInsert.IsChecked == true ? EditMode.Insert
+              : ModeEdit.IsChecked == true ? EditMode.Edit
               : ModeMeasure.IsChecked == true ? EditMode.Measure
               : EditMode.View;
         if (StatusMode is not null)

@@ -480,6 +480,27 @@ public class MapManager : IDisposable
         return best;
     }
 
+    /// <summary>Index i of the nearest segment (points i..i+1) of <paramref name="track"/> to a screen
+    /// position, within <paramref name="maxPx"/> pixels. Insert position for a new point is i+1. -1 if none.</summary>
+    public int FindNearestSegmentIndex(Track track, double screenX, double screenY, double maxPx)
+    {
+        int best = -1;
+        double bestDist = maxPx;
+        MPoint? prev = null;
+        for (int i = 0; i < track.Points.Count; i++)
+        {
+            var s = WorldToScreen(track.Points[i]);
+            if (s is null) return -1;
+            if (prev is not null)
+            {
+                double d = GeoMath.PointToSegmentDist(screenX, screenY, prev.X, prev.Y, s.X, s.Y);
+                if (d < bestDist) { bestDist = d; best = i - 1; }
+            }
+            prev = s;
+        }
+        return best;
+    }
+
     /// <summary>Finds the visible track whose polyline passes within <paramref name="maxPx"/> pixels of a screen position.</summary>
     public Track? FindNearestTrack(IReadOnlyList<Track> tracks, double screenX, double screenY, double maxPx)
     {
