@@ -30,6 +30,7 @@ public class MapManager : IDisposable
     private readonly MemoryLayer _selLayer = new() { Name = "Selection", Style = null };
     private readonly MemoryLayer _hoverLayer = new() { Name = "Hover", Style = null };
     private readonly MemoryLayer _measureLayer = new() { Name = "Measure", Style = null };
+    private readonly MemoryLayer _viewerLayer = new() { Name = "Viewer3D", Style = null };
     private ILayer _baseLayer;
     private MbTilesCache _baseCache;
     private BaseMapProvider _provider;
@@ -53,6 +54,7 @@ public class MapManager : IDisposable
         map.Layers.Add(_selLayer);
         map.Layers.Add(_hoverLayer);
         map.Layers.Add(_measureLayer);
+        map.Layers.Add(_viewerLayer);
 
         map.Widgets.Add(new Mapsui.Widgets.ScaleBar.ScaleBarWidget(map)
         {
@@ -386,6 +388,47 @@ public class MapManager : IDisposable
         _selLayer.Features = features;
         _selLayer.DataHasChanged();
         _ctrl.RefreshGraphics();
+    }
+
+    /// <summary>Position of the 3D viewer on the 2D map, or null when the 3D window is closed.</summary>
+    public (double Lat, double Lon)? ViewerPosition { get; private set; }
+
+    /// <summary>Draws the 3D viewpoint marker: a cone pointing the way the 3D camera looks.</summary>
+    public void SetViewer(double lat, double lon, double headingDeg)
+    {
+        ViewerPosition = (lat, lon);
+        var (x, y) = SphericalMercator.FromLonLat(lon, lat);
+        var f = new GeometryFeature(new NetTopologySuite.Geometries.Point(x, y));
+        var teal = new Color(0, 137, 123);
+        // A triangle rotated to the heading reads as a "camera looking that way".
+        f.Styles.Add(new SymbolStyle
+        {
+            SymbolType = SymbolType.Triangle,
+            SymbolScale = 0.7,
+            SymbolRotation = headingDeg, // Mapsui rotates clockwise, same sense as a compass bearing
+            Fill = new Mapsui.Styles.Brush(teal),
+            Outline = new Pen(Color.White, 2),
+        });
+        _viewerLayer.Features = new[] { f };
+        _viewerLayer.DataHasChanged();
+        _ctrl.RefreshGraphics();
+    }
+
+    public void ClearViewer()
+    {
+        ViewerPosition = null;
+        _viewerLayer.Features = Array.Empty<IFeature>();
+        _viewerLayer.DataHasChanged();
+        _ctrl.RefreshGraphics();
+    }
+
+    /// <summary>Screen-space distance from a position to the 3D viewer marker, or -1 when not shown.</summary>
+    public double ViewerScreenDistance(double screenX, double screenY)
+    {
+        if (ViewerPosition is not { } v) return -1;
+        var s = WorldToScreen(new TrackPoint { Lat = v.Lat, Lon = v.Lon });
+        if (s is null) return -1;
+        return Math.Sqrt((s.X - screenX) * (s.X - screenX) + (s.Y - screenY) * (s.Y - screenY));
     }
 
     public void SetHover(TrackPoint? point)

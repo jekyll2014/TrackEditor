@@ -20,6 +20,7 @@ public partial class MainWindow
     private int _dragIdx = -1;
     private bool _dragging;
     private int _lastDragTick;
+    private bool _draggingViewer; // dragging the 3D viewpoint marker
 
     private ScottPlot.Plottables.VerticalLine? _marker; // selection marker on the profile plot
     private ScottPlot.Plottables.VerticalLine? _hover;  // hover marker on the profile plot
@@ -76,6 +77,13 @@ public partial class MainWindow
         var pos = e.GetPosition(MapCtrl);
         var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
         StatusCoords.Text = $"{lat:F5}, {lon:F5}";
+
+        // Dragging the 3D viewpoint marker moves the 3D camera (the 3D window echoes back the marker).
+        if (_draggingViewer && e.LeftButton == MouseButtonState.Pressed)
+        {
+            _map3D?.SetViewpoint(lat, lon);
+            return;
+        }
 
         // Dragging a vertex (Edit mode): move the point and live-refresh the map (throttled for big tracks).
         if (_dragIdx >= 0 && e.LeftButton == MouseButtonState.Pressed
@@ -168,6 +176,16 @@ public partial class MainWindow
         _dragging = false;
         _mouseDownPos = pos;
 
+        // The 3D viewpoint marker can be dragged in any mode, and takes precedence over vertices.
+        double vd = _mapMgr.ViewerScreenDistance(pos.X, pos.Y);
+        if (_map3D is not null && vd >= 0 && vd <= 14)
+        {
+            _draggingViewer = true;
+            Mouse.Capture(MapCtrl);
+            e.Handled = true; // don't let Mapsui pan while dragging the marker
+            return;
+        }
+
         // In Edit mode, pressing on an existing vertex begins a drag (and suppresses Mapsui's pan).
         _dragIdx = -1;
         if (_mode == EditMode.Edit && _active is not null && _active.Points.Count > 0)
@@ -196,6 +214,15 @@ public partial class MainWindow
     private void MapCtrl_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         var pos = e.GetPosition(MapCtrl);
+
+        if (_draggingViewer)
+        {
+            _draggingViewer = false;
+            Mouse.Capture(null);
+            _leftDown = false;
+            e.Handled = true;
+            return;
+        }
 
         // Finish a vertex drag, or select the vertex if it was pressed without moving (Edit mode).
         if (_dragIdx >= 0)

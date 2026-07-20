@@ -50,6 +50,26 @@ public static class MapExporter
         IProgress<string>? progress = null,
         CancellationToken ct = default)
     {
+        using var bmp = await RenderAsync(source, e, zoom, scale, tracks, drawScaleBar: true, progress, ct);
+        using var image = SKImage.FromBitmap(bmp);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        using var fs = File.Create(path);
+        data.SaveTo(fs);
+    }
+
+    /// <summary>
+    /// Renders the basemap tiles for an extent with the track overlays on top and returns the bitmap.
+    /// Used both by the PNG export and as the draped texture for the 3D terrain view.
+    /// </summary>
+    public static async Task<SKBitmap> RenderAsync(
+        ITileSource source,
+        (double MinX, double MinY, double MaxX, double MaxY) e,
+        int zoom, double scale,
+        IReadOnlyList<Track> tracks,
+        bool drawScaleBar = true,
+        IProgress<string>? progress = null,
+        CancellationToken ct = default)
+    {
         double res = ResolutionAtZoom(zoom), span = 256 * res;
         int outW = Math.Max(1, (int)Math.Round((e.MaxX - e.MinX) / res * scale));
         int outH = Math.Max(1, (int)Math.Round((e.MaxY - e.MinY) / res * scale));
@@ -62,7 +82,7 @@ public static class MapExporter
         float PX(double x) => (float)((x - e.MinX) / res * scale);
         float PY(double y) => (float)((e.MaxY - y) / res * scale);
 
-        using var bmp = new SKBitmap(outW, outH);
+        var bmp = new SKBitmap(outW, outH); // returned to the caller, who owns disposal
         using var canvas = new SKCanvas(bmp);
         canvas.Clear(new SKColor(0xEE, 0xEE, 0xEE));
 
@@ -111,16 +131,16 @@ public static class MapExporter
             canvas.DrawPath(sk, paint);
         }
 
-        // Ground meters per output pixel at the view's centre latitude (Mercator stretches with latitude).
-        var (_, latCenter) = SphericalMercator.ToLonLat((e.MinX + e.MaxX) / 2, (e.MinY + e.MaxY) / 2);
-        double metersPerPixel = res / scale * Math.Cos(latCenter * Math.PI / 180.0);
-        DrawScaleBar(canvas, outW, outH, metersPerPixel, scale);
+        if (drawScaleBar)
+        {
+            // Ground meters per output pixel at the view's centre latitude (Mercator stretches with latitude).
+            var (_, latCenter) = SphericalMercator.ToLonLat((e.MinX + e.MaxX) / 2, (e.MinY + e.MaxY) / 2);
+            double metersPerPixel = res / scale * Math.Cos(latCenter * Math.PI / 180.0);
+            DrawScaleBar(canvas, outW, outH, metersPerPixel, scale);
+        }
 
         canvas.Flush();
-        using var image = SKImage.FromBitmap(bmp);
-        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        using var fs = File.Create(path);
-        data.SaveTo(fs);
+        return bmp;
     }
 
     /// <summary>Draws a bottom-right scale bar (matching the on-screen map) sized to a "nice" ground distance.</summary>

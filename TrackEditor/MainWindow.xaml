@@ -38,6 +38,8 @@
                 <MenuItem Header="_Save Active Track as GPX…" Click="SaveActive_Click" InputGestureText="Ctrl+S"/>
                 <MenuItem Header="Save A_ll Tracks as GPX…" Click="SaveAll_Click"/>
                 <Separator/>
+                <MenuItem Header="_3D View of Current Map…" Click="Open3D_Click"/>
+                <Separator/>
                 <MenuItem Header="_Export Map Image…" Click="ExportMap_Click"/>
                 <Separator/>
                 <MenuItem Header="E_xit" Click="Exit_Click"/>
@@ -354,6 +356,7 @@
                             <MenuItem Header="Delete Selected Points" Click="DeletePoints_Click" InputGestureText="Del"/>
                             <MenuItem Header="Reset Measurement" Click="MapClearMeasure_Click"/>
                             <Separator/>
+                            <MenuItem Header="3D View of Current Map…" Click="Open3D_Click"/>
                             <MenuItem Header="Export Map Image…" Click="ExportMap_Click"/>
                         </ContextMenu>
                     </mapsui:MapControl.ContextMenu>

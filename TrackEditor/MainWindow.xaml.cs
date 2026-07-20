@@ -40,6 +40,7 @@ public partial class MainWindow : Window
     private EditMode _mode = EditMode.View;
     private readonly List<(double Lat, double Lon)> _measurePts = new(); // multi-point map measurement
     private readonly RoutingService _router = new();
+    private Map3DWindow? _map3D; // non-null while the 3D view is open
     private bool _syncingUi;
     private int _paletteCursor;
     private int _flagContent; // 0 dist, 1 time, 2 both (chosen from View → Mileage Flag Content)
@@ -178,6 +179,30 @@ public partial class MainWindow : Window
             return;
         long freed = _mapMgr.ClearTileCache();
         StatusInfo.Text = $"Tile cache cleared ({freed / (1024.0 * 1024.0):F1} MB freed)";
+    }
+
+    /// <summary>Opens (or re-focuses) the 3D view for the region currently shown on the 2D map.</summary>
+    private void Open3D_Click(object sender, RoutedEventArgs e)
+    {
+        if (_map3D is not null) { _map3D.Activate(); return; }
+
+        var win = new Map3DWindow(
+            _mapMgr.ViewportExtent(),
+            _mapMgr.CurrentZoomLevel(),
+            _mapMgr.BaseMaxZoom,
+            _mapMgr.BaseTileSource,
+            _doc.Tracks.ToList(),
+            _srtm)
+        { Owner = this };
+
+        // Keep the 2D viewer marker in step with the 3D camera.
+        win.ViewpointChanged += (lat, lon, heading) =>
+            Dispatcher.Invoke(() => _mapMgr.SetViewer(lat, lon, heading));
+        win.Closed += (_, _) => { _map3D = null; _mapMgr.ClearViewer(); };
+
+        _map3D = win;
+        win.Show();
+        StatusInfo.Text = "3D view opened — drag the teal marker on the map to move the viewpoint";
     }
 
     private void Settings_Click(object sender, RoutedEventArgs e)
