@@ -1,6 +1,5 @@
 using System.Windows;
 using System.Windows.Controls;
-using TrackEditor.Core.Models;
 using TrackEditor.Core.Skia;
 
 namespace TrackEditor;
