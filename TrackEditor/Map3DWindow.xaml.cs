@@ -1,13 +1,18 @@
 using BruTile;
+
 using HelixToolkit.Wpf;
+
 using Mapsui.Projections;
+
 using SkiaSharp;
+
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
+
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
 using TrackEditor.Core.Skia;

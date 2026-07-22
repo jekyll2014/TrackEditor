@@ -1,6 +1,6 @@
 using SharpKml.Dom;
 using SharpKml.Engine;
-using System.IO;
+
 using TrackEditor.Core.Models;
 
 namespace TrackEditor.Core.Services;

@@ -1,6 +1,7 @@
 using BruTile;
 using BruTile.Predefined;
 using BruTile.Web;
+
 using Mapsui;
 using Mapsui.Extensions;
 using Mapsui.Layers;
@@ -8,10 +9,14 @@ using Mapsui.Nts;
 using Mapsui.Projections;
 using Mapsui.Styles;
 using Mapsui.Tiling.Layers;
+
 using NetTopologySuite.Geometries;
+
 using System.IO;
+
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
+
 using Color = Mapsui.Styles.Color;
 
 namespace TrackEditor.Services;
