@@ -7,6 +7,14 @@ public enum OnlineElevationProvider { OpenTopoData, OpenElevation, OpenMeteo }
 
 public enum BaseMapProvider { OpenStreetMap, OpenTopoMap, CyclOSM, EsriWorldImagery, CartoLight }
 
+/// <summary>Per-map parameters, configured in Settings. The <em>active</em> map itself is chosen on the
+/// main-window toolbar, not here — these settings only tune a given map, they don't switch to it.</summary>
+public class MapParams
+{
+    /// <summary>Tile cache size cap in MB for this map; 0 or negative means no limit (LRU eviction above it).</summary>
+    public int TileCacheLimitMB { get; set; } = AppSettings.DefaultTileCacheLimitMB;
+}
+
 /// <summary>
 /// User settings persisted as JSON under %AppData%\TrackEditor\settings.json.
 /// Migrates the legacy srtm_folder.txt on first load.
@@ -21,9 +29,29 @@ public class AppSettings
     public OnlineElevationProvider OnlineProvider { get; set; } = OnlineElevationProvider.OpenTopoData;
     public string OpenTopoDataset { get; set; } = "srtm90m";
 
+    public const int DefaultTileCacheLimitMB = 500;
+
+    /// <summary>The active base map, chosen from the toolbar selector on the main window.</summary>
     public BaseMapProvider BaseMap { get; set; } = BaseMapProvider.OpenStreetMap;
-    /// <summary>Per-map tile cache size cap in MB; 0 or negative means no limit (LRU eviction above it).</summary>
-    public int TileCacheLimitMB { get; set; } = 500;
+
+    /// <summary>Default tile cache cap (MB) for maps not yet individually configured. Also migrates
+    /// the old single global value from earlier settings files into <see cref="MapParameters"/>.</summary>
+    public int TileCacheLimitMB { get; set; } = DefaultTileCacheLimitMB;
+
+    /// <summary>Per-map parameters keyed by provider. Entries are created on demand by <see cref="ParamsFor"/>,
+    /// seeded from <see cref="TileCacheLimitMB"/> so existing installs keep their previous cache cap.</summary>
+    public Dictionary<BaseMapProvider, MapParams> MapParameters { get; set; } = new();
+
+    /// <summary>Returns the (get-or-created) per-map parameters for a provider.</summary>
+    public MapParams ParamsFor(BaseMapProvider provider)
+    {
+        if (!MapParameters.TryGetValue(provider, out var mp))
+        {
+            mp = new MapParams { TileCacheLimitMB = TileCacheLimitMB };
+            MapParameters[provider] = mp;
+        }
+        return mp;
+    }
 
     /// <summary>Waypoint label background/marker colour (hex) on the map and profile plot.</summary>
     public string WaypointLabelBackHex { get; set; } = "#6A1B9A";
@@ -90,5 +118,13 @@ public class AppSettings
         catch { /* non-fatal: settings just won't persist */ }
     }
 
-    public AppSettings Clone() => (AppSettings)MemberwiseClone();
+    public AppSettings Clone()
+    {
+        var c = (AppSettings)MemberwiseClone();
+        // Deep-copy the per-map dictionary so the settings dialog edits a detached copy.
+        c.MapParameters = new Dictionary<BaseMapProvider, MapParams>();
+        foreach (var kv in MapParameters)
+            c.MapParameters[kv.Key] = new MapParams { TileCacheLimitMB = kv.Value.TileCacheLimitMB };
+        return c;
+    }
 }

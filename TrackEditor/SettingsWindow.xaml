@@ -14,12 +14,14 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel>
 
-                <!-- ===== Base map ===== -->
-                <GroupBox Header="Base map">
+                <!-- ===== Base map parameters ===== -->
+                <GroupBox Header="Base map parameters">
                     <StackPanel Margin="6">
+                        <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11" Margin="0,0,0,6"
+                                   Text="The active map is chosen from the Map selector on the toolbar. Here you set parameters for a particular map — pick the map, then adjust its values."/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="Provider:" VerticalAlignment="Center" Width="120"/>
-                            <ComboBox x:Name="CmbBaseMap" Width="220">
+                            <TextBlock Text="Configure map:" VerticalAlignment="Center" Width="120"/>
+                            <ComboBox x:Name="CmbBaseMap" Width="220" SelectionChanged="ConfigureMap_Changed">
                                 <ComboBoxItem Content="OpenStreetMap"/>
                                 <ComboBoxItem Content="OpenTopoMap (topographic)"/>
                                 <ComboBoxItem Content="CyclOSM"/>
@@ -30,7 +32,7 @@
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Text="Tile cache limit:" VerticalAlignment="Center" Width="120"/>
                             <TextBox x:Name="TxtCacheLimit" Width="70" VerticalContentAlignment="Center"/>
-                            <TextBlock Text="MB per map  (0 = no limit)" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="#666"/>
+                            <TextBlock Text="MB for this map  (0 = no limit)" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="#666"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Width="120"/>

@@ -117,10 +117,17 @@ public class MapManager : IDisposable
 
     private long LimitBytes => _tileLimitMB > 0 ? (long)_tileLimitMB * 1024 * 1024 : 0;
 
-    /// <summary>Swaps the basemap layer (kept at the bottom of the stack) for a different provider.</summary>
-    public void SetBaseMap(BaseMapProvider provider)
+    /// <summary>Swaps the basemap layer (kept at the bottom of the stack) for a different provider, applying
+    /// that map's own cache size cap (MB; 0/negative = unlimited). If the provider is unchanged, only the
+    /// cache cap is (re)applied to the active cache.</summary>
+    public void SetBaseMap(BaseMapProvider provider, int limitMB)
     {
-        if (provider == _provider) return;
+        _tileLimitMB = limitMB;
+        if (provider == _provider)
+        {
+            _baseCache.SetSizeLimit(LimitBytes);
+            return;
+        }
         _provider = provider;
         var map = _ctrl.Map;
         var newLayer = CreateBaseLayer(provider, LimitBytes, out var newCache, out _baseMaxZoom);
@@ -131,13 +138,6 @@ public class MapManager : IDisposable
         _baseCache = newCache;
         oldCache.Dispose();              // safe: the old layer is detached and the cache no-ops once disposed
         _ctrl.RefreshGraphics();
-    }
-
-    /// <summary>Applies a new per-map cache size cap (MB; 0/negative = unlimited) to the active cache.</summary>
-    public void SetTileCacheLimit(int limitMB)
-    {
-        _tileLimitMB = limitMB;
-        _baseCache.SetSizeLimit(LimitBytes);
     }
 
     /// <summary>

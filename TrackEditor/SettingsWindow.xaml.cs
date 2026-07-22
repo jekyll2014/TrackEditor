@@ -23,6 +23,9 @@ public partial class SettingsWindow : Window
         "eudem25m", "ned10m", "etopo1", "gebco2020", "emod2018", "bkg200m",
     };
 
+    private int _configMapIndex;        // which map's parameters are currently shown
+    private bool _suppressMapChange;    // guards the "Configure map" combo during programmatic set
+
     public SettingsWindow(AppSettings current)
     {
         InitializeComponent();
@@ -38,8 +41,13 @@ public partial class SettingsWindow : Window
         foreach (var d in OpenTopoDatasets) CmbDataset.Items.Add(d);
         CmbDataset.Text = Result.OpenTopoDataset; // editable: keeps a custom value if not in the list
 
-        CmbBaseMap.SelectedIndex = (int)Result.BaseMap;
-        TxtCacheLimit.Text = Result.TileCacheLimitMB.ToString();
+        // The base-map selector here picks WHICH map to configure (it does not change the active map,
+        // which is chosen on the toolbar). Default to configuring the currently-active map.
+        _configMapIndex = (int)Result.BaseMap;
+        _suppressMapChange = true;
+        CmbBaseMap.SelectedIndex = _configMapIndex;
+        _suppressMapChange = false;
+        LoadMapParams((BaseMapProvider)_configMapIndex);
 
         TxtWpBack.Text = Result.WaypointLabelBackHex; // fires WpColor_Changed → updates previews
         TxtWpText.Text = Result.WaypointLabelTextHex;
@@ -96,6 +104,26 @@ public partial class SettingsWindow : Window
         catch { return fallback; }
     }
 
+    /// <summary>Switches which map's parameters are shown, saving the value entered for the previous map.</summary>
+    private void ConfigureMap_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (_suppressMapChange) return;
+        CommitMapParams((BaseMapProvider)_configMapIndex);
+        _configMapIndex = Math.Max(0, CmbBaseMap.SelectedIndex);
+        LoadMapParams((BaseMapProvider)_configMapIndex);
+    }
+
+    /// <summary>Shows the given map's saved parameters in the editor fields.</summary>
+    private void LoadMapParams(BaseMapProvider provider) =>
+        TxtCacheLimit.Text = Result.ParamsFor(provider).TileCacheLimitMB.ToString();
+
+    /// <summary>Writes the editor fields back into the given map's parameters (ignoring unparsable input).</summary>
+    private void CommitMapParams(BaseMapProvider provider)
+    {
+        if (int.TryParse(TxtCacheLimit.Text, out int mb))
+            Result.ParamsFor(provider).TileCacheLimitMB = mb;
+    }
+
     private void RouteSimplify_Toggled(object sender, RoutedEventArgs e) => UpdateEnabledState();
     private void Srtm_Toggled(object sender, RoutedEventArgs e) => UpdateEnabledState();
     private void Online_Toggled(object sender, RoutedEventArgs e) => UpdateEnabledState();
@@ -128,8 +156,8 @@ public partial class SettingsWindow : Window
             ? OnlineElevationProvider.OpenElevation
             : OnlineElevationProvider.OpenTopoData;
         Result.OpenTopoDataset = string.IsNullOrWhiteSpace(CmbDataset.Text) ? "srtm90m" : CmbDataset.Text.Trim();
-        Result.BaseMap = (BaseMapProvider)Math.Max(0, CmbBaseMap.SelectedIndex);
-        Result.TileCacheLimitMB = int.TryParse(TxtCacheLimit.Text, out int mb) ? mb : Result.TileCacheLimitMB;
+        // The active map is chosen on the toolbar, not here; only persist the per-map parameters.
+        CommitMapParams((BaseMapProvider)_configMapIndex);
         Result.WaypointLabelBackHex = NormalizeHex(TxtWpBack.Text, Result.WaypointLabelBackHex);
         Result.WaypointLabelTextHex = NormalizeHex(TxtWpText.Text, Result.WaypointLabelTextHex);
         Result.AutoRouteSimplify = ChkRouteSimplify.IsChecked == true;

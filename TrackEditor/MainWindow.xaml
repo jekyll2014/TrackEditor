@@ -169,6 +169,17 @@
                     </StackPanel>
                 </Button>
                 <Separator/>
+                <TextBlock Text="Map:" VerticalAlignment="Center" Margin="2,0,4,0"/>
+                <ComboBox x:Name="BaseMapCombo" Width="150" VerticalAlignment="Center"
+                          SelectionChanged="BaseMapCombo_Changed"
+                          ToolTip="Base map shown on the map. Per-map parameters are in Tools ▸ Settings.">
+                    <ComboBoxItem Content="OpenStreetMap"/>
+                    <ComboBoxItem Content="OpenTopoMap"/>
+                    <ComboBoxItem Content="CyclOSM"/>
+                    <ComboBoxItem Content="Esri Imagery"/>
+                    <ComboBoxItem Content="Carto Light"/>
+                </ComboBox>
+                <Separator/>
                 <TextBlock Text="Route:" VerticalAlignment="Center" Margin="2,0,4,0"/>
                 <ComboBox x:Name="AutoRouteCombo" Width="108" VerticalAlignment="Center"
                           SelectionChanged="AutoRouteCombo_Changed"

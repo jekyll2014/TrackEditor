@@ -43,6 +43,7 @@ public partial class MainWindow : Window
     private Map3DWindow? _map3D; // non-null while the 3D view is open
     private bool _syncingUi;
     private bool _syncingRoute; // guards the toolbar Route combo while it is set programmatically
+    private bool _syncingBaseMap; // guards the toolbar Map combo while it is set programmatically
     private int _paletteCursor;
     private int _flagContent; // 0 dist, 1 time, 2 both (chosen from View → Mileage Flag Content)
 
@@ -50,7 +51,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _settings = AppSettings.Load();
-        _mapMgr = new MapManager(MapCtrl, _settings.BaseMap, _settings.TileCacheLimitMB);
+        _mapMgr = new MapManager(MapCtrl, _settings.BaseMap, _settings.ParamsFor(_settings.BaseMap).TileCacheLimitMB);
         Closed += (_, _) =>
         {
             _mapMgr.Dispose(); // checkpoint/close the MBTiles cache cleanly
@@ -104,11 +105,11 @@ public partial class MainWindow : Window
         _srtm.AutoDownload = _settings.SrtmAutoDownload;
         _online.Provider = _settings.OnlineProvider;
         _online.OpenTopoDataset = _settings.OpenTopoDataset;
-        _mapMgr.SetBaseMap(_settings.BaseMap);
-        _mapMgr.SetTileCacheLimit(_settings.TileCacheLimitMB);
+        _mapMgr.SetBaseMap(_settings.BaseMap, _settings.ParamsFor(_settings.BaseMap).TileCacheLimitMB);
         _mapMgr.SetWaypointColors(_settings.WaypointLabelBackHex, _settings.WaypointLabelTextHex);
         _router.Profile = _settings.RoutingProfile;
         SyncRouteCombo();
+        SyncBaseMapCombo();
         ApplyColumnVisibility();
     }
 
@@ -129,6 +130,27 @@ public partial class MainWindow : Window
                 ? _settings.RoutingProfile
                 : "Off";
         _syncingRoute = false;
+    }
+
+    /// <summary>Reflects the active base map in the toolbar Map combo (items are ordered to match the enum).</summary>
+    private void SyncBaseMapCombo()
+    {
+        if (BaseMapCombo is null) return;
+        _syncingBaseMap = true;
+        BaseMapCombo.SelectedIndex = (int)_settings.BaseMap;
+        _syncingBaseMap = false;
+    }
+
+    /// <summary>Switches the active base map (and applies that map's cache cap) straight from the toolbar.</summary>
+    private void BaseMapCombo_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_syncingBaseMap || BaseMapCombo.SelectedIndex < 0) return;
+        var provider = (BaseMapProvider)BaseMapCombo.SelectedIndex;
+        if (provider == _settings.BaseMap) return;
+        _settings.BaseMap = provider;
+        _mapMgr.SetBaseMap(provider, _settings.ParamsFor(provider).TileCacheLimitMB);
+        _settings.Save();
+        StatusInfo.Text = $"Base map: {(BaseMapCombo.SelectedItem as ComboBoxItem)?.Content}";
     }
 
     /// <summary>Runtime control: "Off" draws straight segments, any profile turns auto-route on with it.</summary>
