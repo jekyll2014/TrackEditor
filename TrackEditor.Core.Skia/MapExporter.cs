@@ -1,6 +1,9 @@
 using BruTile;
+
 using Mapsui.Projections;
+
 using SkiaSharp;
+
 using TrackEditor.Core.Models;
 
 namespace TrackEditor.Core.Skia;

@@ -1,6 +1,8 @@
 using Microsoft.Win32;
+
 using System.Globalization;
 using System.Windows;
+
 using TrackEditor.Core.Services;
 
 namespace TrackEditor;
