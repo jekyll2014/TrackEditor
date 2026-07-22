@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace TrackEditor.Core.Services;
 
-public enum OnlineElevationProvider { OpenTopoData, OpenElevation }
+public enum OnlineElevationProvider { OpenTopoData, OpenElevation, OpenMeteo }
 
 public enum BaseMapProvider { OpenStreetMap, OpenTopoMap, CyclOSM, EsriWorldImagery, CartoLight }
 

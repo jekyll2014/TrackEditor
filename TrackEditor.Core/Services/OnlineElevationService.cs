@@ -5,10 +5,13 @@ using System.Text.Json;
 namespace TrackEditor.Core.Services;
 
 /// <summary>
-/// Fetches elevations from a public web API (OpenTopoData or Open-Elevation) in batches.
-/// Intended as a fallback when SRTM tiles are unavailable. Requires network access and is
-/// subject to the provider's rate limits — the public OpenTopoData instance allows up to
-/// 100 locations per call and ~1 call per second.
+/// Fetches elevations from a public web API in batches. Intended as a fallback when SRTM tiles are
+/// unavailable. Requires network access and is subject to each provider's rate limits.
+/// <para>
+/// Provider notes for browser (WASM) callers: only providers that return CORS headers work in a browser.
+/// <b>OpenMeteo</b> and <b>OpenElevation</b> (via GET) do; <b>OpenTopoData</b> does not send CORS headers
+/// and can only be used from the desktop app.
+/// </para>
 /// </summary>
 public class OnlineElevationService
 {
@@ -29,7 +32,7 @@ public class OnlineElevationService
     {
         var result = new double?[points.Count];
         bool openTopo = Provider == OnlineElevationProvider.OpenTopoData;
-        int batchSize = openTopo ? 100 : 200;
+        int batchSize = 100;
 
         for (int start = 0; start < points.Count; start += batchSize)
         {
@@ -38,9 +41,12 @@ public class OnlineElevationService
             var batch = new List<(double Lat, double Lon)>(count);
             for (int i = 0; i < count; i++) batch.Add(points[start + i]);
 
-            double?[] elevs = openTopo
-                ? await OpenTopoDataAsync(batch, ct)
-                : await OpenElevationAsync(batch, ct);
+            double?[] elevs = Provider switch
+            {
+                OnlineElevationProvider.OpenMeteo => await OpenMeteoAsync(batch, ct),
+                OnlineElevationProvider.OpenElevation => await OpenElevationAsync(batch, ct),
+                _ => await OpenTopoDataAsync(batch, ct),
+            };
 
             for (int i = 0; i < count && i < elevs.Length; i++) result[start + i] = elevs[i];
             progress?.Report((Math.Min(start + count, points.Count), points.Count));
@@ -65,12 +71,38 @@ public class OnlineElevationService
         return ParseElevations(json, batch.Count);
     }
 
+    /// <summary>Open-Meteo elevation API — a simple CORS-enabled GET, so it works in the browser too.</summary>
+    private static async Task<double?[]> OpenMeteoAsync(List<(double Lat, double Lon)> batch, CancellationToken ct)
+    {
+        string lats = string.Join(",", batch.Select(p => p.Lat.ToString(CultureInfo.InvariantCulture)));
+        string lons = string.Join(",", batch.Select(p => p.Lon.ToString(CultureInfo.InvariantCulture)));
+        string url = $"https://api.open-meteo.com/v1/elevation?latitude={lats}&longitude={lons}";
+        using var resp = await Http.GetAsync(url, ct);
+        resp.EnsureSuccessStatusCode();
+        string json = await resp.Content.ReadAsStringAsync(ct);
+
+        var outv = new double?[batch.Count];
+        using var doc = JsonDocument.Parse(json);
+        if (doc.RootElement.TryGetProperty("elevation", out var arr) && arr.ValueKind == JsonValueKind.Array)
+        {
+            int i = 0;
+            foreach (var e in arr.EnumerateArray())
+            {
+                if (i >= batch.Count) break;
+                if (e.ValueKind == JsonValueKind.Number) outv[i] = e.GetDouble();
+                i++;
+            }
+        }
+        return outv;
+    }
+
+    /// <summary>Open-Elevation lookup via GET (its POST endpoint triggers a browser CORS preflight it rejects).</summary>
     private static async Task<double?[]> OpenElevationAsync(List<(double Lat, double Lon)> batch, CancellationToken ct)
     {
-        var body = new { locations = batch.Select(p => new { latitude = p.Lat, longitude = p.Lon }).ToArray() };
-        using var content = new StringContent(
-            JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-        using var resp = await Http.PostAsync("https://api.open-elevation.com/api/v1/lookup", content, ct);
+        string locs = string.Join("|", batch.Select(p =>
+            $"{p.Lat.ToString(CultureInfo.InvariantCulture)},{p.Lon.ToString(CultureInfo.InvariantCulture)}"));
+        string url = $"https://api.open-elevation.com/api/v1/lookup?locations={Uri.EscapeDataString(locs)}";
+        using var resp = await Http.GetAsync(url, ct);
         resp.EnsureSuccessStatusCode();
         string json = await resp.Content.ReadAsStringAsync(ct);
         return ParseElevations(json, batch.Count);
