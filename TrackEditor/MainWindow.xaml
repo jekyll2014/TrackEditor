@@ -258,6 +258,8 @@
                                         <Separator/>
                                         <MenuItem Header="Save Track as GPX…" Click="CtxSaveTrack_Click"/>
                                         <MenuItem Header="Reverse Track" Click="CtxReverse_Click"/>
+                                        <MenuItem Header="Join Tracks…" Click="CtxJoin_Click"
+                                                  ToolTip="Pick this track, then a second one, to combine both into a new track"/>
                                         <MenuItem Header="Simplify…" Click="CtxSimplify_Click"/>
                                         <MenuItem Header="Re-evaluate Elevation (SRTM / Online)" Click="CtxReevalElevation_Click"/>
                                         <Separator/>

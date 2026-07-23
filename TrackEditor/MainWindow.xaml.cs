@@ -588,6 +588,9 @@ public partial class MainWindow : Window
     {
         if (_syncingUi) return;
         var indices = SelectedIndices();
+        // A single row picked directly in the grid is an unambiguous anchor for a later Shift-range
+        // started from the map or the profile plot.
+        if (indices.Count == 1) _gridAnchor = indices[0];
         _mapMgr.SetSelection(_active, indices);
         if (indices.Count > 0) UpdatePlotMarkers(indices[^1]);
         if (indices.Count > 1) StatusInfo.Text = $"{indices.Count} points selected";
@@ -698,15 +701,22 @@ public partial class MainWindow : Window
     private void MapModeMeasure_Click(object sender, RoutedEventArgs e) => ModeMeasure.IsChecked = true;
 
     /// <summary>Selects a point in the grid programmatically (map click, plot click).</summary>
+    /// <summary>
+    /// The point a Shift-range extends from. Held explicitly because SelectedItems is in insertion
+    /// order — using its first entry anchored every range to the lowest selected index, so a range
+    /// could only ever be extended forwards.
+    /// </summary>
+    private int _gridAnchor = -1;
+
     private void SelectPointInGrid(int index, bool ctrl = false, bool shift = false)
     {
         if (PointsGrid.ItemsSource is not List<PointRow> rows || index < 0 || index >= rows.Count) return;
 
-        if (shift && PointsGrid.SelectedItems.Count > 0)
+        if (shift && _gridAnchor >= 0 && _gridAnchor < rows.Count)
         {
-            int anchor = ((PointRow)PointsGrid.SelectedItems[0]!).Index;
+            // Range in either direction; the anchor stays put so it can be re-extended both ways.
             PointsGrid.SelectedItems.Clear();
-            for (int i = Math.Min(anchor, index); i <= Math.Max(anchor, index); i++)
+            for (int i = Math.Min(_gridAnchor, index); i <= Math.Max(_gridAnchor, index); i++)
                 PointsGrid.SelectedItems.Add(rows[i]);
         }
         else if (ctrl)
@@ -715,11 +725,13 @@ public partial class MainWindow : Window
                 PointsGrid.SelectedItems.Remove(rows[index]);
             else
                 PointsGrid.SelectedItems.Add(rows[index]);
+            _gridAnchor = index;
         }
         else
         {
             PointsGrid.SelectedItems.Clear();
             PointsGrid.SelectedItems.Add(rows[index]);
+            _gridAnchor = index;
         }
         PointsGrid.ScrollIntoView(rows[index]);
     }
@@ -925,9 +937,29 @@ public partial class MainWindow : Window
             return;
         }
         if (_active is null || _doc.Tracks.Count < 2) return;
-        _joinFrom = _active;
-        StatusInfo.Text = $"Join: select another track in the list to append to “{_active.Name}” " +
+        ArmJoin(_active);
+    }
+
+    /// <summary>Arms a join from <paramref name="t"/> and prompts for the second track.</summary>
+    private void ArmJoin(Track t)
+    {
+        _joinFrom = t;
+        StatusInfo.Text = $"Join: select another track in the list to append to “{t.Name}” " +
                           "(Track ▸ Join Tracks again to cancel).";
+    }
+
+    /// <summary>
+    /// Track-list context menu "Join Tracks": with no join pending this arms one from the clicked
+    /// track; with a join pending it completes the join against the clicked track. Deliberately does
+    /// not go through SelectCtxTrack, whose MakeActive call would complete the join first.
+    /// </summary>
+    private void CtxJoin_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not TrackRow row) return;
+        if (_joinFrom is not null) { JoinWith(row.T); return; }
+        if (_doc.Tracks.Count < 2) return;
+        MakeActive(row.T); // no join pending, so this only switches the active track
+        ArmJoin(row.T);
     }
 
     /// <summary>
