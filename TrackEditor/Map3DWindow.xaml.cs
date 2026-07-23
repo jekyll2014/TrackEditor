@@ -687,6 +687,37 @@ public partial class Map3DWindow : Window
         }
     }
 
+    /// <summary>Saves the current 3D viewport (map only, without the overlay controls) to a PNG file.</summary>
+    private void SaveImage_Click(object sender, RoutedEventArgs e)
+    {
+        int w = (int)Math.Ceiling(Viewport.ActualWidth), h = (int)Math.Ceiling(Viewport.ActualHeight);
+        if (w < 1 || h < 1) { StatusText.Text = "Nothing to save yet."; return; }
+
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = "PNG image|*.png",
+            DefaultExt = ".png",
+            FileName = "track-3d-view.png",
+        };
+        if (dlg.ShowDialog(this) != true) return;
+
+        try
+        {
+            // Render just the Viewport (the compass/nav/status overlays are siblings, so they're excluded).
+            var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
+            rtb.Render(Viewport);
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(rtb));
+            using var fs = File.Create(dlg.FileName);
+            encoder.Save(fs);
+            StatusText.Text = $"Saved {w}×{h}px → {Path.GetFileName(dlg.FileName)}";
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = "Save failed: " + ex.Message;
+        }
+    }
+
     private static string Compass(double deg) =>
         new[] { "N", "NE", "E", "SE", "S", "SW", "W", "NW" }[(int)Math.Round(deg / 45.0) % 8];
 

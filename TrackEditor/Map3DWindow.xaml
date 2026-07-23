@@ -140,6 +140,10 @@
                                   VerticalContentAlignment="Center" SelectionChanged="Detail_Changed"
                                   ToolTip="Basemap detail level for the 3D texture (same region, finer or coarser tiles)"/>
                     </StackPanel>
+
+                    <Button Content="💾 Save image" Click="SaveImage_Click" Margin="0,8,0,0"
+                            HorizontalAlignment="Left" Padding="8,2" FontSize="11"
+                            ToolTip="Save the current 3D view to a PNG file"/>
                 </StackPanel>
             </StackPanel>
         </Border>
