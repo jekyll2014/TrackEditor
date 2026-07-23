@@ -572,9 +572,9 @@ public partial class Map3DWindow : Window
         var p = e.GetPosition(Viewport);
         double dx = p.X - _orbitFrom.X, dy = p.Y - _orbitFrom.Y;
         _orbitFrom = p;
-        // Drag right turns the view right; drag down tilts towards the horizon.
+        // Drag right turns the view right; pushing the mouse away tilts towards the horizon.
         if (Math.Abs(dx) > 0) OrbitHorizontal(-dx * 0.4);
-        if (Math.Abs(dy) > 0) OrbitVertical(-dy * 0.3);
+        if (Math.Abs(dy) > 0) OrbitVertical(dy * 0.3);
     }
 
     private void Viewport_RightUp(object sender, MouseButtonEventArgs e)
