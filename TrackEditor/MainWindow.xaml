@@ -63,6 +63,8 @@
                 <MenuItem x:Name="MenuSimplify" Header="Si_mplify…" Click="Simplify_Click"/>
                 <Separator/>
                 <MenuItem x:Name="MenuReverse" Header="_Reverse Track" Click="Reverse_Click"/>
+                <MenuItem x:Name="MenuJoin" Header="_Join Tracks…" Click="Join_Click"
+                          ToolTip="Pick a second track in the list to combine both into a new track"/>
                 <MenuItem x:Name="MenuApplyEle" Header="Apply _Elevation to Track (SRTM / Online)" Click="ApplyElevation_Click"/>
                 <Separator/>
                 <MenuItem x:Name="MenuZoomTrack" Header="_Zoom to Track" Click="ZoomToTrack_Click"/>

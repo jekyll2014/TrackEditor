@@ -500,6 +500,8 @@ public partial class MainWindow : Window
     /// <summary>Switches the active track and refreshes every view. No-op if already active.</summary>
     private void MakeActive(Track t)
     {
+        // While a join is pending, picking a track completes the join instead of switching to it.
+        if (_joinFrom is not null) { JoinWith(t); return; }
         if (ReferenceEquals(_active, t)) return;
         SetActive(t);
         RefreshTracksList();
@@ -906,6 +908,55 @@ public partial class MainWindow : Window
         _active.Points.Reverse();
         RefreshAll();
         StatusInfo.Text = "Track reversed (note: timestamps are now in reverse order)";
+    }
+
+    // ======================= join tracks =======================
+
+    /// <summary>The first track picked for a Join, or null when no join is in progress.</summary>
+    private Track? _joinFrom;
+
+    /// <summary>Starts (or cancels) a join: remembers the active track, then waits for a second pick.</summary>
+    private void Join_Click(object sender, RoutedEventArgs e)
+    {
+        if (_joinFrom is not null)
+        {
+            _joinFrom = null;
+            StatusInfo.Text = "Join cancelled.";
+            return;
+        }
+        if (_active is null || _doc.Tracks.Count < 2) return;
+        _joinFrom = _active;
+        StatusInfo.Text = $"Join: select another track in the list to append to “{_active.Name}” " +
+                          "(Track ▸ Join Tracks again to cancel).";
+    }
+
+    /// <summary>
+    /// Completes a join: adds a new track whose points are the first track's followed by the second's.
+    /// Both source tracks are left untouched.
+    /// </summary>
+    private void JoinWith(Track second)
+    {
+        var first = _joinFrom;
+        _joinFrom = null;
+        if (first is null || ReferenceEquals(first, second) || !_doc.Tracks.Contains(first))
+        {
+            StatusInfo.Text = "Join cancelled — pick a different second track.";
+            return;
+        }
+
+        _doc.Snapshot(ActiveIndex());
+        var joined = new Track
+        {
+            Name = $"{first.Name} + {second.Name}",
+            ColorHex = first.ColorHex,
+            Width = first.Width,
+            Visible = true,
+            Points = first.Points.Select(p => p.Clone()).Concat(second.Points.Select(p => p.Clone())).ToList(),
+        };
+        _doc.Tracks.Add(joined);
+        SetActive(joined);
+        RefreshAll();
+        StatusInfo.Text = $"Joined “{first.Name}” + “{second.Name}” → “{joined.Name}” ({joined.Points.Count} pts).";
     }
 
     private void CopyPoints_Click(object sender, RoutedEventArgs e)
