@@ -8,6 +8,7 @@ using SkiaSharp;
 
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -21,12 +22,17 @@ namespace TrackEditor;
 
 /// <summary>
 /// Standalone 3D view of the region currently shown on the 2D map: an SRTM-sampled terrain mesh
-/// with the rendered basemap (including the track overlays) draped over it as a texture.
+/// with the basemap draped over it. Each native basemap tile is draped as its own textured patch
+/// over its Mercator footprint (elevation bilinear-sampled from the shared grid, so adjacent patches
+/// meet without cracks) and the track overlays are baked into each tile's texture. Detail is bounded
+/// by how many tiles cover the extent, not by a single texture's pixel size.
 /// </summary>
 public partial class Map3DWindow : Window
 {
-    private const int Grid = 160;          // terrain resolution (Grid x Grid vertices)
-    private const int MaxTexturePx = 2048; // keep the draped texture a sane size
+    private const int Grid = 160;              // terrain resolution (Grid x Grid vertices)
+    private const double Origin = 20037508.342789244; // Web-Mercator half-extent (m)
+    private const int MaxPatches = 3000;       // hard cap on tiles/patches per detail level
+    private const int HeavyPatches = 400;      // above this a level is allowed but flagged slow
 
     private readonly (double MinX, double MinY, double MaxX, double MaxY) _extent;
     private readonly ITileSource _tiles;
@@ -43,8 +49,10 @@ public partial class Map3DWindow : Window
     private double _minEle, _maxEle;
     private double _sizeX, _sizeY;      // terrain extent in ground metres
     private double _exaggeration = 1.0;
-    private MeshGeometry3D? _mesh;
-    private Material? _material;
+
+    private readonly Model3DGroup _terrain = new();
+    private List<Patch> _patches = new();
+    private int _lastBlocked;           // tiles skipped (fetch/decode failed) in the last drape build
 
     /// <summary>Raised whenever the camera moves so the 2D map can show where the viewer stands.</summary>
     public event Action<double, double, double>? ViewpointChanged; // lat, lon, heading°
@@ -68,10 +76,11 @@ public partial class Map3DWindow : Window
         _sizeX = (extent.MaxX - extent.MinX) * _k;
         _sizeY = (extent.MaxY - extent.MinY) * _k;
 
-        // Pick a texture zoom that keeps the bitmap under MaxTexturePx.
+        // Default to the 2D view's zoom; each tile is its own patch, so the only limit is tile count.
         int z = Math.Min(zoom, maxZoom);
-        while (z > 1 && MapExporter.EstimateSize(extent, z, 1.0).W > MaxTexturePx) z--;
+        while (z > 1 && TileCount(z) > MaxPatches) z--;
         _zoom = z;
+        TerrainVisual.Content = _terrain;
         PopulateDetailLevels();
 
         // Google-Earth-style mouse mapping: left drag pans (Helix), right drag orbits/tilts and the
@@ -103,21 +112,29 @@ public partial class Map3DWindow : Window
             StatusText.Text = "Sampling terrain…";
             int withEle = await Task.Run(SampleElevations);
 
-            StatusText.Text = "Rendering map texture…";
-            _material = await BuildMaterialAsync();
+            StatusText.Text = "Rendering map tiles…";
+            var progress = new Progress<string>(s => StatusText.Text = s);
+            _patches = await BuildDrapeAsync(_zoom, progress);
+            foreach (var p in _patches) _terrain.Children.Add(p.Model);
 
-            RebuildMesh();
             ResetView_Click(this, new RoutedEventArgs());
 
-            StatusText.Text = withEle == 0
-                ? "No SRTM elevation for this area — terrain is flat (set an SRTM folder in Settings)"
-                : $"Terrain {_minEle:F0}–{_maxEle:F0} m   ({withEle * 100 / (Grid * Grid)}% sampled)";
+            StatusText.Text = StatusLine(withEle);
             _detailReady = true;
         }
         catch (Exception ex)
         {
             StatusText.Text = "3D build failed: " + ex.Message;
         }
+    }
+
+    private string StatusLine(int withEle)
+    {
+        string terrain = withEle == 0
+            ? "No SRTM elevation for this area — terrain is flat (set an SRTM folder in Settings)"
+            : $"Terrain {_minEle:F0}–{_maxEle:F0} m";
+        string blocked = _lastBlocked > 0 ? $"   ·   {_lastBlocked} tile(s) skipped" : "";
+        return $"{terrain}   ·   basemap z{_zoom} · {_patches.Count} tiles{blocked}";
     }
 
     /// <summary>Downloads the 1°x1° SRTM tiles covering the extent (no-op unless auto-download is on).</summary>
@@ -170,16 +187,226 @@ public partial class Map3DWindow : Window
         return found;
     }
 
-    private async Task<Material> BuildMaterialAsync()
+    /// <summary>Bilinear terrain elevation (m) at a Mercator point, from the Grid×Grid sample grid.</summary>
+    private double SampleEle(double mx, double my)
     {
-        using var bmp = await MapExporter.RenderAsync(
-            _tiles, _extent, _zoom, 1.0, _tracks, drawScaleBar: false);
-        var src = ToBitmapSource(bmp);
-        var brush = new ImageBrush(src) { TileMode = TileMode.None, Stretch = Stretch.Fill };
+        double gx = (mx - _extent.MinX) / (_extent.MaxX - _extent.MinX) * (Grid - 1);
+        double gy = (my - _extent.MinY) / (_extent.MaxY - _extent.MinY) * (Grid - 1);
+        int x0 = Math.Clamp((int)Math.Floor(gx), 0, Grid - 1);
+        int y0 = Math.Clamp((int)Math.Floor(gy), 0, Grid - 1);
+        int x1 = Math.Min(Grid - 1, x0 + 1), y1 = Math.Min(Grid - 1, y0 + 1);
+        double fx = gx - x0, fy = gy - y0;
+        double a = _elevations[x0, y0], b = _elevations[x1, y0];
+        double c = _elevations[x0, y1], d = _elevations[x1, y1];
+        return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy;
+    }
+
+    // ======================= per-tile drape =======================
+
+    /// <summary>Number of basemap tiles covering the extent at a zoom (= number of patches).</summary>
+    private long TileCount(int zoom) => MapExporter.EstimateSize(_extent, zoom, 1.0).Tiles;
+
+    /// <summary>Track polyline reduced to Web-Mercator metres plus a bbox, for the tile-texture bake.</summary>
+    private sealed class DrawTrack
+    {
+        public (double X, double Y)[] Pts = null!;
+        public SKColor Color;
+        public float Width;
+        public double MinX, MaxX, MinY, MaxY;
+    }
+
+    /// <summary>Projects every visible track to Mercator metres once, shared by all tile bakes.</summary>
+    private List<DrawTrack> BuildDrawTracks()
+    {
+        var list = new List<DrawTrack>();
+        foreach (var t in _tracks)
+        {
+            if (!t.Visible || t.Points.Count < 2) continue;
+            double minX = double.MaxValue, maxX = double.MinValue, minY = double.MaxValue, maxY = double.MinValue;
+            var pts = new (double X, double Y)[t.Points.Count];
+            for (int i = 0; i < t.Points.Count; i++)
+            {
+                var (x, y) = SphericalMercator.FromLonLat(t.Points[i].Lon, t.Points[i].Lat);
+                pts[i] = (x, y);
+                if (x < minX) minX = x; if (x > maxX) maxX = x;
+                if (y < minY) minY = y; if (y > maxY) maxY = y;
+            }
+            list.Add(new DrawTrack
+            {
+                Pts = pts,
+                Color = ParseHex(t.ColorHex),
+                Width = (float)Math.Max(2, t.Width),
+                MinX = minX, MaxX = maxX, MinY = minY, MaxY = maxY,
+            });
+        }
+        return list;
+    }
+
+    /// <summary>Vertex arrays + baked texture for one tile patch (built off the UI thread).</summary>
+    private sealed class PatchData
+    {
+        public double[] Xs = null!, Ys = null!, BaseZ = null!;
+        public System.Windows.Point[] Uvs = null!;
+        public int[] Indices = null!;
+        public Material Material = null!;
+    }
+
+    /// <summary>A live terrain patch: its mesh plus the constant geometry needed to re-exaggerate it.</summary>
+    private sealed class Patch
+    {
+        public GeometryModel3D Model = null!;
+        public MeshGeometry3D Mesh = null!;
+        public double[] Xs = null!, Ys = null!, BaseZ = null!;
+    }
+
+    /// <summary>
+    /// Fetches every tile covering the extent at <paramref name="zoom"/> and builds one textured patch
+    /// per tile. Tiles that fail to fetch/decode are skipped (left as a gap), like the PNG export.
+    /// </summary>
+    private async Task<List<Patch>> BuildDrapeAsync(int zoom, IProgress<string>? progress)
+    {
+        long count = TileCount(zoom);
+        if (count > MaxPatches)
+            throw new Exception($"Detail z{zoom} needs {count} tiles (max {MaxPatches}) — pick a lower detail.");
+
+        double res = MapExporter.ResolutionAtZoom(zoom), span = 256 * res;
+        int tx0 = (int)Math.Floor((_extent.MinX + Origin) / span), tx1 = (int)Math.Floor((_extent.MaxX + Origin) / span);
+        int ty0 = (int)Math.Floor((Origin - _extent.MaxY) / span), ty1 = (int)Math.Floor((Origin - _extent.MinY) / span);
+        int worldTiles = 1 << zoom;
+
+        var tracks = BuildDrawTracks();
+        var patches = new List<Patch>();
+        int blocked = 0, done = 0;
+        long total = (long)(tx1 - tx0 + 1) * (ty1 - ty0 + 1);
+
+        for (int ty = ty0; ty <= ty1; ty++)
+            for (int tx = tx0; tx <= tx1; tx++)
+            {
+                done++;
+                if (ty < 0 || ty >= worldTiles) continue;              // nothing above/below the world
+                int wx = ((tx % worldTiles) + worldTiles) % worldTiles; // wrap across the antimeridian
+                progress?.Report($"Rendering tiles… {done}/{total}");
+
+                byte[]? bytes;
+                try { bytes = await _tiles.GetTileAsync(new TileInfo { Index = new TileIndex(wx, ty, zoom) }); }
+                catch { bytes = null; }
+                if (bytes is null) { blocked++; continue; }
+
+                int ftx = tx, fty = ty;
+                PatchData? data = await Task.Run(() => BuildPatchData(bytes, ftx, fty, span, tracks));
+                if (data is null) { blocked++; continue; }
+                patches.Add(BuildPatchModel(data));
+            }
+
+        _lastBlocked = blocked;
+        return patches;
+    }
+
+    /// <summary>
+    /// Builds the geometry + baked texture for one tile, clipped to the view extent. Runs off the UI
+    /// thread: it produces raw vertex arrays and a frozen material only (no live Media3D objects).
+    /// </summary>
+    private PatchData? BuildPatchData(byte[] bytes, int tx, int ty, double span, List<DrawTrack> tracks)
+    {
+        using var tile = SKBitmap.Decode(bytes);
+        if (tile is null) return null;
+
+        double tileMinX = tx * span - Origin, tileMaxX = (tx + 1) * span - Origin;
+        double tileMaxY = Origin - ty * span, tileMinY = Origin - (ty + 1) * span;
+
+        // Clip the patch to the view extent so edge tiles don't hang past the terrain.
+        double pMinX = Math.Max(tileMinX, _extent.MinX), pMaxX = Math.Min(tileMaxX, _extent.MaxX);
+        double pMinY = Math.Max(tileMinY, _extent.MinY), pMaxY = Math.Min(tileMaxY, _extent.MaxY);
+        if (pMaxX <= pMinX || pMaxY <= pMinY) return null; // tile outside the extent
+
+        // Subdivide the patch to roughly match the elevation grid so the drape follows the terrain.
+        double cellX = (_extent.MaxX - _extent.MinX) / (Grid - 1), cellY = (_extent.MaxY - _extent.MinY) / (Grid - 1);
+        int nx = Math.Clamp((int)Math.Ceiling((pMaxX - pMinX) / cellX) + 1, 2, 32);
+        int ny = Math.Clamp((int)Math.Ceiling((pMaxY - pMinY) / cellY) + 1, 2, 32);
+
+        var xs = new double[nx * ny];
+        var ys = new double[nx * ny];
+        var bz = new double[nx * ny];
+        var uv = new System.Windows.Point[nx * ny];
+        for (int j = 0; j < ny; j++)
+        {
+            double my = pMinY + (pMaxY - pMinY) * j / (ny - 1.0);
+            for (int i = 0; i < nx; i++)
+            {
+                double mx = pMinX + (pMaxX - pMinX) * i / (nx - 1.0);
+                int n = j * nx + i;
+                xs[n] = (mx - _cx) * _k;   // east  → +X
+                ys[n] = (my - _cy) * _k;   // north → +Y
+                bz[n] = SampleEle(mx, my); // elevation before exaggeration
+                // Tile image row 0 is north (top): U across the tile, V flips so north = 0.
+                uv[n] = new System.Windows.Point((mx - tileMinX) / span, (tileMaxY - my) / span);
+            }
+        }
+
+        var indices = new int[(nx - 1) * (ny - 1) * 6];
+        int idx = 0;
+        for (int j = 0; j < ny - 1; j++)
+            for (int i = 0; i < nx - 1; i++)
+            {
+                int a = j * nx + i, b = a + 1, c = a + nx + 1, d = a + nx;
+                indices[idx++] = a; indices[idx++] = b; indices[idx++] = c; // CCW seen from +Z
+                indices[idx++] = a; indices[idx++] = c; indices[idx++] = d;
+            }
+
+        // Bake the crossing track segments onto the tile bitmap, in tile-pixel space.
+        int px = tile.Width, py = tile.Height;
+        using (var canvas = new SKCanvas(tile))
+        {
+            foreach (var tr in tracks)
+            {
+                if (tr.MaxX < tileMinX || tr.MinX > tileMaxX || tr.MaxY < tileMinY || tr.MinY > tileMaxY) continue;
+                using var paint = new SKPaint
+                {
+                    Style = SKPaintStyle.Stroke,
+                    Color = tr.Color,
+                    StrokeWidth = tr.Width,
+                    IsAntialias = true,
+                    StrokeCap = SKStrokeCap.Round,
+                    StrokeJoin = SKStrokeJoin.Round,
+                };
+                using var path = new SKPath();
+                for (int i = 0; i < tr.Pts.Length; i++)
+                {
+                    float X = (float)((tr.Pts[i].X - tileMinX) / span * px);
+                    float Y = (float)((tileMaxY - tr.Pts[i].Y) / span * py);
+                    if (i == 0) path.MoveTo(X, Y); else path.LineTo(X, Y);
+                }
+                canvas.DrawPath(path, paint);
+            }
+            canvas.Flush();
+        }
+
+        var brush = new ImageBrush(ToBitmapSource(tile)) { TileMode = TileMode.None, Stretch = Stretch.Fill };
         brush.Freeze();
         var mat = new DiffuseMaterial(brush);
         mat.Freeze();
-        return mat;
+
+        return new PatchData { Xs = xs, Ys = ys, BaseZ = bz, Uvs = uv, Indices = indices, Material = mat };
+    }
+
+    /// <summary>Assembles a live patch (mesh + model) from patch data on the UI thread.</summary>
+    private Patch BuildPatchModel(PatchData d)
+    {
+        var mesh = new MeshGeometry3D
+        {
+            Positions = BuildPositions(d.Xs, d.Ys, d.BaseZ, _exaggeration),
+            TextureCoordinates = new PointCollection(d.Uvs),
+            TriangleIndices = new Int32Collection(d.Indices),
+        };
+        var model = new GeometryModel3D(mesh, d.Material) { BackMaterial = d.Material };
+        return new Patch { Model = model, Mesh = mesh, Xs = d.Xs, Ys = d.Ys, BaseZ = d.BaseZ };
+    }
+
+    private static Point3DCollection BuildPositions(double[] xs, double[] ys, double[] bz, double exag)
+    {
+        var pos = new Point3DCollection(xs.Length);
+        for (int n = 0; n < xs.Length; n++) pos.Add(new Point3D(xs[n], ys[n], bz[n] * exag));
+        return pos;
     }
 
     private static BitmapSource ToBitmapSource(SKBitmap bmp)
@@ -196,48 +423,17 @@ public partial class Map3DWindow : Window
         return bi;
     }
 
-    /// <summary>(Re)builds the terrain mesh from the sampled grid at the current vertical exaggeration.</summary>
-    private void RebuildMesh()
+    private static SKColor ParseHex(string hex)
     {
-        var positions = new Point3DCollection(Grid * Grid);
-        var texcoords = new PointCollection(Grid * Grid);
-
-        for (int j = 0; j < Grid; j++)
+        try
         {
-            double my = _extent.MinY + (_extent.MaxY - _extent.MinY) * j / (Grid - 1.0);
-            double y = (my - _cy) * _k;
-            for (int i = 0; i < Grid; i++)
-            {
-                double mx = _extent.MinX + (_extent.MaxX - _extent.MinX) * i / (Grid - 1.0);
-                double x = (mx - _cx) * _k;
-                positions.Add(new Point3D(x, y, _elevations[i, j] * _exaggeration));
-                // Texture row 0 is the north edge, grid row 0 is the south edge, so flip V.
-                texcoords.Add(new System.Windows.Point(i / (Grid - 1.0), 1.0 - j / (Grid - 1.0)));
-            }
+            hex = hex.TrimStart('#');
+            return new SKColor(
+                Convert.ToByte(hex.Substring(0, 2), 16),
+                Convert.ToByte(hex.Substring(2, 2), 16),
+                Convert.ToByte(hex.Substring(4, 2), 16));
         }
-
-        var indices = new Int32Collection((Grid - 1) * (Grid - 1) * 6);
-        for (int j = 0; j < Grid - 1; j++)
-            for (int i = 0; i < Grid - 1; i++)
-            {
-                int a = j * Grid + i, b = a + 1, c = a + Grid + 1, d = a + Grid;
-                indices.Add(a); indices.Add(b); indices.Add(c); // CCW seen from +Z
-                indices.Add(a); indices.Add(c); indices.Add(d);
-            }
-
-        var mesh = new MeshGeometry3D
-        {
-            Positions = positions,
-            TextureCoordinates = texcoords,
-            TriangleIndices = indices,
-        };
-        mesh.Freeze();
-        _mesh = mesh;
-
-        TerrainVisual.Content = new GeometryModel3D(mesh, _material ?? new DiffuseMaterial(Brushes.LightGray))
-        {
-            BackMaterial = _material,
-        };
+        catch { return new SKColor(0xE5, 0x39, 0x35); }
     }
 
     // ======================= camera =======================
@@ -389,11 +585,13 @@ public partial class Map3DWindow : Window
         e.Handled = true;
     }
 
+    /// <summary>Re-applies vertical exaggeration to every terrain patch (heights held in each patch's BaseZ).</summary>
     private void Exaggeration_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         _exaggeration = e.NewValue;
         if (ExagLabel is not null) ExagLabel.Text = $"{_exaggeration:0.0}×";
-        if (_mesh is not null) RebuildMesh();
+        foreach (var p in _patches)
+            p.Mesh.Positions = BuildPositions(p.Xs, p.Ys, p.BaseZ, _exaggeration);
     }
 
     /// <summary>Compass heading of the view direction, 0° = north, clockwise.</summary>
@@ -411,9 +609,7 @@ public partial class Map3DWindow : Window
         ViewpointChanged?.Invoke(lat, lon, heading);
     }
 
-    // ======================= basemap detail (texture zoom) =======================
-
-    private const int MaxDetailPx = 4096; // upper bound for the on-demand draped texture
+    // ======================= basemap detail (tile zoom) =======================
 
     /// <summary>A selectable basemap detail level = one tile zoom, labelled with its ground scale.</summary>
     private sealed record DetailLevel(int Zoom, string Label)
@@ -422,50 +618,64 @@ public partial class Map3DWindow : Window
     }
 
     /// <summary>
-    /// Offers the tile zooms that render the current region within a sane texture size, so the 3D map can
-    /// be draped with finer or coarser basemap detail than the 2D view. The auto-picked zoom is preselected.
+    /// Offers the tile zooms for the draped basemap, each labelled with its ground scale. Detail is
+    /// bounded by how many tiles cover the extent (each tile is its own patch), not by texture size:
+    /// a heavy level (many tiles) is flagged ⚠ and a level past the hard cap is shown disabled ⛔.
     /// </summary>
     private void PopulateDetailLevels()
     {
         if (DetailCombo is null) return;
 
-        int hi = _maxZoom;
-        while (hi > 1 && MapExporter.EstimateSize(_extent, hi, 1.0).W > MaxDetailPx) hi--;
-        int lo = hi;
-        while (lo > 2 && MapExporter.EstimateSize(_extent, lo - 1, 1.0).W >= 384) lo--;
-        lo = Math.Max(lo, hi - 6);        // keep the list short
-        lo = Math.Min(lo, _zoom);         // always include the current default
-        hi = Math.Max(hi, _zoom);
+        int hi = Math.Max(_maxZoom, _zoom);
+        int lo = Math.Max(1, Math.Min(_zoom, _maxZoom) - 6);
 
         DetailCombo.Items.Clear();
         DetailLevel? current = null;
+        DetailLevel? lastEnabled = null;
         for (int z = lo; z <= hi; z++)
         {
-            var item = new DetailLevel(z, $"z{z} · {MapExporter.ScaleLabel(MapExporter.MetersPerTile(_extent, z))}");
+            long tiles = TileCount(z);
+            string scale = MapExporter.ScaleLabel(MapExporter.MetersPerTile(_extent, z));
+            if (tiles > MaxPatches)
+            {
+                DetailCombo.Items.Add(new ComboBoxItem
+                {
+                    Content = $"z{z} · {scale} ⛔",
+                    IsEnabled = false,
+                    FontSize = 10,
+                });
+                continue;
+            }
+            string flag = tiles > HeavyPatches ? " ⚠" : "";
+            var item = new DetailLevel(z, $"z{z} · {scale}{flag}");
             DetailCombo.Items.Add(item);
+            lastEnabled = item;
             if (z == _zoom) current = item;
         }
-        DetailCombo.SelectedItem = current ?? DetailCombo.Items[^1];
+        DetailCombo.SelectedItem = current ?? lastEnabled;
     }
 
-    /// <summary>Re-renders the draped texture at the chosen zoom, keeping the same terrain and region.</summary>
-    private async void Detail_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    /// <summary>Rebuilds the drape at the chosen tile zoom, keeping the same terrain and region.</summary>
+    private async void Detail_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (!_detailReady || DetailCombo.SelectedItem is not DetailLevel lvl || lvl.Zoom == _zoom) return;
 
-        _zoom = lvl.Zoom;
+        int newZoom = lvl.Zoom;
         DetailCombo.IsEnabled = false;
-        StatusText.Text = $"Rendering basemap at z{_zoom}…";
+        StatusText.Text = $"Rendering basemap at z{newZoom} ({TileCount(newZoom)} tiles)…";
         try
         {
-            _material = await BuildMaterialAsync();
-            if (TerrainVisual.Content is GeometryModel3D gm)
-            {
-                gm.Material = _material;
-                gm.BackMaterial = _material;
-            }
-            else RebuildMesh();
-            StatusText.Text = $"Terrain {_minEle:F0}–{_maxEle:F0} m   ·   basemap z{_zoom}";
+            // Build the new drape first; only swap once it succeeds so a failure keeps the old view.
+            var progress = new Progress<string>(s => StatusText.Text = s);
+            var built = await BuildDrapeAsync(newZoom, progress);
+
+            _terrain.Children.Clear();
+            _patches = built;
+            foreach (var p in _patches) _terrain.Children.Add(p.Model);
+            _zoom = newZoom;
+
+            string blocked = _lastBlocked > 0 ? $"   ·   {_lastBlocked} tile(s) skipped" : "";
+            StatusText.Text = $"Terrain {_minEle:F0}–{_maxEle:F0} m   ·   basemap z{_zoom} · {_patches.Count} tiles{blocked}";
         }
         catch (Exception ex)
         {
