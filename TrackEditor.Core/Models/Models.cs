@@ -40,6 +40,28 @@ public class Track
     [JsonIgnore]
     public bool IsModified => Points.Count > 0 && ContentHash() != BaselineHash;
 
+    // Cached IsModified: ContentHash() is O(points), so recomputing it on every UI render (per track,
+    // per StateHasChanged) is what makes big track lists sluggish. The document bumps its generation
+    // only when content actually changes (Snapshot / undo / redo), so renders that don't edit anything
+    // reuse the cached result. Content is only ever mutated in place after a Snapshot, so gating on the
+    // document generation is sufficient; ResetBaseline invalidates it directly.
+    private long _modGen = long.MinValue;
+    private bool _modCached;
+
+    /// <summary>Generation-cached <see cref="IsModified"/>: pass the document's current generation.</summary>
+    public bool IsModifiedFor(long generation)
+    {
+        if (generation != _modGen)
+        {
+            _modCached = Points.Count > 0 && ContentHash() != BaselineHash;
+            _modGen = generation;
+        }
+        return _modCached;
+    }
+
+    /// <summary>Forces the next <see cref="IsModifiedFor"/> to recompute (used after the baseline changes).</summary>
+    public void InvalidateModifiedCache() => _modGen = long.MinValue;
+
     /// <summary>Deterministic hash over the "content" that counts as a modification: name + each point's lat/lon/ele/time.</summary>
     public string ContentHash()
     {
@@ -61,7 +83,7 @@ public class Track
     }
 
     /// <summary>Mark the current content as the clean baseline (call after load-from-file or save-to-file).</summary>
-    public void ResetBaseline() => BaselineHash = ContentHash();
+    public void ResetBaseline() { BaselineHash = ContentHash(); InvalidateModifiedCache(); }
 
     public Track Clone() => new()
     {
@@ -90,11 +112,16 @@ public class TrackDocument
     public bool CanUndo => _undo.Count > 0;
     public bool CanRedo => _redo.Count > 0;
 
+    /// <summary>Bumped whenever track content changes; lets Track.IsModifiedFor skip re-hashing on
+    /// renders that didn't edit anything. Every content mutation is preceded by Snapshot/Undo/Redo.</summary>
+    public long Gen { get; private set; }
+
     private static List<Track> DeepClone(List<Track> tracks) => tracks.Select(t => t.Clone()).ToList();
 
     /// <summary>Call BEFORE every mutating operation.</summary>
     public void Snapshot(int activeIndex)
     {
+        Gen++;
         _undo.Add((DeepClone(Tracks), activeIndex));
         if (_undo.Count > MaxUndo) _undo.RemoveAt(0);
         _redo.Clear();
