@@ -138,6 +138,13 @@ Available from the Track menu and the points-list / track-list menus:
 - **Simplify** — Douglas–Peucker reduction at a tolerance you enter (metres),
   preserving elevation and time on the points it keeps.
 - **Reverse** — flip the track's direction.
+- **Join Tracks** — combine two tracks into a new third one. Select the first
+  track, choose **Track ▸ Join Tracks…** (or **Join Tracks…** on the track's
+  right-click menu), then pick the second track in the list. The new track holds
+  the first track's points followed by the second's and takes its colour and
+  width; both originals are left untouched. While a join is waiting for its
+  second track the other menu commands are greyed out and the command reads
+  **Cancel Join** — press **Esc**, or choose it again, to back out.
 - **Copy / Paste** points (Ctrl+C / Ctrl+V); paste inserts after the selection.
 - **Undo / Redo** (Ctrl+Z / Ctrl+Y) — whole-document history covering every edit.
 
@@ -176,7 +183,10 @@ non-overlapping intervals. Choose what the labels show — Distance, Time, or bo
 
 Open it from the **3D View** toolbar button or File ▸ 3D View. It builds a 3D
 terrain surface for the region currently shown on the 2D map, from SRTM
-elevation, and drapes the current map (tracks included) over it as a texture.
+elevation, and drapes the current map over it. Each basemap tile is draped
+individually over its own patch of terrain, with your tracks drawn into the
+tiles, so the route always lies on the surface and detail is limited by how many
+tiles cover the area rather than by any single texture's size.
 
 ![The 3D terrain view: the route draped over a shaded relief surface, with the compass at top-right and the navigation, exaggeration and detail controls at bottom-left.](docs/3d_map.png)
 
@@ -187,6 +197,11 @@ elevation, and drapes the current map (tracks included) over it as a texture.
 - **Detail:** a **Detail** dropdown re-drapes the terrain with finer or coarser
   basemap tiles over the same region — independent of the 2D map's zoom, so you
   can add map detail (or simplify it) in 3D without changing the area shown.
+  Levels needing many tiles are marked ⚠ (slower to build); levels beyond the
+  limit for the area are listed but can't be picked.
+- **Save image:** the **💾 Save** button next to the exaggeration slider writes
+  the current 3D view to a PNG — exactly what you see, at the current camera
+  angle and exaggeration, without the on-screen controls.
 - **Compass:** a needle and numeric heading show the view direction.
 - **Viewpoint marker:** a teal marker on the 2D map shows where the 3D camera
   stands and which way it looks — drag it to move the 3D viewpoint.
@@ -230,8 +245,11 @@ scale bar.
 - **Ctrl+Z / Ctrl+Y** — Undo / Redo
 - **Ctrl+C / Ctrl+V** — Copy / Paste points
 - **Del** — Delete selected points
+- **Esc** — Cancel a pending Join
 - **F1** — This user guide
-- **Ctrl+click / Shift+click** — toggle / extend the selection
+- **Ctrl+click / Shift+click** — toggle / extend the selection. Shift extends
+  from the point you last clicked, so a range can be built and re-extended in
+  either direction.
 
 ---
 
