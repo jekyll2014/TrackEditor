@@ -930,12 +930,7 @@ public partial class MainWindow : Window
     /// <summary>Starts (or cancels) a join: remembers the active track, then waits for a second pick.</summary>
     private void Join_Click(object sender, RoutedEventArgs e)
     {
-        if (_joinFrom is not null)
-        {
-            _joinFrom = null;
-            StatusInfo.Text = "Join cancelled.";
-            return;
-        }
+        if (_joinFrom is not null) { CancelJoin(); return; }
         if (_active is null || _doc.Tracks.Count < 2) return;
         ArmJoin(_active);
     }
@@ -945,7 +940,57 @@ public partial class MainWindow : Window
     {
         _joinFrom = t;
         StatusInfo.Text = $"Join: select another track in the list to append to “{t.Name}” " +
-                          "(Track ▸ Join Tracks again to cancel).";
+                          "(Esc or Track ▸ Cancel Join to cancel).";
+        UpdateJoinUi();
+    }
+
+    /// <summary>Drops a pending join (Esc, or picking the Join command again). No-op when not joining.</summary>
+    private void CancelJoin()
+    {
+        if (_joinFrom is null) return;
+        _joinFrom = null;
+        StatusInfo.Text = "Join cancelled.";
+        UpdateJoinUi();
+    }
+
+    /// <summary>
+    /// Reflects the join state in the menus: while a join is armed every top-level menu except Track
+    /// goes inert, and the Join command becomes "Cancel Join" so the flow can always be escaped.
+    /// Only the top-level items are toggled — several submenu items bind IsEnabled, and setting a
+    /// local value there would overwrite the binding permanently.
+    /// </summary>
+    private void UpdateJoinUi()
+    {
+        bool armed = _joinFrom is not null;
+        MenuJoin.Header = armed ? "Cancel _Join" : "_Join Tracks…";
+        foreach (var obj in MainMenu.Items)
+            if (obj is MenuItem top) top.IsEnabled = !armed || ReferenceEquals(top, MenuTrackTop);
+    }
+
+    /// <summary>Greys out every item of a just-opened menu except the Join command while joining.</summary>
+    private void ApplyJoinGuard(object sender)
+    {
+        if (_joinFrom is null || sender is not MenuItem menu) return;
+        foreach (var obj in menu.Items)
+            if (obj is MenuItem mi && !ReferenceEquals(mi, MenuJoin)) mi.IsEnabled = false;
+    }
+
+    /// <summary>
+    /// The track-list context menu is declared per row in a template, so its items are reached here
+    /// rather than by name: while a join is armed everything but "Join" is inert, and that item is
+    /// relabelled so the pending join can be completed or cancelled from the same place.
+    /// </summary>
+    private void TrackCtxMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ContextMenu menu) return;
+        bool armed = _joinFrom is not null;
+        foreach (var obj in menu.Items)
+        {
+            if (obj is not MenuItem mi) continue; // separators
+            bool isJoin = (mi.Tag as string) == "join";
+            mi.IsEnabled = !armed || isJoin;
+            if (isJoin) mi.Header = armed ? "Cancel Join" : "Join Tracks…";
+        }
     }
 
     /// <summary>
@@ -970,6 +1015,7 @@ public partial class MainWindow : Window
     {
         var first = _joinFrom;
         _joinFrom = null;
+        UpdateJoinUi(); // the join is over either way — bring the menus back
         if (first is null || ReferenceEquals(first, second) || !_doc.Tracks.Contains(first))
         {
             StatusInfo.Text = "Join cancelled — pick a different second track.";
@@ -1161,7 +1207,8 @@ public partial class MainWindow : Window
         if (Keyboard.FocusedElement is TextBox) return;
 
         bool ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
-        if (ctrl && e.Key == Key.Z) { Undo_Click(sender, e); e.Handled = true; }
+        if (e.Key == Key.Escape && _joinFrom is not null) { CancelJoin(); e.Handled = true; }
+        else if (ctrl && e.Key == Key.Z) { Undo_Click(sender, e); e.Handled = true; }
         else if (ctrl && e.Key == Key.Y) { Redo_Click(sender, e); e.Handled = true; }
         else if (ctrl && e.Key == Key.C) { CopyPoints_Click(sender, e); e.Handled = true; }
         else if (ctrl && e.Key == Key.V) { PastePoints_Click(sender, e); e.Handled = true; }
@@ -1264,6 +1311,8 @@ public partial class MainWindow : Window
         MenuApplyEle.IsEnabled = HasActive && ElevationSourceOn;
         MenuZoomTrack.IsEnabled = HasActive;
         MenuRemoveTrack.IsEnabled = HasActive;
+        MenuJoin.IsEnabled = _joinFrom is not null || (HasActive && _doc.Tracks.Count >= 2);
+        ApplyJoinGuard(sender); // while joining, only Join/Cancel Join stays live
     }
 
     private void PointsCtx_Opened(object sender, RoutedEventArgs e)

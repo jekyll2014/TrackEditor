@@ -33,7 +33,7 @@
         </Style>
     </Window.Resources>
     <DockPanel>
-        <Menu DockPanel.Dock="Top">
+        <Menu x:Name="MainMenu" DockPanel.Dock="Top">
             <MenuItem Header="_File" SubmenuOpened="FileMenu_Opened">
                 <MenuItem Header="_Open GPX/KML/KMZ…" Click="OpenFile_Click" InputGestureText="Ctrl+O"/>
                 <MenuItem x:Name="MenuSaveActive" Header="_Save Active Track as GPX…" Click="SaveActive_Click" InputGestureText="Ctrl+S"/>
@@ -53,7 +53,7 @@
                 <MenuItem x:Name="MenuPaste" Header="_Paste Points After Selected" Click="PastePoints_Click" InputGestureText="Ctrl+V"/>
                 <MenuItem x:Name="MenuDelete" Header="_Delete Selected Points" Click="DeletePoints_Click" InputGestureText="Del"/>
             </MenuItem>
-            <MenuItem Header="_Track" SubmenuOpened="TrackMenu_Opened">
+            <MenuItem x:Name="MenuTrackTop" Header="_Track" SubmenuOpened="TrackMenu_Opened">
                 <MenuItem Header="_New Empty Track (draw mode)" Click="NewTrack_Click"/>
                 <MenuItem x:Name="MenuDeleteLast" Header="Delete _Last Point" Click="DeleteLast_Click"/>
                 <Separator/>
@@ -252,13 +252,13 @@
                                  The menu lives in the template so each row gets its own instance. -->
                             <StackPanel Orientation="Horizontal" Background="Transparent">
                                 <StackPanel.ContextMenu>
-                                    <ContextMenu>
+                                    <ContextMenu Opened="TrackCtxMenu_Opened">
                                         <MenuItem Header="Rename…" Click="CtxRenameTrack_Click"/>
                                         <MenuItem Header="Track Information…" Click="CtxTrackInfo_Click"/>
                                         <Separator/>
                                         <MenuItem Header="Save Track as GPX…" Click="CtxSaveTrack_Click"/>
                                         <MenuItem Header="Reverse Track" Click="CtxReverse_Click"/>
-                                        <MenuItem Header="Join Tracks…" Click="CtxJoin_Click"
+                                        <MenuItem Header="Join Tracks…" Click="CtxJoin_Click" Tag="join"
                                                   ToolTip="Pick this track, then a second one, to combine both into a new track"/>
                                         <MenuItem Header="Simplify…" Click="CtxSimplify_Click"/>
                                         <MenuItem Header="Re-evaluate Elevation (SRTM / Online)" Click="CtxReevalElevation_Click"/>
