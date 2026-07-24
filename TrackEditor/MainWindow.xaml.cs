@@ -2,6 +2,7 @@ using Microsoft.Win32;
 
 using System.Globalization;
 using System.IO;
+using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -71,12 +72,17 @@ public partial class MainWindow : Window
         RefreshPlots();
         UpdateCommandStates(); // start with the right things greyed out (no track loaded yet)
 
-        // Restore the last session, then open any files passed on the command line.
+        // Restore the last session, then open anything passed on the command line — local paths and
+        // http(s) URLs alike, so a track can be opened straight from a link.
         Loaded += (_, _) =>
         {
             RestoreSession();
-            var args = Environment.GetCommandLineArgs().Skip(1).Where(File.Exists).ToArray();
-            if (args.Length > 0) LoadFiles(args);
+            var args = Environment.GetCommandLineArgs().Skip(1).ToArray();
+
+            var files = args.Where(File.Exists).ToArray();
+            if (files.Length > 0) LoadFiles(files);
+
+            foreach (string arg in args.Where(IsHttpUrl)) _ = LoadFromUrlAsync(arg);
         };
     }
 
@@ -344,6 +350,12 @@ public partial class MainWindow : Window
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
+        AddLoadedTracks(loaded);
+    }
+
+    /// <summary>Adds freshly parsed tracks to the document and brings every view up to date.</summary>
+    private void AddLoadedTracks(IReadOnlyList<Track> loaded)
+    {
         if (loaded.Count == 0) return;
 
         _doc.Snapshot(ActiveIndex());
@@ -359,6 +371,82 @@ public partial class MainWindow : Window
         StatusInfo.Text = $"Loaded {loaded.Count} track(s), {loaded.Sum(t => t.Points.Count)} points";
         // Bake heights into tracks that lack them (SRTM w/ optional download, then online) — once, not per refresh.
         FillElevationAfterLoad(loaded, isInitialLoad: true);
+    }
+
+    // ======================= loading from a URL =======================
+
+    private static readonly HttpClient DownloadHttp = new() { Timeout = TimeSpan.FromSeconds(60) };
+
+    /// <summary>True for an absolute http(s) address — what the URL loader accepts.</summary>
+    private static bool IsHttpUrl(string s) =>
+        Uri.TryCreate(s, UriKind.Absolute, out var u)
+        && (u.Scheme == Uri.UriSchemeHttp || u.Scheme == Uri.UriSchemeHttps);
+
+    private void OpenUrl_Click(object sender, RoutedEventArgs e)
+    {
+        string? url = InputDialog.Ask(this, "Open from URL",
+            "Address of a GPX, KML or KMZ file:", "https://");
+        if (url is not null) _ = LoadFromUrlAsync(url);
+    }
+
+    /// <summary>
+    /// Downloads a track file and loads it. The format follows the URL's extension where it has a
+    /// usable one, otherwise it is sniffed from the bytes — download links often end in a query
+    /// string or an opaque id rather than ".gpx".
+    /// </summary>
+    private async Task LoadFromUrlAsync(string url)
+    {
+        if (!IsHttpUrl(url))
+        {
+            MessageBox.Show(this, $"Not a valid http(s) address:\n{url}", "Open from URL",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        var uri = new Uri(url);
+
+        BeginBusy($"Downloading {uri.Host}…");
+        try
+        {
+            byte[] bytes = await DownloadHttp.GetByteArrayAsync(uri);
+            string name = System.IO.Path.GetFileNameWithoutExtension(uri.LocalPath);
+            if (string.IsNullOrWhiteSpace(name)) name = uri.Host;
+
+            var loaded = ParseTrackBytes(bytes, System.IO.Path.GetExtension(uri.LocalPath), name);
+            if (loaded.Count == 0)
+            {
+                MessageBox.Show(this, "The download contained no tracks.", "Open from URL",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            // Deliberately no SourceFile: a downloaded track has no local path, so Save must prompt
+            // rather than silently writing somewhere.
+            AddLoadedTracks(loaded);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Failed to download {url}:\n{ex.Message}", "Open from URL",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally { EndBusy(); }
+    }
+
+    /// <summary>Parses downloaded bytes as GPX/KML/KMZ, using the extension if it says, else the content.</summary>
+    private static List<Track> ParseTrackBytes(byte[] bytes, string extension, string baseName)
+    {
+        string ext = extension.ToLowerInvariant();
+        using var ms = new MemoryStream(bytes);
+
+        if (ext == ".gpx") return GpxIo.Load(ms, baseName);
+        if (ext == ".kmz") return KmlIo.Load(ms, isKmz: true, baseName);
+        if (ext == ".kml") return KmlIo.Load(ms, isKmz: false, baseName);
+
+        if (bytes.Length > 1 && bytes[0] == 'P' && bytes[1] == 'K') // zip magic => KMZ
+            return KmlIo.Load(ms, isKmz: true, baseName);
+        // Text: GPX and KML are both XML, so look for the GPX root element.
+        string head = System.Text.Encoding.UTF8.GetString(bytes, 0, Math.Min(bytes.Length, 2048));
+        return head.Contains("<gpx", StringComparison.OrdinalIgnoreCase)
+            ? GpxIo.Load(ms, baseName)
+            : KmlIo.Load(ms, isKmz: false, baseName);
     }
 
     private void SaveActive_Click(object sender, RoutedEventArgs e)

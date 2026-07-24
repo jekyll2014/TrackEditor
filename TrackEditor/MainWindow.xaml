@@ -36,6 +36,8 @@
         <Menu x:Name="MainMenu" DockPanel.Dock="Top">
             <MenuItem Header="_File" SubmenuOpened="FileMenu_Opened">
                 <MenuItem Header="_Open GPX/KML/KMZ…" Click="OpenFile_Click" InputGestureText="Ctrl+O"/>
+                <MenuItem Header="Open from _URL…" Click="OpenUrl_Click"
+                          ToolTip="Download a GPX, KML or KMZ file from a web address"/>
                 <MenuItem x:Name="MenuSaveActive" Header="_Save Active Track as GPX…" Click="SaveActive_Click" InputGestureText="Ctrl+S"/>
                 <MenuItem x:Name="MenuSaveAll" Header="Save A_ll Tracks as GPX…" Click="SaveAll_Click"/>
                 <Separator/>
