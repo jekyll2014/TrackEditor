@@ -13,8 +13,14 @@ This document is also the in-app **Help ▸ User Guide** (press **F1**).
 ## Getting started
 
 - **Open a track:** File ▸ Open (or the Open button, or Ctrl+O), and pick one or
-  more `.gpx`, `.kml` or `.kmz` files. You can also drag files onto the app, or
-  pass file paths on the command line.
+  more `.gpx`, `.kml` or `.kmz` files. You can also drag files onto the app.
+- **Open from the web:** File ▸ Open from URL takes the address of a `.gpx`,
+  `.kml` or `.kmz` file and downloads it. The format is read from the address
+  where it ends in a known extension, and otherwise worked out from the file
+  itself, so links ending in a query string or an id still work. A downloaded
+  track has no file on disk, so **Save** asks where to put it.
+- **From the command line:** pass file paths, web addresses, or both —
+  `TrackEditor.exe hike.gpx https://example.com/route.gpx`
 - The map fits to the loaded tracks, the points appear in the list on the left,
   and the elevation/speed profile is drawn below the map.
 - Your open tracks are remembered between runs and restored automatically.
