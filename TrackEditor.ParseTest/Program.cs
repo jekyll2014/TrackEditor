@@ -72,5 +72,19 @@ foreach (string file in Directory.GetFiles(dir).OrderBy(f => f))
     }
 }
 
+// Race Analysis P3: end-to-end fit-then-predict when both sample tracks are present.
+string? fitFile = Directory.GetFiles(dir, "*.gpx").FirstOrDefault(f => Path.GetFileName(f).Contains("MonteRosa", StringComparison.OrdinalIgnoreCase));
+string? planFile = Directory.GetFiles(dir, "*.gpx").FirstOrDefault(f => Path.GetFileName(f).Contains("WWT", StringComparison.OrdinalIgnoreCase));
+if (fitFile is not null && planFile is not null)
+{
+    Console.WriteLine("\n=== Race Analysis: fit MonteRosa -> predict WWT ===");
+    var fit = RaceAnalyzer.Analyze(GpxIo.Load(fitFile));
+    var plan = GpxIo.Load(planFile)[0];
+    var pred = RacePredictor.Predict(plan, fit.Model, new PredictOptions { StartTime = DateTime.Today.AddHours(8) });
+    foreach (var line in pred.Report.Split('\n')) Console.WriteLine("    " + line.TrimEnd());
+    bool timed = pred.PredictedTrack.Points.All(p => p.Time is not null);
+    Console.WriteLine($"    injected times on all {pred.PredictedTrack.Points.Count} points: {timed}");
+}
+
 Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILURES");
 return failures;
