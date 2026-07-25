@@ -40,9 +40,10 @@ public static class RaceAnalyzer
 {
     private readonly struct Seg
     {
-        public readonly double GradeDeg, SpeedRel, Effort;
+        public readonly double GradeDeg, SpeedRel, Effort, Turn;
         public readonly double? Hr;
-        public Seg(double g, double s, double e, double? hr) { GradeDeg = g; SpeedRel = s; Effort = e; Hr = hr; }
+        public Seg(double g, double s, double e, double turn, double? hr)
+        { GradeDeg = g; SpeedRel = s; Effort = e; Turn = turn; Hr = hr; }
     }
 
     public static AnalysisResult Analyze(IEnumerable<Track> tracks, RaceAnalysisOptions? options = null)
@@ -76,9 +77,10 @@ public static class RaceAnalyzer
             var cum = GeoMath.CumulativeDistancesM(rs);
             totalKm += cum[^1] / 1000.0;
             names.Add(track.Name);
+            var turn = TurnMetrics.PerSegmentDegPerM(rs, cum);
 
             // Per-segment features on the resampled grid.
-            var raw = new List<(double Grade, double Speed, double CumAsc, double Elapsed, double Dist, double? Hr)>();
+            var raw = new List<(double Grade, double Speed, double CumAsc, double Elapsed, double Dist, double Turn, double? Hr)>();
             double cumAsc = 0;
             DateTime t0 = rs.First(p => p.Time is not null).Time!.Value;
             for (int i = 1; i < rs.Count; i++)
@@ -96,7 +98,7 @@ public static class RaceAnalyzer
 
                 double gradeDeg = Math.Atan2((rs[i].Ele ?? 0) - (rs[i - 1].Ele ?? 0), dDist) * 180 / Math.PI;
                 double? hr = (rs[i - 1].Hr is int h0 && rs[i].Hr is int h1) ? (h0 + h1) / 2.0 : rs[i].Hr;
-                raw.Add((gradeDeg, v, cumAsc, (tb - t0).TotalSeconds, cum[i], hr));
+                raw.Add((gradeDeg, v, cumAsc, (tb - t0).TotalSeconds, cum[i], turn[i], hr));
             }
             if (raw.Count == 0) continue;
 
@@ -115,7 +117,7 @@ public static class RaceAnalyzer
                     FatigueDriver.Distance => r.Dist,
                     _ => r.CumAsc,
                 };
-                segs.Add(new Seg(Math.Clamp(r.Grade, opt.GradeMinDeg, opt.GradeMaxDeg), r.Speed / norm, effort, r.Hr));
+                segs.Add(new Seg(Math.Clamp(r.Grade, opt.GradeMinDeg, opt.GradeMaxDeg), r.Speed / norm, effort, r.Turn, r.Hr));
             }
         }
 
@@ -142,6 +144,18 @@ public static class RaceAnalyzer
             }
         }
 
+        var fatigue = new FatigueSpec
+        {
+            Driver = opt.Driver,
+            Shape = FatigueShape.Linear,
+            K = k,
+            Floor = opt.FatigueFloor,
+            HrDriftPerUnit = hrDrift,
+        };
+
+        // --- turn penalty: residual after grade+fatigue regressed against turn density ---
+        var turnSpec = FitTurn(segs, relLookup, fatigue);
+
         double scale = opt.NormalizePerTrack ? athleteFlat : 1.0;
         var model = new RaceModel
         {
@@ -151,14 +165,8 @@ public static class RaceAnalyzer
                 StepDeg = 1,
                 SpeedMps = relCurve.Select(v => v * scale).ToArray(),
             },
-            Fatigue = new FatigueSpec
-            {
-                Driver = opt.Driver,
-                Shape = FatigueShape.Linear,
-                K = k,
-                Floor = opt.FatigueFloor,
-                HrDriftPerUnit = hrDrift,
-            },
+            Fatigue = fatigue,
+            Turn = turnSpec,
             Altitude = new AltitudeSpec { DeratePerKm = 0 },   // neutral in v1
             AthleteBaseline = new AthleteBaseline { FlatSpeedMps = athleteFlat, RefHr = refHr },
             Meta = new RaceModelMeta
@@ -243,6 +251,34 @@ public static class RaceAnalyzer
         return Math.Max(0, k);   // fitness doesn't improve mid-race
     }
 
+    /// <summary>
+    /// Fits the turn (sinuosity) penalty. Residual r = speed / (base(grade) x fatigue(effort)) ~ 1 at the mean
+    /// turn density; regress (r - 1) on (turn - refTurn) through the reference. Coeff is clamped &lt;= 0 so twistier
+    /// terrain can only slow the runner — a spurious positive (straighter = faster than base) is discarded.
+    /// </summary>
+    private static TurnSpec FitTurn(List<Seg> segs, BaseCurve baseRel, FatigueSpec fat)
+    {
+        var used = new List<(double R, double Turn)>();
+        foreach (var s in segs)
+        {
+            double b = baseRel.SpeedAt(s.GradeDeg) * fat.Mult(s.Effort);
+            if (b <= 0) continue;
+            used.Add((s.SpeedRel / b, s.Turn));
+        }
+        if (used.Count < 30) return new TurnSpec();   // too little to fit; stay neutral
+
+        double refTurn = used.Average(u => u.Turn);
+        double num = 0, den = 0;
+        foreach (var u in used)
+        {
+            double dx = u.Turn - refTurn;
+            num += (u.R - 1.0) * dx;
+            den += dx * dx;
+        }
+        double coeff = den > 0 ? num / den : 0;
+        return new TurnSpec { RefDegPerM = refTurn, Coeff = Math.Min(0, coeff) };
+    }
+
     private static List<string> BuildSignalList(bool hr, bool cad)
     {
         var l = new List<string> { "ele", "time" };
@@ -269,6 +305,11 @@ public static class RaceAnalyzer
         sb.AppendLine($"Fatigue:         k={m.Fatigue.K:G3} /{unit}; end-of-effort speed x{m.Fatigue.Mult(maxEffort):F2}");
         if (m.Fatigue.HrDriftPerUnit is double d)
             sb.AppendLine($"HR drift:        {d * 1000:F1} bpm per 1000 {unit}");
+        if (m.Turn.Coeff < 0)
+        {
+            double twisty = m.Turn.RefDegPerM * 3;   // a markedly twistier-than-average section
+            sb.AppendLine($"Turn penalty:    ref {m.Turn.RefDegPerM:F2}°/m; twisty section x{m.Turn.Mult(twisty):F2}");
+        }
         return sb.ToString().TrimEnd();
     }
 

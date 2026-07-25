@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -29,6 +30,9 @@ public partial class ApplyRaceModelWindow : Window
         _target = target;
         TargetText.Text = $"Predict the race flow on “{target.Name}” ({target.Points.Count} pts) " +
                           "by applying a saved race model.";
+        if (!target.Points.Any(p => p.Ele is not null))
+            TargetText.Text += "\n⚠ This track has no elevation — every grade reads as flat, so the prediction " +
+                               "will be poor. Run Track ▸ Apply Elevation first for a realistic result.";
     }
 
     private void Import_Click(object sender, RoutedEventArgs e)

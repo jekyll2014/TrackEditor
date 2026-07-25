@@ -44,6 +44,7 @@ public static class RacePredictor
 
         var rs = TrackResampler.Resample(pts, opt.SpacingM, opt.EleWindowM);
         var cumRs = GeoMath.CumulativeDistancesM(rs);
+        var turn = TurnMetrics.PerSegmentDegPerM(rs, cumRs);
 
         // Integrate time along the resampled grid, feeding fatigue effort forward.
         var timeAtRs = new double[rs.Count];   // seconds from start
@@ -64,6 +65,7 @@ public static class RacePredictor
 
             double speed = model.BaseCurve.SpeedAt(gradeDeg)
                          * model.Fatigue.Mult(effort)
+                         * model.Turn.Mult(turn[i])
                          * (opt.UseAltitude ? model.Altitude.Mult(rs[i].Ele) : 1.0)
                          * opt.SurfaceMult;
             speed = Math.Max(opt.MinSpeedMps, speed);

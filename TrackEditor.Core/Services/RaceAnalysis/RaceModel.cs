@@ -18,6 +18,7 @@ public class RaceModel
     public RaceModelMeta Meta { get; set; } = new();
     public BaseCurve BaseCurve { get; set; } = new();
     public FatigueSpec Fatigue { get; set; } = new();
+    public TurnSpec Turn { get; set; } = new();
     public AltitudeSpec Altitude { get; set; } = new();
     public AthleteBaseline AthleteBaseline { get; set; } = new();
 
@@ -90,6 +91,24 @@ public class FatigueSpec
         double m = Shape == FatigueShape.Exp ? Math.Exp(-K * effort) : 1.0 - K * effort;
         return Math.Clamp(m, Floor, 1.0);
     }
+}
+
+/// <summary>
+/// Speed multiplier for course sinuosity (turn density, deg/m). Neutral (1.0) at <see cref="RefDegPerM"/> — the
+/// average twistiness already baked into the base curve — so only relative twistiness moves it: tighter sections
+/// derate, straighter give a mild boost. <see cref="Coeff"/> is fitted &lt;= 0 (turns never speed a runner up).
+/// </summary>
+public class TurnSpec
+{
+    /// <summary>Reference turn density (deg/m): the fit's mean, where the multiplier is exactly 1.0.</summary>
+    public double RefDegPerM { get; set; }
+    /// <summary>Change in multiplier per unit turn density above the reference; fitted &lt;= 0.</summary>
+    public double Coeff { get; set; }
+    public double Floor { get; set; } = 0.75;
+    public double Ceil { get; set; } = 1.05;
+
+    public double Mult(double turnDegPerM) =>
+        Math.Clamp(1.0 + Coeff * (turnDegPerM - RefDegPerM), Floor, Ceil);
 }
 
 /// <summary>Physiological derate above a reference elevation. Neutral (disabled) in v1 to avoid
