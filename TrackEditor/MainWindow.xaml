@@ -99,6 +99,12 @@
                           IsChecked="{Binding IsChecked, ElementName=ChkSpeed, Mode=TwoWay}"
                           IsEnabled="{Binding IsEnabled, ElementName=ChkSpeed}"/>
             </MenuItem>
+            <MenuItem Header="_Race" SubmenuOpened="RaceMenu_Opened">
+                <MenuItem x:Name="MenuAnalyzeRace" Header="_Analyze Race Ability…" Click="AnalyzeRace_Click"
+                          ToolTip="Learn speed vs terrain from recorded tracks and save a race model"/>
+                <MenuItem x:Name="MenuApplyRaceModel" Header="A_pply Race Model…" Click="ApplyRaceModel_Click"
+                          ToolTip="Predict pace on the active track using a saved race model"/>
+            </MenuItem>
             <MenuItem Header="T_ools">
                 <MenuItem Header="_Settings…" Click="Settings_Click"/>
             </MenuItem>

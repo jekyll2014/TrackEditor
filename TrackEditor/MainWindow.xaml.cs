@@ -12,6 +12,7 @@ using System.Windows.Threading;
 
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
+using TrackEditor.Core.Services.RaceAnalysis;
 using TrackEditor.Core.Skia;
 using TrackEditor.Services;
 
@@ -316,6 +317,40 @@ public partial class MainWindow : Window
         StatusInfo.Text = "Settings updated";
         // If a source was just enabled, fill any tracks still missing elevation (fills gaps only).
         FillElevationAfterLoad(_doc.Tracks);
+    }
+
+    // ======================= race analysis =======================
+
+    private void RaceMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        MenuAnalyzeRace.IsEnabled = HasTracks;
+        MenuApplyRaceModel.IsEnabled = HasActive && (_active?.Points.Count ?? 0) >= 2;
+    }
+
+    private void AnalyzeRace_Click(object sender, RoutedEventArgs e)
+    {
+        if (_doc.Tracks.Count == 0) { StatusInfo.Text = "Analyze race: open at least one recorded track first"; return; }
+        new AnalyzeRaceWindow(_doc.Tracks) { Owner = this }.ShowDialog();
+    }
+
+    private void ApplyRaceModel_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null || _active.Points.Count < 2)
+        {
+            StatusInfo.Text = "Apply race model: select a track with at least two points";
+            return;
+        }
+        var dlg = new ApplyRaceModelWindow(_active) { Owner = this };
+        if (dlg.ShowDialog() != true || dlg.PredictedTrack is null) return;
+
+        var predicted = dlg.PredictedTrack;
+        _doc.Snapshot(ActiveIndex());
+        predicted.ColorHex = Palette[_paletteCursor++ % Palette.Length].Hex; // distinct colour from the source
+        _doc.Tracks.Add(predicted);
+        _active = predicted;
+        RefreshAll();
+        _mapMgr.ZoomToTracks(new[] { predicted });
+        StatusInfo.Text = $"Added predicted track “{predicted.Name}”";
     }
 
     // ======================= file operations =======================
