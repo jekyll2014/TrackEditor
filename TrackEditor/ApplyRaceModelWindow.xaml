@@ -37,6 +37,12 @@
                     <ComboBoxItem Content="Technical / rocky (0.80×)" Tag="0.80"/>
                 </ComboBox>
             </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                <Button x:Name="InferSurfaceButton" Content="Infer surface from routing…" Width="200"
+                        Click="InferSurface_Click"/>
+                <TextBlock x:Name="SurfaceStatus" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#666"
+                           TextWrapping="Wrap" Text="Optional: adopt OSM surface where the route hugs the track."/>
+            </StackPanel>
             <CheckBox x:Name="ChkAltitude" Content="Apply altitude derate (if present in model)" IsChecked="False"/>
             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <Button x:Name="RunButton" Content="Predict" Width="100" Click="Run_Click" IsEnabled="False"/>

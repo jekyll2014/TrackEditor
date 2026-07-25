@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using Microsoft.Win32;
 
 using TrackEditor.Core.Models;
+using TrackEditor.Core.Services;
 using TrackEditor.Core.Services.RaceAnalysis;
 
 namespace TrackEditor;
@@ -20,6 +21,7 @@ public partial class ApplyRaceModelWindow : Window
 {
     private readonly Track _target;
     private RaceModel? _model;
+    private double[]? _surface;   // per-point surface multiplier from routing inference, or null
 
     /// <summary>The predicted copy the user chose to add; null until "Add Predicted Track" is pressed.</summary>
     public Track? PredictedTrack { get; private set; }
@@ -78,6 +80,7 @@ public partial class ApplyRaceModelWindow : Window
         {
             StartTime = start,
             SurfaceMult = SelectedSurfaceMult(),
+            PerPointSurfaceMult = _surface,
             UseAltitude = ChkAltitude.IsChecked == true,
         };
 
@@ -105,6 +108,38 @@ public partial class ApplyRaceModelWindow : Window
             return false;
         start = DateTime.Today.Add(tod);
         return true;
+    }
+
+    private async void InferSurface_Click(object sender, RoutedEventArgs e)
+    {
+        InferSurfaceButton.IsEnabled = false;
+        SurfaceStatus.Text = "Routing along the track…";
+        try
+        {
+            var res = await SurfaceInference.InferAsync(_target, new RoutingService());
+            if (res.Routed && res.Matched > 0)
+            {
+                _surface = res.PerPointMult;
+                SurfaceStatus.Text = $"Surface: {res.Coverage * 100:F0}% covered, mean ×{res.MeanMult:F2}. " +
+                                     "Re-run Predict to apply.";
+            }
+            else
+            {
+                _surface = null;
+                SurfaceStatus.Text = res.Routed
+                    ? "No confident surface matches — the route didn't hug the track. Left neutral."
+                    : "Routing unavailable (offline / rate-limited). Surface left neutral.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _surface = null;
+            SurfaceStatus.Text = "Surface inference failed: " + ex.Message;
+        }
+        finally
+        {
+            InferSurfaceButton.IsEnabled = true;
+        }
     }
 
     private double SelectedSurfaceMult() =>

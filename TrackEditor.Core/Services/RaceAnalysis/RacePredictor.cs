@@ -11,6 +11,9 @@ public class PredictOptions
     public DateTime StartTime { get; set; } = DateTime.Today.AddHours(8);
     /// <summary>Global surface multiplier (1.0 = the model's own terrain). &lt;1 slows, e.g. mud/technical.</summary>
     public double SurfaceMult { get; set; } = 1.0;
+    /// <summary>Optional per-point surface multiplier aligned to <c>target.Points</c> (e.g. from routing-inferred
+    /// OSM surface). Applied on top of <see cref="SurfaceMult"/>; null or mismatched length is ignored.</summary>
+    public IReadOnlyList<double>? PerPointSurfaceMult { get; set; }
     /// <summary>Apply the model's altitude derate (off by default / neutral in v1).</summary>
     public bool UseAltitude { get; set; } = false;
     public double SpacingM { get; set; } = TrackResampler.DefaultSpacingM;
@@ -45,6 +48,7 @@ public static class RacePredictor
         var rs = TrackResampler.Resample(pts, opt.SpacingM, opt.EleWindowM);
         var cumRs = GeoMath.CumulativeDistancesM(rs);
         var turn = TurnMetrics.PerSegmentDegPerM(rs, cumRs);
+        var surfAtRs = BuildGridSurface(opt.PerPointSurfaceMult, pts, cumRs);
 
         // Integrate time along the resampled grid, feeding fatigue effort forward.
         var timeAtRs = new double[rs.Count];   // seconds from start
@@ -67,7 +71,7 @@ public static class RacePredictor
                          * model.Fatigue.Mult(effort)
                          * model.Turn.Mult(turn[i])
                          * (opt.UseAltitude ? model.Altitude.Mult(rs[i].Ele) : 1.0)
-                         * opt.SurfaceMult;
+                         * opt.SurfaceMult * surfAtRs[i];
             speed = Math.Max(opt.MinSpeedMps, speed);
 
             elapsed += dDist / speed;
@@ -97,6 +101,27 @@ public static class RacePredictor
             DistanceKm = cumOrig[^1] / 1000.0,
             Report = BuildReport(copy, model, opt, elapsed, cumOrig[^1]),
         };
+    }
+
+    /// <summary>Projects a per-original-point surface multiplier onto the resampled grid by along-track distance
+    /// (nearest original point). Returns all-1.0 when no per-point surface was supplied.</summary>
+    private static double[] BuildGridSurface(IReadOnlyList<double>? perPoint, IReadOnlyList<TrackPoint> pts, double[] cumRs)
+    {
+        var s = new double[cumRs.Length];
+        Array.Fill(s, 1.0);
+        if (perPoint is null || perPoint.Count != pts.Count) return s;
+
+        var cumOrig = GeoMath.CumulativeDistancesM(pts);
+        int k = 0;
+        for (int i = 0; i < cumRs.Length; i++)
+        {
+            double d = cumRs[i];
+            while (k < cumOrig.Length - 1 && cumOrig[k + 1] < d) k++;
+            int idx = k;
+            if (k + 1 < cumOrig.Length && Math.Abs(cumOrig[k + 1] - d) < Math.Abs(cumOrig[k] - d)) idx = k + 1;
+            s[i] = perPoint[idx];
+        }
+        return s;
     }
 
     private static string BuildReport(Track copy, RaceModel model, PredictOptions opt, double totalSec, double distM)
