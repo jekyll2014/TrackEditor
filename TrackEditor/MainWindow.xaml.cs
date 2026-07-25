@@ -755,7 +755,7 @@ public partial class MainWindow : Window
         // started from the map or the profile plot.
         if (indices.Count == 1) _gridAnchor = indices[0];
         _mapMgr.SetSelection(_active, indices);
-        if (indices.Count > 0) UpdatePlotMarkers(indices[^1]);
+        UpdatePlotMarkers(indices);
         if (indices.Count > 1) StatusInfo.Text = $"{indices.Count} points selected";
         RefreshSelectionStats();
     }

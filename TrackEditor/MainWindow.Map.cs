@@ -22,7 +22,8 @@ public partial class MainWindow
     private int _lastDragTick;
     private bool _draggingViewer; // dragging the 3D viewpoint marker
 
-    private ScottPlot.Plottables.VerticalLine? _marker; // selection marker on the profile plot
+    private ScottPlot.Plottables.VerticalLine? _marker;      // current-point marker on the profile plot
+    private ScottPlot.Plottables.HorizontalSpan? _selSpan;   // shaded band spanning a multi-point selection
     private ScottPlot.Plottables.VerticalLine? _hover;  // hover marker on the profile plot
 
     // ======================= hover (map <-> plots, both directions) =======================
@@ -470,6 +471,7 @@ public partial class MainWindow
         plt.Clear();
         plt.Axes.Remove(ScottPlot.Edge.Right); // drop any right axis added on the previous refresh
         _marker = null;
+        _selSpan = null;
         _hover = null;
         _hoverIdx = -1;
 
@@ -594,18 +596,39 @@ public partial class MainWindow
         axis.TickLabelStyle.ForeColor = color;
     }
 
-    private void UpdatePlotMarkers(int idx)
+    /// <summary>Marks the selection on the profile: a shaded band across the selected km range (when 2+ points
+    /// are selected) plus a line at the current point. Pass an empty list to clear both.</summary>
+    private void UpdatePlotMarkers(IReadOnlyList<int> indices)
     {
-        if (_active is null || idx < 0 || idx >= _cumDist.Length) return;
-        double x = _cumDist[idx] / 1000;
+        if (_active is null || _cumDist.Length == 0) return;
 
-        if (_marker is null)
+        // Shaded range band, refreshed each time so it tracks the current selection.
+        if (_selSpan is not null) { ProfilePlot.Plot.Remove(_selSpan); _selSpan = null; }
+        if (indices.Count >= 2)
         {
-            _marker = ProfilePlot.Plot.Add.VerticalLine(x);
-            _marker.Color = ScottPlot.Colors.Gray;
-            _marker.LineWidth = 1;
+            int lo = indices.Min(), hi = indices.Max();
+            if (lo >= 0 && hi < _cumDist.Length)
+            {
+                _selSpan = ProfilePlot.Plot.Add.HorizontalSpan(_cumDist[lo] / 1000, _cumDist[hi] / 1000);
+                _selSpan.FillColor = ScottPlot.Color.FromHex("#3B82F6").WithAlpha((byte)40);
+                _selSpan.LineColor = ScottPlot.Color.FromHex("#3B82F6").WithAlpha((byte)90);
+                _selSpan.LineWidth = 1;
+            }
         }
-        else _marker.X = x;
+
+        // Current-point line at the last selected index.
+        int cur = indices.Count > 0 ? indices[^1] : -1;
+        if (cur >= 0 && cur < _cumDist.Length)
+        {
+            double x = _cumDist[cur] / 1000;
+            if (_marker is null)
+            {
+                _marker = ProfilePlot.Plot.Add.VerticalLine(x);
+                _marker.Color = ScottPlot.Colors.Gray;
+                _marker.LineWidth = 1;
+            }
+            else _marker.X = x;
+        }
         ProfilePlot.Refresh();
     }
 
