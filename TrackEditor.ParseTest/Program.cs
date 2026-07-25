@@ -52,6 +52,17 @@ foreach (string file in Directory.GetFiles(dir).OrderBy(f => f))
                 int dropped = Enumerable.Range(0, t.Points.Count).Count(i => t.Points[i].Hr is not null && cleaned[i] is null);
                 Console.WriteLine($"    hr clean: {cleaned.Count(h => h is not null)} valid, {dropped} implausible dropped");
             }
+
+            // Race Analysis P2: fit a model from this (timed) track and round-trip its JSON
+            if (hasTime)
+            {
+                var res = RaceAnalyzer.Analyze(new[] { t });
+                foreach (var line in res.Report.Split('\n'))
+                    Console.WriteLine("    | " + line.TrimEnd());
+                var round = RaceModel.FromJson(res.Model.ToJson());
+                Console.WriteLine($"    | json round-trip: {round.BaseCurve.SpeedMps.Length} curve bins, " +
+                                  $"flat {round.AthleteBaseline.FlatSpeedMps * 3.6:F1} km/h");
+            }
         }
     }
     catch (Exception ex)
