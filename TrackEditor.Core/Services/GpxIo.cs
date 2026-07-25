@@ -44,6 +44,11 @@ public static class GpxIo
     private static string? ChildValue(XElement e, string localName) =>
         e.Elements().FirstOrDefault(c => c.Name.LocalName == localName)?.Value;
 
+    /// <summary>First descendant (any depth) with the given local name — for nested &lt;extensions&gt;
+    /// sensor tags. Namespace-agnostic: matches Strava (gpxtpx:) and Garmin (ns3:) alike.</summary>
+    private static string? DescendantValue(XElement e, string localName) =>
+        e.Descendants().FirstOrDefault(c => c.Name.LocalName == localName)?.Value;
+
     private static TrackPoint? ParsePoint(XElement pt)
     {
         if (!double.TryParse(pt.Attribute("lat")?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double lat) ||
@@ -56,6 +61,13 @@ public static class GpxIo
         if (DateTime.TryParse(ChildValue(pt, "time"), CultureInfo.InvariantCulture,
                 DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out DateTime t))
             p.Time = DateTime.SpecifyKind(t, DateTimeKind.Utc);
+        // Optional sensor channels from <extensions> (Garmin ns3: / Strava gpxtpx:), matched by local name.
+        if (int.TryParse(DescendantValue(pt, "hr"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int hr))
+            p.Hr = hr;
+        if (int.TryParse(DescendantValue(pt, "cad"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int cad))
+            p.Cad = cad;
+        if (double.TryParse(DescendantValue(pt, "atemp"), NumberStyles.Float, CultureInfo.InvariantCulture, out double atemp))
+            p.Temp = atemp;
         // A <name> on a trkpt/rtept marks it as a named waypoint (valid GPX wptType member).
         string? name = ChildValue(pt, "name");
         if (!string.IsNullOrWhiteSpace(name)) p.Name = name.Trim();
@@ -78,9 +90,11 @@ public static class GpxIo
     private static void Write(XmlWriter writer, IEnumerable<Track> tracks)
     {
         XNamespace ns = "http://www.topografix.com/GPX/1/1";
+        XNamespace tpx = "http://www.garmin.com/xmlschemas/TrackPointExtension/v1";
         var gpx = new XElement(ns + "gpx",
             new XAttribute("version", "1.1"),
-            new XAttribute("creator", "TrackEditor"));
+            new XAttribute("creator", "TrackEditor"),
+            new XAttribute(XNamespace.Xmlns + "gpxtpx", tpx.NamespaceName));
 
         foreach (var track in tracks)
         {
@@ -99,6 +113,16 @@ public static class GpxIo
                 {
                     pt.Add(new XElement(ns + "name", p.Name));
                     pt.Add(new XElement(ns + "sym", "Flag"));
+                }
+                // <extensions> is the last wptType member; emit recorded sensor channels if any.
+                if (p.Hr is not null || p.Cad is not null || p.Temp is not null)
+                {
+                    var tpxExt = new XElement(tpx + "TrackPointExtension");
+                    if (p.Hr is int hr) tpxExt.Add(new XElement(tpx + "hr", hr));
+                    if (p.Cad is int cad) tpxExt.Add(new XElement(tpx + "cad", cad));
+                    if (p.Temp is double temp)
+                        tpxExt.Add(new XElement(tpx + "atemp", temp.ToString("0.#", CultureInfo.InvariantCulture)));
+                    pt.Add(new XElement(ns + "extensions", tpxExt));
                 }
                 seg.Add(pt);
             }

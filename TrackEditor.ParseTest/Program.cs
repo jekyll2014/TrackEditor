@@ -27,9 +27,13 @@ foreach (string file in Directory.GetFiles(dir).OrderBy(f => f))
             var stats = TrackStatistics.Compute(t.Points);
             bool hasTime = t.Points.Any(p => p.Time is not null);
             bool hasEle = t.Points.Any(p => p.Ele is not null);
+            int hrN = t.Points.Count(p => p.Hr is not null);
+            int cadN = t.Points.Count(p => p.Cad is not null);
+            int tempN = t.Points.Count(p => p.Temp is not null);
             Console.WriteLine($"    '{t.Name}': {t.Points.Count} pts, {stats.DistanceM / 1000:F2} km, " +
                               $"ele={(hasEle ? $"{stats.AscentM:F0}m up/{stats.DescentM:F0}m down" : "no")}, " +
                               $"time={(hasTime ? stats.Duration?.ToString() ?? "partial" : "no")}");
+            Console.WriteLine($"    sensors: hr={hrN}, cad={cadN}, temp={tempN}");
 
             // exercise simplify + speeds on the fly
             var keep = GeoMath.DouglasPeucker(t.Points, 10);

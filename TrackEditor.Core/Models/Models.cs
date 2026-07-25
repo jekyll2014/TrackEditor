@@ -9,6 +9,12 @@ public class TrackPoint
     public double? Ele { get; set; }
     public DateTime? Time { get; set; }
 
+    /// <summary>Recorded sensor channels from GPX &lt;extensions&gt; (heart rate bpm, cadence, air temp °C).
+    /// Null when the device/format didn't record them. Used by Race Analysis; not counted as user "content".</summary>
+    public int? Hr { get; set; }
+    public int? Cad { get; set; }
+    public double? Temp { get; set; }
+
     /// <summary>Optional label. A named point is a waypoint/marker highlighting a key spot on the route.</summary>
     public string? Name { get; set; }
 
@@ -16,7 +22,8 @@ public class TrackPoint
     [JsonIgnore]
     public bool IsWaypoint => !string.IsNullOrWhiteSpace(Name);
 
-    public TrackPoint Clone() => new() { Lat = Lat, Lon = Lon, Ele = Ele, Time = Time, Name = Name };
+    public TrackPoint Clone() => new()
+        { Lat = Lat, Lon = Lon, Ele = Ele, Time = Time, Hr = Hr, Cad = Cad, Temp = Temp, Name = Name };
 }
 
 public class Track
