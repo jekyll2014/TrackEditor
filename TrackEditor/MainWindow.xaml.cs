@@ -985,6 +985,7 @@ public partial class MainWindow : Window
     private void CtxSaveTrack_Click(object sender, RoutedEventArgs e) { if (SelectCtxTrack(sender)) SaveActive_Click(sender, e); }
     private void CtxReverse_Click(object sender, RoutedEventArgs e) { if (SelectCtxTrack(sender)) Reverse_Click(sender, e); }
     private void CtxSimplify_Click(object sender, RoutedEventArgs e) { if (SelectCtxTrack(sender)) Simplify_Click(sender, e); }
+    private void CtxEvalSurface_Click(object sender, RoutedEventArgs e) { if (SelectCtxTrack(sender)) EvalSurface_Click(sender, e); }
 
     private void TracksList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {

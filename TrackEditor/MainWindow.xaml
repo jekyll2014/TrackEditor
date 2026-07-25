@@ -273,6 +273,7 @@
                                                   ToolTip="Pick this track, then a second one, to combine both into a new track"/>
                                         <MenuItem Header="Simplify…" Click="CtxSimplify_Click"/>
                                         <MenuItem Header="Re-evaluate Elevation (SRTM / Online)" Click="CtxReevalElevation_Click"/>
+                                        <MenuItem Header="Evaluate Surface (routing)…" Click="CtxEvalSurface_Click"/>
                                         <Separator/>
                                         <MenuItem Header="Zoom to Track" Click="CtxZoomTrack_Click"/>
                                         <MenuItem Header="Remove from List" Click="CtxRemoveTrack_Click"/>
