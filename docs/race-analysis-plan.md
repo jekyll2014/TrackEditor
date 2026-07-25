@@ -37,8 +37,10 @@ Second sample `Morning_Hike.gpx` (Strava) carries HR/cad **and** `atemp` under t
 
 1. **Extension namespace varies**: Strava `gpxtpx:hr`, Garmin `ns3:hr`. Match by **local-name**,
    ignore prefix. Extensions are nested (`trkpt > extensions > TrackPointExtension > hr`).
-2. **HR dropouts**: observed range 3–162; the `3` is a sensor glitch. Clean (despike / clamp) HR
-   before use.
+2. **HR needs cleaning defensively**: the Monte Rosa file is actually clean (true range 86–162 bpm), but
+   real recordings carry dropouts (lost strap → implausible bpm) and single-sample spikes, so clamp to a
+   plausible window + median de-spike before use. (Note: grepping raw HR naively catches the `3` in the
+   `ns3:` namespace prefix — extract the element *value*, not any digit on the line.)
 3. **Garmin temp unreliable** -> temp OFF by default; only offered when present.
 4. **1 Hz, ~30 k points/track** -> resample/decimate before fitting (perf + noise).
 5. **Grade = derivative of elevation** -> amplifies noise -> must smooth elevation before differentiating.

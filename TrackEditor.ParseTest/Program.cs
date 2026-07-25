@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 
 using TrackEditor.Core.Services;
+using TrackEditor.Core.Services.RaceAnalysis;
 
 // Headless sanity check: parse every sample file and print track/point counts + statistics.
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
@@ -40,6 +41,17 @@ foreach (string file in Directory.GetFiles(dir).OrderBy(f => f))
             var speeds = GeoMath.SpeedsMps(t.Points);
             Console.WriteLine($"    simplify(10m): {t.Points.Count} -> {keep.Count}; " +
                               $"speed pts: {speeds.Count(s => s is not null)}");
+
+            // Race Analysis P1: resample to a fixed grid + clean HR
+            var rs = TrackResampler.Resample(t.Points);
+            var span = rs.Count > 1 ? GeoMath.CumulativeDistancesM(rs)[^1] / (rs.Count - 1) : 0;
+            Console.WriteLine($"    resample(5m): {t.Points.Count} -> {rs.Count} pts, mean spacing {span:F2} m");
+            if (hrN > 0)
+            {
+                var cleaned = SignalCleaning.CleanHr(t.Points);
+                int dropped = Enumerable.Range(0, t.Points.Count).Count(i => t.Points[i].Hr is not null && cleaned[i] is null);
+                Console.WriteLine($"    hr clean: {cleaned.Count(h => h is not null)} valid, {dropped} implausible dropped");
+            }
         }
     }
     catch (Exception ex)
