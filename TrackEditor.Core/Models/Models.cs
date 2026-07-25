@@ -15,6 +15,10 @@ public class TrackPoint
     public int? Cad { get; set; }
     public double? Temp { get; set; }
 
+    /// <summary>Ground surface type at this point (OSM token, e.g. "gravel", "asphalt", "path"), typically filled
+    /// by routing-based surface evaluation. Null when unknown. Used by Race Analysis; not counted as user "content".</summary>
+    public string? Surface { get; set; }
+
     /// <summary>Optional label. A named point is a waypoint/marker highlighting a key spot on the route.</summary>
     public string? Name { get; set; }
 
@@ -23,7 +27,7 @@ public class TrackPoint
     public bool IsWaypoint => !string.IsNullOrWhiteSpace(Name);
 
     public TrackPoint Clone() => new()
-        { Lat = Lat, Lon = Lon, Ele = Ele, Time = Time, Hr = Hr, Cad = Cad, Temp = Temp, Name = Name };
+        { Lat = Lat, Lon = Lon, Ele = Ele, Time = Time, Hr = Hr, Cad = Cad, Temp = Temp, Surface = Surface, Name = Name };
 }
 
 public class Track

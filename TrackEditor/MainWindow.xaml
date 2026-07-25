@@ -104,6 +104,9 @@
                           ToolTip="Learn speed vs terrain from recorded tracks and save a race model"/>
                 <MenuItem x:Name="MenuApplyRaceModel" Header="A_pply Race Model…" Click="ApplyRaceModel_Click"
                           ToolTip="Predict pace on the active track using a saved race model"/>
+                <Separator/>
+                <MenuItem x:Name="MenuEvalSurface" Header="_Evaluate Surface (routing)…" Click="EvalSurface_Click"
+                          ToolTip="Fill each point's surface type from OSM via routing, where the route hugs the track"/>
             </MenuItem>
             <MenuItem Header="T_ools">
                 <MenuItem Header="_Settings…" Click="Settings_Click"/>
@@ -324,6 +327,10 @@
                         <DataGridTextColumn x:Name="ColEle" Header="Ele, m" Binding="{Binding EleStr}" Width="50"/>
                         <DataGridTextColumn x:Name="ColTime" Header="Time" Binding="{Binding TimeStr}" Width="62"/>
                         <DataGridTextColumn x:Name="ColDist" Header="Km" Binding="{Binding DistStr}" Width="50"/>
+                        <DataGridTextColumn x:Name="ColHr" Header="HR" Binding="{Binding HrStr}" Width="42"/>
+                        <DataGridTextColumn x:Name="ColCad" Header="Cad" Binding="{Binding CadStr}" Width="42"/>
+                        <DataGridTextColumn x:Name="ColTemp" Header="°C" Binding="{Binding TempStr}" Width="42"/>
+                        <DataGridTextColumn x:Name="ColSurface" Header="Surface" Binding="{Binding SurfaceStr}" Width="Auto" MinWidth="60"/>
                     </DataGrid.Columns>
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow">
@@ -423,6 +430,12 @@
                         <CheckBox x:Name="ChkAlt" Content="Altitude" IsChecked="True" VerticalAlignment="Center"
                                   Margin="0,0,12,0" Checked="PlotSeriesToggle" Unchecked="PlotSeriesToggle"/>
                         <CheckBox x:Name="ChkSpeed" Content="Speed" IsChecked="True" VerticalAlignment="Center"
+                                  Margin="0,0,12,0" Checked="PlotSeriesToggle" Unchecked="PlotSeriesToggle"/>
+                        <CheckBox x:Name="ChkHr" Content="HR" IsChecked="True" VerticalAlignment="Center"
+                                  Margin="0,0,12,0" Checked="PlotSeriesToggle" Unchecked="PlotSeriesToggle"/>
+                        <CheckBox x:Name="ChkCad" Content="Cadence" IsChecked="False" VerticalAlignment="Center"
+                                  Margin="0,0,12,0" Checked="PlotSeriesToggle" Unchecked="PlotSeriesToggle"/>
+                        <CheckBox x:Name="ChkTemp" Content="Temp" IsChecked="False" VerticalAlignment="Center"
                                   Checked="PlotSeriesToggle" Unchecked="PlotSeriesToggle"/>
                     </StackPanel>
                     <sp:WpfPlot x:Name="ProfilePlot" MouseLeftButtonDown="ProfilePlot_MouseLeftButtonDown"

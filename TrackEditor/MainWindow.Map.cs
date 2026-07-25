@@ -524,15 +524,44 @@ public partial class MainWindow
             }
         }
 
+        // Recorded sensor channels, each on its own right axis so their differing units don't fight.
+        bool hasHr = AddSignalSeries(plt, ChkHr?.IsChecked == true, p => (double?)p.Hr, "HR, bpm", "#C0392B");
+        bool hasCad = AddSignalSeries(plt, ChkCad?.IsChecked == true, p => (double?)p.Cad, "Cadence", "#8E44AD");
+        bool hasTemp = AddSignalSeries(plt, ChkTemp?.IsChecked == true, p => p.Temp, "Temp, °C", "#16A085");
+
+        int seriesCount = (hasAlt ? 1 : 0) + (hasSpeed ? 1 : 0) + (hasHr ? 1 : 0) + (hasCad ? 1 : 0) + (hasTemp ? 1 : 0);
         plt.Axes.Bottom.Label.Text = "km";
-        if (!hasAlt && !hasSpeed) plt.Axes.Left.Label.Text = "";
-        if (hasAlt && hasSpeed) plt.ShowLegend(ScottPlot.Alignment.UpperLeft);
+        if (seriesCount == 0) plt.Axes.Left.Label.Text = "";
+        if (seriesCount >= 2) plt.ShowLegend(ScottPlot.Alignment.UpperLeft);
         else plt.HideLegend();
 
         plt.Axes.AutoScale();
         AddWaypointMarkers(plt);
         plt.Benchmark.IsVisible = false; // no "Rendered in … ms" debug overlay
         ProfilePlot.Refresh();
+    }
+
+    /// <summary>Adds one sensor-channel series (HR/cadence/temperature) on its own right axis. Returns false
+    /// when the channel is toggled off or the active track carries fewer than two samples for it.</summary>
+    private bool AddSignalSeries(ScottPlot.Plot plt, bool show, Func<TrackPoint, double?> selector, string label, string hex)
+    {
+        if (!show || _active is null || _active.Points.Count < 2) return false;
+        var xs = new List<double>();
+        var ys = new List<double>();
+        for (int i = 0; i < _active.Points.Count; i++)
+            if (selector(_active.Points[i]) is double v) { xs.Add(_cumDist[i] / 1000); ys.Add(v); }
+        if (xs.Count < 2) return false;
+
+        var color = ScottPlot.Color.FromHex(hex);
+        var sc = plt.Add.Scatter(xs.ToArray(), ys.ToArray());
+        sc.MarkerSize = 0;
+        sc.LineWidth = 2;
+        sc.Color = color;
+        sc.LegendText = label;
+        var yax = plt.Axes.AddRightAxis();
+        sc.Axes.YAxis = yax;
+        StyleYAxis(yax, label, color);
+        return true;
     }
 
     /// <summary>Draws a labelled vertical line on the profile at each named waypoint of the active track.</summary>

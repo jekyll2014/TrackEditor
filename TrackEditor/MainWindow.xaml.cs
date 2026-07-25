@@ -325,6 +325,42 @@ public partial class MainWindow : Window
     {
         MenuAnalyzeRace.IsEnabled = HasTracks;
         MenuApplyRaceModel.IsEnabled = HasActive && (_active?.Points.Count ?? 0) >= 2;
+        MenuEvalSurface.IsEnabled = HasActive && (_active?.Points.Count ?? 0) >= 2;
+    }
+
+    private async void EvalSurface_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null || _active.Points.Count < 2)
+        {
+            StatusInfo.Text = "Evaluate surface: select a track with at least two points";
+            return;
+        }
+        var track = _active;
+        BeginBusy("Evaluating surface via routing…");
+        try
+        {
+            var res = await SurfaceInference.InferAsync(track, new RoutingService());
+            if (!res.Routed)
+            {
+                StatusInfo.Text = "Surface: routing unavailable (offline / rate-limited) — nothing filled.";
+                return;
+            }
+            _doc.Snapshot(ActiveIndex());
+            int filled = 0;
+            for (int i = 0; i < track.Points.Count && i < res.PerPointType.Length; i++)
+                if (res.PerPointType[i] is string s) { track.Points[i].Surface = s; filled++; }
+            RefreshPointsGrid();
+            StatusInfo.Text = $"Surface filled on {filled}/{track.Points.Count} points " +
+                              $"({res.Coverage * 100:F0}% with a speed multiplier).";
+        }
+        catch (Exception ex)
+        {
+            StatusInfo.Text = "Surface evaluation failed: " + ex.Message;
+        }
+        finally
+        {
+            EndBusy();
+        }
     }
 
     private void AnalyzeRace_Click(object sender, RoutedEventArgs e)
@@ -698,6 +734,10 @@ public partial class MainWindow : Window
                         TimeStr = p.Time is DateTime t ? t.ToLocalTime().ToString("HH:mm:ss") : "",
                         DistStr = (_cumDist[i] / 1000).ToString("F2"),
                         NameStr = p.Name ?? "",
+                        HrStr = p.Hr is int hr ? hr.ToString() : "",
+                        CadStr = p.Cad is int cad ? cad.ToString() : "",
+                        TempStr = p.Temp is double tp ? tp.ToString("F0") : "",
+                        SurfaceStr = p.Surface ?? "",
                         IsWaypoint = p.IsWaypoint,
                     });
                 }
@@ -1401,7 +1441,12 @@ public partial class MainWindow : Window
         if (FlagsCheck is not null) FlagsCheck.IsEnabled = CanFlag;
         if (ChkAlt is not null) ChkAlt.IsEnabled = HasEle;   // no elevation -> nothing to plot
         if (ChkSpeed is not null) ChkSpeed.IsEnabled = HasTime; // speed needs timestamps
+        if (ChkHr is not null) ChkHr.IsEnabled = HasChannel(p => p.Hr is not null);
+        if (ChkCad is not null) ChkCad.IsEnabled = HasChannel(p => p.Cad is not null);
+        if (ChkTemp is not null) ChkTemp.IsEnabled = HasChannel(p => p.Temp is not null);
     }
+
+    private bool HasChannel(Func<TrackPoint, bool> has) => _active is not null && _active.Points.Any(has);
 
     // Menus and context menus compute their item states just before opening.
 
@@ -1580,5 +1625,9 @@ public class PointRow
     public string TimeStr { get; set; } = "";
     public string DistStr { get; set; } = "";
     public string NameStr { get; set; } = "";
+    public string HrStr { get; set; } = "";
+    public string CadStr { get; set; } = "";
+    public string TempStr { get; set; } = "";
+    public string SurfaceStr { get; set; } = "";
     public bool IsWaypoint { get; set; }
 }

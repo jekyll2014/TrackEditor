@@ -68,6 +68,8 @@ public static class GpxIo
             p.Cad = cad;
         if (double.TryParse(DescendantValue(pt, "atemp"), NumberStyles.Float, CultureInfo.InvariantCulture, out double atemp))
             p.Temp = atemp;
+        string? surface = DescendantValue(pt, "surface");
+        if (!string.IsNullOrWhiteSpace(surface)) p.Surface = surface;
         // A <name> on a trkpt/rtept marks it as a named waypoint (valid GPX wptType member).
         string? name = ChildValue(pt, "name");
         if (!string.IsNullOrWhiteSpace(name)) p.Name = name.Trim();
@@ -114,15 +116,21 @@ public static class GpxIo
                     pt.Add(new XElement(ns + "name", p.Name));
                     pt.Add(new XElement(ns + "sym", "Flag"));
                 }
-                // <extensions> is the last wptType member; emit recorded sensor channels if any.
-                if (p.Hr is not null || p.Cad is not null || p.Temp is not null)
+                // <extensions> is the last wptType member; emit recorded sensor channels + surface if any.
+                if (p.Hr is not null || p.Cad is not null || p.Temp is not null || p.Surface is not null)
                 {
-                    var tpxExt = new XElement(tpx + "TrackPointExtension");
-                    if (p.Hr is int hr) tpxExt.Add(new XElement(tpx + "hr", hr));
-                    if (p.Cad is int cad) tpxExt.Add(new XElement(tpx + "cad", cad));
-                    if (p.Temp is double temp)
-                        tpxExt.Add(new XElement(tpx + "atemp", temp.ToString("0.#", CultureInfo.InvariantCulture)));
-                    pt.Add(new XElement(ns + "extensions", tpxExt));
+                    var ext = new XElement(ns + "extensions");
+                    if (p.Hr is not null || p.Cad is not null || p.Temp is not null)
+                    {
+                        var tpxExt = new XElement(tpx + "TrackPointExtension");
+                        if (p.Hr is int hr) tpxExt.Add(new XElement(tpx + "hr", hr));
+                        if (p.Cad is int cad) tpxExt.Add(new XElement(tpx + "cad", cad));
+                        if (p.Temp is double temp)
+                            tpxExt.Add(new XElement(tpx + "atemp", temp.ToString("0.#", CultureInfo.InvariantCulture)));
+                        ext.Add(tpxExt);
+                    }
+                    if (!string.IsNullOrWhiteSpace(p.Surface)) ext.Add(new XElement(ns + "surface", p.Surface));
+                    pt.Add(ext);
                 }
                 seg.Add(pt);
             }

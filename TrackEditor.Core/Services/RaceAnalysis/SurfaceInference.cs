@@ -35,6 +35,27 @@ public static class SurfaceCatalog
         return null;
     }
 
+    /// <summary>Human-readable surface label from a WayTags string (the chosen tag's value, same priority as
+    /// <see cref="MultForTags"/>): e.g. "gravel", "grade3", "path". Null when no usable tag is present.</summary>
+    public static string? TypeForTags(string? wayTags)
+    {
+        if (string.IsNullOrWhiteSpace(wayTags)) return null;
+        string? surface = null, tracktype = null, highway = null;
+        foreach (var tok in wayTags.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            int eq = tok.IndexOf('=');
+            if (eq <= 0) continue;
+            string key = tok[..eq], val = tok[(eq + 1)..].ToLowerInvariant();
+            switch (key)
+            {
+                case "surface": surface = val; break;
+                case "tracktype": tracktype = val; break;
+                case "highway": highway = val; break;
+            }
+        }
+        return surface ?? tracktype ?? highway;
+    }
+
     private static double? SurfaceMult(string s) => s switch
     {
         "asphalt" or "paved" or "concrete" or "concrete:plates" or "paving_stones" or "metal" or "wood" => 1.05,
@@ -82,6 +103,8 @@ public class SurfaceInferResult
 {
     /// <summary>Per-target-point surface multiplier, aligned to <c>target.Points</c>; 1.0 where uncovered.</summary>
     public double[] PerPointMult { get; set; } = System.Array.Empty<double>();
+    /// <summary>Per-target-point surface type label (e.g. "gravel"); null where uncovered/unknown.</summary>
+    public string?[] PerPointType { get; set; } = System.Array.Empty<string?>();
     public double Coverage { get; set; }   // fraction of points with a confident surface
     public double MeanMult { get; set; }   // mean multiplier over covered points
     public int Matched { get; set; }
@@ -108,6 +131,7 @@ public static class SurfaceInference
         {
             Total = pts.Count,
             PerPointMult = Enumerable.Repeat(1.0, pts.Count).ToArray(),
+            PerPointType = new string?[pts.Count],
         };
         if (pts.Count < 2) { result.Report = "Track too short to infer surface."; return result; }
 
@@ -130,7 +154,8 @@ public static class SurfaceInference
             if (j < 0) continue;
             double gate = GeoMath.HaversineM(pts[i].Lat, pts[i].Lon, routed.Points[j].Lat, routed.Points[j].Lon);
             if (gate > opt.GateM) continue;                 // route strays here -> keep neutral
-            if (vtxMult[j] is not double m) continue;       // on-route but surface unknown -> keep neutral
+            result.PerPointType[i] = SurfaceCatalog.TypeForTags(routed.WayTags[j]);   // label even if no multiplier
+            if (vtxMult[j] is not double m) continue;       // on-route but surface unknown -> mult stays neutral
             result.PerPointMult[i] = m;
             sumCovered += m;
             result.Matched++;
