@@ -76,6 +76,13 @@ public class AppSettings
     public bool ColTime { get; set; } = true;
     public bool ColDist { get; set; } = true;
 
+    // Sensor / inferred channels are sparse (most tracks lack them), so default these off to
+    // avoid empty columns; the user enables them in Settings when a track carries the data.
+    public bool ColHr { get; set; }
+    public bool ColCad { get; set; }
+    public bool ColTemp { get; set; }
+    public bool ColSurface { get; set; }
+
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         WriteIndented = true,
