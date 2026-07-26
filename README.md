@@ -2,7 +2,9 @@
 
 A Windows desktop app for viewing and editing GPS tracks — GPX, KML and KMZ —
 on an interactive map, with an elevation/speed profile, real-path auto-routing,
-and a 3D terrain view. Built with WPF (.NET 9), Mapsui, ScottPlot and HelixToolkit.
+a 3D terrain view, and **race-pace analysis** that learns your speed-vs-terrain
+from recorded runs and predicts it on any route. Built with WPF (.NET 9),
+Mapsui, ScottPlot and HelixToolkit.
 
 ![The TrackEditor main window: track list and points grid on the left, topographic map with a highlighted route, and the elevation/speed profile below.](docs/ui.png)
 
@@ -30,7 +32,7 @@ This document is also the in-app **Help ▸ User Guide** (press **F1**).
 ## The window
 
 - **Menu bar** — every command lives here, grouped as File, Edit, Track, Mode,
-  View, Tools and Help. Commands that can't do anything right now are greyed out.
+  View, Race, Tools and Help. Commands that can't do anything right now are greyed out.
 - **Toolbar** — quick access to the common actions: Open, Save, New track, Undo,
   Redo, the three modes (View / Edit / Measure), 3D View, the **Route** dropdown
   (auto-routing) and the Flags toggle.
@@ -50,7 +52,7 @@ This document is also the in-app **Help ▸ User Guide** (press **F1**).
 - The **track list** shows every track with a checkbox (show/hide), a colour
   swatch and its name. **Right-click a row** anywhere along it for: Rename,
   Track Information, Save as GPX, Reverse, Simplify, Re-evaluate Elevation,
-  Zoom to Track, and Remove from List.
+  Evaluate Surface, Zoom to Track, and Remove from List.
 - The **active track** is the one you're editing; its vertices and profile are
   shown. Click a track's line on the map (in View mode) to make it active, or
   pick it in the list.
@@ -116,8 +118,12 @@ straight segment instead.
 ## The points list
 
 - Columns: index (always shown), plus optional Waypoint, Lat, Lon, Elevation,
-  Time and distance-from-start (Km). Choose which columns to show in
-  **Settings ▸ Points list columns**.
+  Time and distance-from-start (Km), and — when the track carries them — heart
+  rate (HR), cadence (Cad), temperature (°C) and Surface. Choose which columns to
+  show in **Settings ▸ Points list columns**.
+- **HR, cadence and temperature** are read from GPX `<extensions>` (Garmin or
+  Strava namespaces) and round-trip on save. **Surface** is an OSM ground type
+  filled by Race ▸ Evaluate Surface (see below); it also round-trips through GPX.
 - Selecting rows here mirrors the selection on the map and the profile, and vice
   versa. The selection stays highlighted even when the grid isn't focused.
 - **Right-click** for point operations: Copy, Paste (after the selected point),
@@ -171,9 +177,13 @@ configured in **Settings ▸ Elevation sources**:
 fills the active track. Estimated elevation is drawn as a **dashed** line on the
 profile to distinguish it from recorded values.
 
-The **profile** shows Altitude (left axis) and Speed (right axis). The Altitude
-toggle is disabled when the track has no elevation; the Speed toggle is disabled
-when the track has no timestamps (speed is derived from time + distance).
+The **profile** shows Altitude (left axis) and Speed (right axis), plus optional
+**HR**, **Cadence** and **Temp** series — each on its own axis, toggled by the
+checkboxes above the plot and enabled only when the track carries that channel.
+The Altitude toggle is disabled when the track has no elevation; the Speed toggle
+is disabled when the track has no timestamps (speed is derived from time +
+distance). Selecting several points shades that **distance range** on the profile
+as well as marking the current point.
 
 ---
 
@@ -182,6 +192,37 @@ when the track has no timestamps (speed is derived from time + distance).
 Toggle **Flags** to place distance/time labels along the active track at regular,
 non-overlapping intervals. Choose what the labels show — Distance, Time, or both
 — under View ▸ Mileage Flag Content.
+
+---
+
+## Race analysis
+
+Learn how you move over terrain from your recorded runs, then predict your pace
+on any planned route. Everything is on the **Race** menu.
+
+- **Analyze Race Ability…** — pick one or more recorded (timestamped) tracks and
+  fit a *race model*: your speed as a function of slope, how you fade with
+  accumulated climb (**fatigue**), and how much course twistiness (**turns**)
+  slows you. A checklist confirms which signals to use — heart rate calibrates
+  fatigue when present; each track is normalized to its own pace before pooling.
+  **Export Model** saves the result to a `*.racemodel.json` file.
+- **Apply Race Model…** — load a saved model and apply it to the active track to
+  predict the race. It creates a timestamped copy named "<name> (predicted)" and
+  reports the finish time, moving pace and per-waypoint ETAs. Set the **start
+  time** (default 08:00), a **surface / conditions** multiplier, and optionally
+  the altitude derate. If the target has no elevation you're warned to apply
+  elevation first, since every grade would otherwise read as flat.
+- **Evaluate Surface (routing)…** — fill each point's surface **type** from OSM by
+  auto-routing along the track (BRouter) and adopting the way's surface — but only
+  where the route actually hugs your track (within a proximity gate). Off-route or
+  untagged stretches are left blank rather than guessed; the status line reports
+  the coverage. Results show in the points list's Surface column and feed surface
+  into predictions. Also available on a track's right-click menu.
+
+The model is deliberately **separable and human-readable** — a base
+speed-by-grade curve, a fatigue decay, a turn penalty and a surface multiplier
+that each fit and apply independently — so the exported JSON can be inspected and
+edited by hand.
 
 ---
 
@@ -262,8 +303,9 @@ scale bar.
 ## Data, network and privacy
 
 - Everything runs locally. The app reaches the network only for **map tiles**,
-  **auto-routing** (BRouter), **online elevation**, and **SRTM tile download** —
-  and only when you use those features. Map tiles are cached on disk per base map.
+  **auto-routing** (BRouter, also used by Evaluate Surface), **online elevation**,
+  and **SRTM tile download** — and only when you use those features. Map tiles are
+  cached on disk per base map. Race models are plain local `*.racemodel.json` files.
 - No account, sign-in or API key is required for any feature.
 
 ---
@@ -278,7 +320,7 @@ dotnet run   --project TrackEditor/TrackEditor.csproj
 ```
 
 The solution (`TrackEditor.slnx`) also contains **TrackEditor.Core** (the shared,
-UI-agnostic track/IO/geometry/elevation/routing code), **TrackEditor.Core.Skia**
+UI-agnostic track/IO/geometry/elevation/routing/race-analysis code), **TrackEditor.Core.Skia**
 (SkiaSharp map-image export) and **TrackEditor.ParseTest** (a headless
 parse/statistics sanity check).
 
