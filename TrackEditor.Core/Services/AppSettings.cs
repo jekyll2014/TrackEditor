@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using TrackEditor.Core.Services.RaceAnalysis;
+
 namespace TrackEditor.Core.Services;
 
 public enum OnlineElevationProvider { OpenTopoData, OpenElevation, OpenMeteo }
@@ -86,6 +88,10 @@ public class AppSettings
     /// <summary>When on, speed figures in the statistics panel are shown as pace (min/km) instead of km/h.</summary>
     public bool PaceMode { get; set; }
 
+    /// <summary>Athlete physiology/biometrics reused across race predictions (mass, age, sex, HR anchors, pack,
+    /// recent race). All fields optional; predictions degrade gracefully to whatever is supplied.</summary>
+    public AthleteProfile Profile { get; set; } = new();
+
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         WriteIndented = true,
@@ -135,6 +141,7 @@ public class AppSettings
         c.MapParameters = new Dictionary<BaseMapProvider, MapParams>();
         foreach (var kv in MapParameters)
             c.MapParameters[kv.Key] = new MapParams { TileCacheLimitMB = kv.Value.TileCacheLimitMB };
+        c.Profile = Profile.Clone();
         return c;
     }
 }

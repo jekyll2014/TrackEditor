@@ -20,16 +20,19 @@ namespace TrackEditor;
 public partial class ApplyRaceModelWindow : Window
 {
     private readonly Track _target;
+    private readonly AppSettings _settings;
     private RaceModel? _model;
     private double[]? _surface;   // per-point surface multiplier from routing inference, or null
 
     /// <summary>The predicted copy the user chose to add; null until "Add Predicted Track" is pressed.</summary>
     public Track? PredictedTrack { get; private set; }
 
-    public ApplyRaceModelWindow(Track target)
+    public ApplyRaceModelWindow(Track target, AppSettings settings)
     {
         InitializeComponent();
         _target = target;
+        _settings = settings;
+        LoadProfileToUi(settings.Profile);
         TargetText.Text = $"Predict the race flow on “{target.Name}” ({target.Points.Count} pts) " +
                           "by applying a saved race model.";
         if (!target.Points.Any(p => p.Ele is not null))
@@ -76,12 +79,18 @@ public partial class ApplyRaceModelWindow : Window
             return;
         }
 
+        SaveUiToProfile();
         var options = new PredictOptions
         {
             StartTime = start,
             SurfaceMult = SelectedSurfaceMult(),
             PerPointSurfaceMult = _surface,
             UseAltitude = ChkAltitude.IsChecked == true,
+            Effort = (RaceEffort)CmbEffort.SelectedIndex,
+            Profile = _settings.Profile,
+            CalibrateToRecentRace = ChkCalibrate.IsChecked == true,
+            CapToSustainable = ChkCap.IsChecked == true,
+            UseLoadModel = ChkLoad.IsChecked == true,
         };
 
         try
@@ -151,4 +160,50 @@ public partial class ApplyRaceModelWindow : Window
         if (PredictedTrack is null) return;
         DialogResult = true;
     }
+
+    // --- athlete profile <-> UI (persisted in AppSettings so it carries across predictions) ---
+
+    private void LoadProfileToUi(AthleteProfile p)
+    {
+        TxtMass.Text = p.MassKg?.ToString(CultureInfo.InvariantCulture) ?? "";
+        TxtAge.Text = p.Age?.ToString(CultureInfo.InvariantCulture) ?? "";
+        CmbSex.SelectedIndex = (int)p.Sex;
+        TxtHrMax.Text = p.HrMaxBpm?.ToString(CultureInfo.InvariantCulture) ?? "";
+        TxtRestHr.Text = p.RestingHrBpm?.ToString(CultureInfo.InvariantCulture) ?? "";
+        TxtLthr.Text = p.LthrBpm?.ToString(CultureInfo.InvariantCulture) ?? "";
+        TxtPack.Text = p.PackKg?.ToString(CultureInfo.InvariantCulture) ?? "";
+        ChkPoles.IsChecked = p.UsePoles;
+        TxtRaceKm.Text = p.RecentRace is { IsValid: true } r ? r.DistanceKm.ToString(CultureInfo.InvariantCulture) : "";
+        TxtRaceTime.Text = p.RecentRace is { IsValid: true } rr ? rr.Time.ToString(@"h\:mm\:ss") : "";
+    }
+
+    private void SaveUiToProfile()
+    {
+        var p = _settings.Profile;
+        p.MassKg = ParseNullableDouble(TxtMass.Text);
+        p.Age = ParseNullableInt(TxtAge.Text);
+        p.Sex = (Sex)Math.Max(0, CmbSex.SelectedIndex);
+        p.HrMaxBpm = ParseNullableInt(TxtHrMax.Text);
+        p.RestingHrBpm = ParseNullableInt(TxtRestHr.Text);
+        p.LthrBpm = ParseNullableInt(TxtLthr.Text);
+        p.PackKg = ParseNullableDouble(TxtPack.Text);
+        p.UsePoles = ChkPoles.IsChecked == true;
+
+        double? km = ParseNullableDouble(TxtRaceKm.Text);
+        TimeSpan? time = ParseNullableTime(TxtRaceTime.Text);
+        p.RecentRace = km is double d && d > 0 && time is TimeSpan t && t > TimeSpan.Zero
+            ? new RecentRace { DistanceKm = d, Time = t }
+            : null;
+
+        _settings.Save();
+    }
+
+    private static double? ParseNullableDouble(string? s) =>
+        double.TryParse(s?.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double v) && v > 0 ? v : null;
+
+    private static int? ParseNullableInt(string? s) =>
+        int.TryParse(s?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int v) && v > 0 ? v : null;
+
+    private static TimeSpan? ParseNullableTime(string? s) =>
+        TimeSpan.TryParse(s?.Trim(), CultureInfo.InvariantCulture, out TimeSpan t) ? t : null;
 }
