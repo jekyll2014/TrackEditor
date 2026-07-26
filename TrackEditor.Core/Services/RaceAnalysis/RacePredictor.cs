@@ -4,6 +4,10 @@ using TrackEditor.Core.Models;
 
 namespace TrackEditor.Core.Services.RaceAnalysis;
 
+/// <summary>Race-day intent, mapped to a pace scale on the fitted model. "Race" = the intensity the model was
+/// fitted at (typically a race recording); Easy/Steady ease off, AllOut pushes slightly past it.</summary>
+public enum RaceEffort { Easy, Steady, Race, AllOut }
+
 /// <summary>Inputs for a prediction run.</summary>
 public class PredictOptions
 {
@@ -14,12 +18,43 @@ public class PredictOptions
     /// <summary>Optional per-point surface multiplier aligned to <c>target.Points</c> (e.g. from routing-inferred
     /// OSM surface). Applied on top of <see cref="SurfaceMult"/>; null or mismatched length is ignored.</summary>
     public IReadOnlyList<double>? PerPointSurfaceMult { get; set; }
-    /// <summary>Apply the model's altitude derate (off by default / neutral in v1).</summary>
+    /// <summary>Apply an altitude derate above the model's reference elevation. Off by default.</summary>
     public bool UseAltitude { get; set; } = false;
+    /// <summary>Fraction of speed lost per 1000 m above the model's altitude reference, used when
+    /// <see cref="UseAltitude"/> is on and the model carries no fitted derate.</summary>
+    public double AltitudeDeratePerKm { get; set; } = AltitudeSpec.DefaultDeratePerKm;
+    /// <summary>Intended race intensity relative to the fitted model. Scales the whole speed curve and, for
+    /// harder-than-fitted efforts, steepens fatigue (aerobic decoupling worsens when you push).</summary>
+    public RaceEffort Effort { get; set; } = RaceEffort.Race;
+    /// <summary>Athlete physiology; optional. Drives HR-reserve normalization, the load model, and the endurance
+    /// calibration / sustainable cap (via <see cref="AthleteProfile.RecentRace"/>).</summary>
+    public AthleteProfile? Profile { get; set; }
+    /// <summary>Rescale the model's overall pace to what the athlete can hold over this route's distance, using
+    /// their recent race (Riegel). Needs <see cref="Profile"/>.RecentRace; ignored otherwise.</summary>
+    public bool CalibrateToRecentRace { get; set; } = false;
+    /// <summary>Clamp the effort-scaled pace to the endurance-sustainable ceiling from the recent race, so an
+    /// aggressive effort can't predict an unsustainable average. Needs <see cref="Profile"/>.RecentRace.</summary>
+    public bool CapToSustainable { get; set; } = false;
+    /// <summary>Apply the mass/pack/poles climb-cost model on positive grades. Needs body mass in the profile.</summary>
+    public bool UseLoadModel { get; set; } = false;
     public double SpacingM { get; set; } = TrackResampler.DefaultSpacingM;
     public double EleWindowM { get; set; } = TrackResampler.DefaultEleWindowM;
     /// <summary>Speed can never fall below this (m/s) — guards against divide-by-tiny on extreme grades.</summary>
     public double MinSpeedMps { get; set; } = 0.3;
+
+    /// <summary>Speed multiplier for <see cref="Effort"/> (1.0 = the model's fitted intensity).</summary>
+    public double EffortScale => ScaleFor(Effort);
+
+    /// <summary>Heuristic pace scale per intent, relative to the fitted intensity. Documented approximations, not
+    /// fitted: real intensity is whatever the source tracks were run at, so "Race" is the neutral anchor.</summary>
+    public static double ScaleFor(RaceEffort e) => e switch
+    {
+        RaceEffort.Easy => 0.88,
+        RaceEffort.Steady => 0.94,
+        RaceEffort.Race => 1.00,
+        RaceEffort.AllOut => 1.04,
+        _ => 1.00,
+    };
 }
 
 public class PredictResult
@@ -50,6 +85,34 @@ public static class RacePredictor
         var turn = TurnMetrics.PerSegmentDegPerM(rs, cumRs);
         var surfAtRs = BuildGridSurface(opt.PerPointSurfaceMult, pts, cumRs);
 
+        double targetKm = cumRs[^1] / 1000.0;
+        var recent = opt.Profile?.RecentRace;
+
+        // Overall pace level: effort intent × optional Riegel calibration to the athlete's recent race, then
+        // optionally clamped to the endurance-sustainable ceiling for this distance (so a hard effort can't
+        // predict an unholdable average). Calibration already lands on the ceiling, so the cap only bites AllOut.
+        double effortScale = opt.EffortScale;
+        double levelScale = effortScale;
+        if (opt.CalibrateToRecentRace)
+            levelScale = effortScale * EnduranceCalibration.CalibrationScale(model, recent, targetKm);
+        if (opt.CapToSustainable && recent is { IsValid: true })
+        {
+            double capRatio = EnduranceCalibration.CalibrationScale(model, recent, targetKm);
+            levelScale = Math.Min(levelScale, capRatio);
+        }
+
+        // Aerobic decoupling: efforts harder than the fitted intensity fade faster, so steepen the fatigue decay.
+        double kEff = model.Fatigue.K * (effortScale > 1.0 ? effortScale : 1.0);
+        // Altitude derate: fitted value if present, else the requested default — only when opted in.
+        double deratePerKm = opt.UseAltitude
+            ? (model.Altitude.DeratePerKm > 0 ? model.Altitude.DeratePerKm : opt.AltitudeDeratePerKm)
+            : 0;
+        // Load model: fraction of body+pack mass that is "extra" pack, and whether poles help on climbs.
+        bool useLoad = opt.UseLoadModel && opt.Profile is not null;
+        double packFraction = useLoad && opt.Profile!.TotalMassKg is double tm && tm > 0 && opt.Profile.PackKg is double pk
+            ? Math.Clamp(pk / tm, 0, 0.5) : 0;
+        bool poles = useLoad && opt.Profile!.UsePoles;
+
         // Integrate time along the resampled grid, feeding fatigue effort forward.
         var timeAtRs = new double[rs.Count];   // seconds from start
         double cumAsc = 0, elapsed = 0;
@@ -67,11 +130,17 @@ public static class RacePredictor
                 _ => cumAsc,
             };
 
+            double altMult = deratePerKm > 0
+                ? AltitudeSpec.MultWith(rs[i].Ele, model.Altitude.RefM, deratePerKm, model.Altitude.Floor)
+                : 1.0;
+
             double speed = model.BaseCurve.SpeedAt(gradeDeg)
-                         * model.Fatigue.Mult(effort)
+                         * model.Fatigue.MultWith(effort, kEff)
                          * model.Turn.Mult(turn[i])
-                         * (opt.UseAltitude ? model.Altitude.Mult(rs[i].Ele) : 1.0)
-                         * opt.SurfaceMult * surfAtRs[i];
+                         * altMult
+                         * opt.SurfaceMult * surfAtRs[i]
+                         * LoadMult(gradeDeg, packFraction, poles)
+                         * levelScale;
             speed = Math.Max(opt.MinSpeedMps, speed);
 
             elapsed += dDist / speed;
@@ -124,6 +193,18 @@ public static class RacePredictor
         return s;
     }
 
+    /// <summary>Climb-cost multiplier for carried load and poles on positive grades. The share of effort that is
+    /// vertical work grows with steepness (≈full by ~20°), so added pack mass bites most on steep climbs and
+    /// nothing on the flat/descents; poles return a small uphill economy gain over the same share.</summary>
+    private static double LoadMult(double gradeDeg, double packFraction, bool poles)
+    {
+        if (gradeDeg <= 0 || (packFraction <= 0 && !poles)) return 1.0;
+        double share = Math.Clamp(gradeDeg / 20.0, 0, 1);
+        double m = 1.0 - packFraction * share;
+        if (poles) m *= 1.0 + 0.03 * share;
+        return m;
+    }
+
     private static string BuildReport(Track copy, RaceModel model, PredictOptions opt, double totalSec, double distM)
     {
         var sb = new StringBuilder();
@@ -132,6 +213,25 @@ public static class RacePredictor
         sb.AppendLine($"Predicted finish:{finish:HH:mm}  ({TimeSpan.FromSeconds(totalSec):hh\\:mm\\:ss})");
         sb.AppendLine($"Distance:        {distM / 1000:F1} km");
         sb.AppendLine($"Avg moving:      {distM / totalSec * 3.6:F1} km/h");
+        if (opt.Effort != RaceEffort.Race)
+            sb.AppendLine($"Effort:          {opt.Effort} (×{opt.EffortScale:F2})");
+        var recent = opt.Profile?.RecentRace;
+        if (recent is { IsValid: true } && (opt.CalibrateToRecentRace || opt.CapToSustainable))
+        {
+            double km = distM / 1000.0;
+            double scale = EnduranceCalibration.CalibrationScale(model, recent, km);
+            if (opt.CalibrateToRecentRace)
+                sb.AppendLine($"Calibrated:      ×{scale:F2} to your {recent.DistanceKm:F0} km / {recent.Time:hh\\:mm\\:ss} race");
+            else
+                sb.AppendLine($"Sustainable cap: ×{scale:F2} ceiling from your recent race");
+            sb.AppendLine($"Riegel (flat) ⇒  {EnduranceCalibration.RiegelTime(recent, km):hh\\:mm\\:ss}  (terrain-blind cross-check)");
+        }
+        if (opt.UseLoadModel && opt.Profile?.TotalMassKg is double tmass && opt.Profile.PackKg is double pack && pack > 0)
+            sb.AppendLine($"Load:            +{pack:F1} kg pack of {tmass:F0} kg{(opt.Profile.UsePoles ? ", poles on climbs" : "")}");
+        else if (opt.UseLoadModel && opt.Profile?.UsePoles == true)
+            sb.AppendLine("Load:            poles on climbs");
+        if (opt.UseAltitude)
+            sb.AppendLine("Altitude:        derate applied above reference elevation");
         // Waypoint ETAs, if the track carries named points.
         var wpts = copy.Points.Where(p => p.IsWaypoint && p.Time is not null).ToList();
         if (wpts.Count > 0)

@@ -83,12 +83,17 @@ public class FatigueSpec
     public double K { get; set; }
     /// <summary>Lower clamp so long efforts never predict an absurdly small speed.</summary>
     public double Floor { get; set; } = 0.5;
-    /// <summary>Observed HR drift (bpm per driver-unit) — reported for insight; not applied directly in v1.</summary>
+    /// <summary>Observed HR drift (bpm per driver-unit) from the fit — an aerobic-decoupling measure. Reported for
+    /// insight and used to steepen fatigue for harder-than-fitted efforts (see <see cref="RacePredictor"/>).</summary>
     public double? HrDriftPerUnit { get; set; }
 
-    public double Mult(double effort)
+    public double Mult(double effort) => MultWith(effort, K);
+
+    /// <summary>Same decay as <see cref="Mult"/> but with an explicit coefficient, so the predictor can apply an
+    /// effort-adjusted <paramref name="k"/> (decoupling: pushing harder than the fitted intensity fades faster).</summary>
+    public double MultWith(double effort, double k)
     {
-        double m = Shape == FatigueShape.Exp ? Math.Exp(-K * effort) : 1.0 - K * effort;
+        double m = Shape == FatigueShape.Exp ? Math.Exp(-k * effort) : 1.0 - k * effort;
         return Math.Clamp(m, Floor, 1.0);
     }
 }
@@ -111,18 +116,28 @@ public class TurnSpec
         Math.Clamp(1.0 + Coeff * (turnDegPerM - RefDegPerM), Floor, Ceil);
 }
 
-/// <summary>Physiological derate above a reference elevation. Neutral (disabled) in v1 to avoid
-/// double-counting altitude already baked into the fitted speeds; wired for v2.</summary>
+/// <summary>Physiological derate above a reference elevation. A fit leaves <see cref="DeratePerKm"/> at 0 (the
+/// fitted speeds already bake in whatever altitude the recording saw); the predictor enables it with
+/// <see cref="DefaultDeratePerKm"/> when the user asks to model a course higher than the fit.</summary>
 public class AltitudeSpec
 {
+    /// <summary>Enabled-by-default derate (fraction of speed lost per 1000 m above <see cref="RefM"/>): ~4%/km,
+    /// a moderate endurance-running value for altitudes to ~3000 m. Applied when the user opts into altitude and
+    /// the model carries no fitted derate.</summary>
+    public const double DefaultDeratePerKm = 0.04;
+
     public double RefM { get; set; } = 1500;
     public double DeratePerKm { get; set; }   // 0 = disabled
     public double Floor { get; set; } = 0.7;
 
-    public double Mult(double? eleM)
+    public double Mult(double? eleM) => MultWith(eleM, RefM, DeratePerKm, Floor);
+
+    /// <summary>Altitude speed multiplier with explicit parameters, so the predictor can apply a default derate
+    /// without mutating the stored model. Neutral (1.0) below <paramref name="refM"/> or when derate ≤ 0.</summary>
+    public static double MultWith(double? eleM, double refM, double deratePerKm, double floor)
     {
-        if (DeratePerKm <= 0 || eleM is not double e || e <= RefM) return 1.0;
-        return Math.Clamp(1.0 - (e - RefM) / 1000.0 * DeratePerKm, Floor, 1.0);
+        if (deratePerKm <= 0 || eleM is not double e || e <= refM) return 1.0;
+        return Math.Clamp(1.0 - (e - refM) / 1000.0 * deratePerKm, floor, 1.0);
     }
 }
 
