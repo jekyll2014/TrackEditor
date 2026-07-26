@@ -389,6 +389,31 @@ public partial class MainWindow : Window
         StatusInfo.Text = $"Added predicted track “{predicted.Name}”";
     }
 
+    private void Merge_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null || _active.Points.Count < 2)
+        {
+            StatusInfo.Text = "Merge tracks: select the base track (with at least two points) first";
+            return;
+        }
+        if (_doc.Tracks.Count < 2)
+        {
+            StatusInfo.Text = "Merge tracks: open a second track to merge with";
+            return;
+        }
+        var dlg = new MergeTracksWindow(_active, _doc.Tracks) { Owner = this };
+        if (dlg.ShowDialog() != true || dlg.MergedTrack is null) return;
+
+        var merged = dlg.MergedTrack;
+        _doc.Snapshot(ActiveIndex());
+        merged.ColorHex = Palette[_paletteCursor++ % Palette.Length].Hex;   // distinct colour from the sources
+        _doc.Tracks.Add(merged);
+        _active = merged;
+        RefreshAll();
+        _mapMgr.ZoomToTracks(new[] { merged });
+        StatusInfo.Text = $"Added merged track “{merged.Name}”";
+    }
+
     // ======================= file operations =======================
 
     private void OpenFile_Click(object sender, RoutedEventArgs e)
