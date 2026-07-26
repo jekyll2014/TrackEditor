@@ -9,13 +9,13 @@ namespace TrackEditor;
 
 public partial class TrackInfoWindow : Window
 {
-    public TrackInfoWindow(Track track)
+    public TrackInfoWindow(Track track, bool paceMode = false)
     {
         InitializeComponent();
-        InfoText.Text = BuildInfo(track);
+        InfoText.Text = BuildInfo(track, paceMode);
     }
 
-    private static string BuildInfo(Track track)
+    private static string BuildInfo(Track track, bool paceMode)
     {
         var sb = new StringBuilder();
 
@@ -50,7 +50,7 @@ public partial class TrackInfoWindow : Window
         sb.AppendLine();
         sb.AppendLine("— Statistics —");
         if (track.Points.Count >= 2)
-            sb.AppendLine(TrackStatistics.Compute(track.Points).ToDisplayString());
+            sb.AppendLine(TrackStatistics.Compute(track.Points).ToDisplayString(paceMode: paceMode));
         else
             sb.AppendLine("(need at least 2 points)");
 

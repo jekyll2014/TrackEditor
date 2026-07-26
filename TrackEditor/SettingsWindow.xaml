@@ -83,6 +83,13 @@
                     </StackPanel>
                 </GroupBox>
 
+                <!-- ===== Statistics ===== -->
+                <GroupBox Header="Statistics" Margin="0,10,0,0">
+                    <StackPanel Margin="6">
+                        <CheckBox x:Name="ChkPaceMode" Content="Show speed as pace (min/km) instead of km/h" Margin="0,2"/>
+                    </StackPanel>
+                </GroupBox>
+
                 <!-- ===== Auto-route ===== -->
                 <GroupBox Header="Auto-route (drawing)" Margin="0,10,0,0">
                     <StackPanel Margin="6">

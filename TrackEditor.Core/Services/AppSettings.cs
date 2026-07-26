@@ -83,6 +83,9 @@ public class AppSettings
     public bool ColTemp { get; set; }
     public bool ColSurface { get; set; }
 
+    /// <summary>When on, speed figures in the statistics panel are shown as pace (min/km) instead of km/h.</summary>
+    public bool PaceMode { get; set; }
+
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         WriteIndented = true,

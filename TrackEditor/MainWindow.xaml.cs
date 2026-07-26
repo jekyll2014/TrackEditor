@@ -970,7 +970,7 @@ public partial class MainWindow : Window
     private void CtxTrackInfo_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is TrackRow row)
-            new TrackInfoWindow(row.T) { Owner = this }.ShowDialog();
+            new TrackInfoWindow(row.T, _settings.PaceMode) { Owner = this }.ShowDialog();
     }
 
     /// <summary>Makes the right-clicked track active so a track-wide op runs on it; false if none.</summary>
@@ -1515,7 +1515,7 @@ public partial class MainWindow : Window
         UpdateCommandStates();
         StatsText.Text = _active is null || _active.Points.Count < 2
             ? "—"
-            : TrackStatistics.Compute(_active.Points).ToDisplayString();
+            : TrackStatistics.Compute(_active.Points).ToDisplayString(paceMode: _settings.PaceMode);
         RefreshSelectionStats();
     }
 
@@ -1531,7 +1531,7 @@ public partial class MainWindow : Window
         int lo = idx[0], hi = idx[^1];
         var span = _active.Points.GetRange(lo, hi - lo + 1);
         string header = $"Points {lo}–{hi} ({span.Count})\n";
-        SelStatsText.Text = header + TrackStatistics.Compute(span).ToDisplayString(includeIncline: true);
+        SelStatsText.Text = header + TrackStatistics.Compute(span).ToDisplayString(includeIncline: true, paceMode: _settings.PaceMode);
     }
 
     // ======================= map measurement =======================
