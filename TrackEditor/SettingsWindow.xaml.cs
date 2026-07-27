@@ -63,6 +63,10 @@ public partial class SettingsWindow : Window
         ChkColEle.IsChecked = Result.ColEle;
         ChkColTime.IsChecked = Result.ColTime;
         ChkColDist.IsChecked = Result.ColDist;
+        ChkColHr.IsChecked = Result.ColHr;
+        ChkColCad.IsChecked = Result.ColCad;
+        ChkColTemp.IsChecked = Result.ColTemp;
+        ChkColSurface.IsChecked = Result.ColSurface;
 
         ChkPaceMode.IsChecked = Result.PaceMode;
 
@@ -174,6 +178,10 @@ public partial class SettingsWindow : Window
         Result.ColEle = ChkColEle.IsChecked == true;
         Result.ColTime = ChkColTime.IsChecked == true;
         Result.ColDist = ChkColDist.IsChecked == true;
+        Result.ColHr = ChkColHr.IsChecked == true;
+        Result.ColCad = ChkColCad.IsChecked == true;
+        Result.ColTemp = ChkColTemp.IsChecked == true;
+        Result.ColSurface = ChkColSurface.IsChecked == true;
         Result.PaceMode = ChkPaceMode.IsChecked == true;
         DialogResult = true;
     }

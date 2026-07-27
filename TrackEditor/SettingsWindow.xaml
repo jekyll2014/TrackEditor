@@ -79,6 +79,10 @@
                             <CheckBox x:Name="ChkColEle" Content="Ele, m" Width="130" Margin="0,2"/>
                             <CheckBox x:Name="ChkColTime" Content="Time" Width="130" Margin="0,2"/>
                             <CheckBox x:Name="ChkColDist" Content="Km" Width="130" Margin="0,2"/>
+                            <CheckBox x:Name="ChkColHr" Content="HR" Width="130" Margin="0,2"/>
+                            <CheckBox x:Name="ChkColCad" Content="Cadence" Width="130" Margin="0,2"/>
+                            <CheckBox x:Name="ChkColTemp" Content="Temperature (°C)" Width="130" Margin="0,2"/>
+                            <CheckBox x:Name="ChkColSurface" Content="Surface" Width="130" Margin="0,2"/>
                         </WrapPanel>
                     </StackPanel>
                 </GroupBox>
