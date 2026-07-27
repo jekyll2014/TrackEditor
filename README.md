@@ -171,6 +171,44 @@ Available from the Track menu and the points-list / track-list menus:
 - **Copy / Paste** points (Ctrl+C / Ctrl+V); paste inserts after the selection.
 - **Undo / Redo** (Ctrl+Z / Ctrl+Y) — whole-document history covering every edit.
 
+### Merge Tracks — fusing two recordings of one route
+
+Two GPS logs of the same route (a watch and a phone, or two runners) rarely line
+up sample-for-sample. Merge walks the **base** track (the active one) and, for
+each of its points, finds the matching moment on the second track, then fills in
+or averages the data there. The base is never changed — a **new** track named
+`"<base> + <second>"` is added, so you can discard it and try again freely.
+
+The dialog (**Track ▸ Merge Tracks…**, or **Merge Tracks…** on a track's
+right-click menu) exposes:
+
+- **Merge with** — the second recording to pull from.
+- **Align points by** — how base points are paired with the other track:
+  - **Auto** — by timestamp when both tracks are timed and their clocks overlap,
+    otherwise by distance.
+  - **Timestamp** — pair by real (UTC) time; the second track is interpolated to
+    each base point's exact moment. Correct when both devices logged the same session.
+  - **Distance** — pair each base point with the nearest point on the second
+    track's line. For logs that share no clock.
+- **Geometry** — what coordinates the result carries:
+  - **Keep base line** (default) — base coordinates untouched; only the second
+    track's extra channels are pulled in.
+  - **Average both lines** — matched pairs move to their midpoint to cancel some
+    GPS wander; stretches with no partner keep the base coordinates, so a partial
+    overlap still survives.
+- **Match gate (m)** — a base point whose partner is farther than this (default
+  **60 m**) is treated as unmatched: no fusion and no averaging there. This gate
+  is what stops two genuinely different routes from being welded together.
+- **Keep base value when both have a field** — when both tracks carry the same
+  channel at a matched point, keep the base's value instead of averaging the two.
+
+Channels the base **lacks** are always filled from the second track — **HR,
+cadence, temperature, elevation, surface and time** can each be gained this way.
+Before you commit, the dialog's report shows how it aligned (timestamp/distance),
+matched points and percentage overlap, the mean separation between the two lines,
+and which channels were gained — or warns when nothing matched within the gate
+(a sign the two tracks aren't the same route). Press **Add Merged Track** to keep it.
+
 ---
 
 ## Elevation
@@ -235,6 +273,38 @@ speed-by-grade curve, a fatigue decay, a turn penalty and a surface multiplier
 that each fit and apply independently — so the exported JSON can be inspected and
 edited by hand.
 
+### Inside the race model
+
+The fitted model (`*.racemodel.json`) is a product of independent factors —
+`speed = baseCurve(grade) × fatigue(effort) × turns × altitude × surface` — each
+stored plainly so it can be read and hand-tuned:
+
+- **Base curve** — your fresh speed as a function of signed **grade**, sampled on
+  a ~1° grid (roughly −25°…+25°). This is the backbone; every other factor scales it.
+- **Fatigue** — a multiplier that decays as effort piles up. The **driver**
+  (cumulative ascent, elapsed time, or distance), the **shape** (linear or
+  exponential) and the decay rate are fitted, with a floor so a long effort never
+  predicts an absurd crawl. When HR is present its upward **drift** (aerobic
+  decoupling) is measured and used to steepen fatigue for harder-than-fitted efforts.
+- **Turns** — a mild multiplier for course twistiness (turn density, deg/m),
+  neutral at the course's average; tighter sections derate, straighter ones get a
+  small boost (turns never speed you up beyond that).
+- **Altitude** — a physiological derate above a reference elevation. The fit
+  leaves it at zero (the recording already saw whatever altitude it saw); the
+  predictor switches it on only when you model a course higher than the fit
+  (~4 % of speed per 1000 m by default).
+- **Athlete baseline** — the flat-ground speed each source track was normalized to
+  before pooling (plus a reference HR), so recordings run at different paces
+  combine without the fastest one dominating.
+
+**Analyze Race Ability** normalizes every chosen track to its own pace, pools the
+segments and fits the factors above; the checklist decides which signals to trust
+(HR calibrates fatigue when present). **Apply Race Model** resamples the target to
+the same grade grid and integrates it segment by segment into a timed copy,
+honouring the **start time**, a **surface / conditions** multiplier (plus any
+routing-inferred per-point surface), and the optional **altitude** derate — then
+reports the finish time, moving pace and per-waypoint ETAs.
+
 ---
 
 ## 3D terrain view
@@ -284,15 +354,25 @@ scale bar.
 
 **Tools ▸ Settings** covers:
 
-- **Base map** — provider (OpenStreetMap, OpenTopoMap, CyclOSM, Esri World
-  Imagery, Carto Light), a per-map tile-cache size limit in MB, and a
-  "Clear tile cache" button.
-- **Waypoint labels** — background and text colours for waypoint labels on the
-  map and profile.
-- **Points list columns** — which optional columns the list shows.
-- **Auto-route** — simplify routed legs and the tolerance. (The on/off switch and
-  routing profile are on the toolbar Route dropdown.)
-- **Elevation sources** — SRTM folder and auto-download, and the online provider.
+- **Base map** — the tile **provider** (OpenStreetMap, OpenTopoMap, CyclOSM, Esri
+  World Imagery, Carto Light) used for the map and as the drape in 3D and in map
+  exports. Each map keeps its own on-disk **tile-cache limit** (MB; `0` = no
+  limit) and a **Clear tile cache** button drops the cached tiles for the selected map.
+- **Waypoint labels** — the **background** and **text** colours used to draw
+  waypoint labels on both the map and the profile; a live "Waypoint" swatch
+  previews the pair.
+- **Points list columns** — which optional columns the points list shows
+  (Waypoint, Lat, Lon, Ele, Time, Km, HR, Cadence, Temperature, Surface). The
+  index column is always shown, and a ticked column with no data on the active
+  track hides itself automatically. Mirrors the **View ▸ Points List Columns** menu.
+- **Statistics** — **Show speed as pace (min/km)** swaps every speed readout in
+  the statistics and profile from km/h to running pace.
+- **Auto-route** — **Simplify routed legs** and its **tolerance** in metres
+  (larger = fewer points). The on/off switch and the routing profile itself live
+  on the toolbar **Route** dropdown, not here.
+- **Elevation sources** — the **SRTM `.hgt` folder** and whether missing tiles
+  **auto-download**, plus the **online** provider used as a fallback. See
+  *Elevation* above for how the two sources combine.
 
 ---
 
