@@ -3,10 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:mapsui="clr-namespace:Mapsui.UI.Wpf;assembly=Mapsui.UI.Wpf"
         xmlns:sp="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
+        xmlns:local="clr-namespace:TrackEditor"
         Title="Track Editor" Height="900" Width="1500"
         WindowStartupLocation="CenterScreen"
         PreviewKeyDown="Window_PreviewKeyDown">
     <Window.Resources>
+        <local:BoolToRowHeightConverter x:Key="RowHeight"/>
         <!-- Toolbar icons: Bootstrap Icons (MIT License) path data, viewBox 0 0 16 16. -->
         <Geometry x:Key="IcoOpen">F1 M1 3.5A1.5 1.5 0 0 1 2.5 2h2.764c.958 0 1.76.56 2.311 1.184C7.985 3.648 8.48 4 9 4h4.5A1.5 1.5 0 0 1 15 5.5v.64c.57.265.94.876.856 1.546l-.64 5.124A2.5 2.5 0 0 1 12.733 15H3.266a2.5 2.5 0 0 1-2.481-2.19l-.64-5.124A1.5 1.5 0 0 1 1 6.14zM2 6h12v-.5a.5.5 0 0 0-.5-.5H9c-.964 0-1.71-.629-2.174-1.154C6.374 3.334 5.82 3 5.264 3H2.5a.5.5 0 0 0-.5.5zm-.367 1a.5.5 0 0 0-.496.562l.64 5.124A1.5 1.5 0 0 0 3.266 14h9.468a1.5 1.5 0 0 0 1.489-1.314l.64-5.124A.5.5 0 0 0 14.367 7z</Geometry>
         <Geometry x:Key="IcoSave">F1 M11 2H9v3h2z M1.5 0h11.586a1.5 1.5 0 0 1 1.06.44l1.415 1.414A1.5 1.5 0 0 1 16 2.914V14.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5v-13A1.5 1.5 0 0 1 1.5 0M1 1.5v13a.5.5 0 0 0 .5.5H2v-4.5A1.5 1.5 0 0 1 3.5 9h9a1.5 1.5 0 0 1 1.5 1.5V15h.5a.5.5 0 0 0 .5-.5V2.914a.5.5 0 0 0-.146-.353l-1.415-1.415A.5.5 0 0 0 13.086 1H13v4.5A1.5 1.5 0 0 1 11.5 7h-7A1.5 1.5 0 0 1 3 5.5V1H1.5a.5.5 0 0 0-.5.5m3 4a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5V1H4zM3 15h10v-4.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5z</Geometry>
@@ -100,6 +102,20 @@
                 <MenuItem Header="_Speed on Profile" IsCheckable="True"
                           IsChecked="{Binding IsChecked, ElementName=ChkSpeed, Mode=TwoWay}"
                           IsEnabled="{Binding IsEnabled, ElementName=ChkSpeed}"/>
+                <Separator/>
+                <MenuItem Header="Points List _Columns" SubmenuOpened="ColumnsMenu_Opened"
+                          ToolTip="Show or hide columns in the points list (columns with no data are hidden automatically)">
+                    <MenuItem x:Name="ColMnuWaypoint" Header="⚑ Waypoint" IsCheckable="True" Tag="Waypoint" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuLat" Header="Lat" IsCheckable="True" Tag="Lat" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuLon" Header="Lon" IsCheckable="True" Tag="Lon" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuEle" Header="Ele, m" IsCheckable="True" Tag="Ele" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuTime" Header="Time" IsCheckable="True" Tag="Time" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuDist" Header="Km" IsCheckable="True" Tag="Dist" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuHr" Header="HR" IsCheckable="True" Tag="Hr" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuCad" Header="Cadence" IsCheckable="True" Tag="Cad" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuTemp" Header="Temperature (°C)" IsCheckable="True" Tag="Temp" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuSurface" Header="Surface" IsCheckable="True" Tag="Surface" Click="ColumnToggle_Click"/>
+                </MenuItem>
             </MenuItem>
             <MenuItem Header="_Race" SubmenuOpened="RaceMenu_Opened">
                 <MenuItem x:Name="MenuAnalyzeRace" Header="_Analyze Race Ability…" Click="AnalyzeRace_Click"
@@ -240,15 +256,18 @@
             <!-- ===== left panel ===== -->
             <Grid Grid.Column="0">
                 <Grid.RowDefinitions>
+                    <!-- Tracks/Points collapse like the Statistics panel: an expanded section takes the
+                         remaining space (star) so its list/grid fills; a collapsed one shrinks to Auto
+                         (just the header). Tracks stays Auto with a capped list height. -->
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="120"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="{Binding IsExpanded, ElementName=PointsExpander, Converter={StaticResource RowHeight}}"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="Tracks" FontWeight="Bold" Margin="6,6,6,2"/>
-                <ListBox x:Name="TracksList" Grid.Row="1" Margin="6,0,6,4"
+                <Expander x:Name="TracksExpander" Grid.Row="0" Header="Tracks" IsExpanded="True"
+                          Margin="6,4,6,0" VerticalContentAlignment="Stretch">
+                <ListBox x:Name="TracksList" Margin="0,4,0,0" MaxHeight="200"
                          SelectionChanged="TracksList_SelectionChanged"
                          MouseDoubleClick="TracksList_MouseDoubleClick"
                          ToolTip="Double-click a track to fit it in the map; right-click for more">
@@ -288,8 +307,9 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
+                </Expander>
 
-                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="6,0,6,4">
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="6,4,6,4">
                     <TextBlock Text="Color:" VerticalAlignment="Center"/>
                     <ComboBox x:Name="ColorCombo" Width="90" Margin="4,0" SelectionChanged="ColorCombo_Changed"/>
                     <TextBlock Text="Width:" VerticalAlignment="Center" Margin="8,0,0,0"/>
@@ -298,7 +318,9 @@
                     <TextBlock x:Name="WidthLabel" Text="3" VerticalAlignment="Center" Width="18"/>
                 </StackPanel>
 
-                <DataGrid x:Name="PointsGrid" Grid.Row="3" Margin="6,0,6,4"
+                <Expander x:Name="PointsExpander" Grid.Row="2" Header="Points" IsExpanded="True"
+                          Margin="6,0,6,0" VerticalContentAlignment="Stretch">
+                <DataGrid x:Name="PointsGrid" Margin="0,4,0,4"
                           AutoGenerateColumns="False" IsReadOnly="True"
                           SelectionMode="Extended" SelectionUnit="FullRow"
                           EnableRowVirtualization="True"
@@ -361,8 +383,9 @@
                         </Style>
                     </DataGrid.CellStyle>
                 </DataGrid>
+                </Expander>
 
-                <StackPanel Grid.Row="4" Margin="6,0,6,6">
+                <StackPanel Grid.Row="3" Margin="6,4,6,6">
                     <Expander Header="Statistics" IsExpanded="True">
                         <TextBlock x:Name="StatsText" FontFamily="Consolas" FontSize="12" Margin="4" Text="—"/>
                     </Expander>

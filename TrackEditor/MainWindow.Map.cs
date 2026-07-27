@@ -146,11 +146,17 @@ public partial class MainWindow
                 sb.Append($"  (+{FmtSpan(t - t0)})");
             sb.AppendLine();
         }
+        if (p.IsWaypoint) sb.AppendLine($"⚑ {p.Name}");
         double toEnd = _cumDist[^1] - _cumDist[idx];
         sb.AppendLine($"From start: {_cumDist[idx] / 1000:F2} km   To end: {toEnd / 1000:F2} km");
         if (p.Ele is double ele) sb.AppendLine($"Ele (track): {ele:F0} m");
         if (SrtmActive && _srtm.GetElevation(p.Lat, p.Lon) is double srtmEle) sb.AppendLine($"Ele (SRTM): {srtmEle:F0} m");
         if (idx < _speeds.Length && _speeds[idx] is double v) sb.AppendLine($"Speed: {v * 3.6:F1} km/h");
+        // Every recorded sensor channel present on this point, so the popup mirrors what the plot can show.
+        if (p.Hr is int hr) sb.AppendLine($"HR: {hr} bpm");
+        if (p.Cad is int cad) sb.AppendLine($"Cadence: {cad}");
+        if (p.Temp is double temp) sb.AppendLine($"Temp: {temp:F0} °C");
+        if (!string.IsNullOrEmpty(p.Surface)) sb.AppendLine($"Surface: {p.Surface}");
         return sb.ToString().TrimEnd();
     }
 
@@ -467,6 +473,7 @@ public partial class MainWindow
     /// <summary>Altitude (left axis) and speed (right axis) on one plot; checkboxes pick which show.</summary>
     private void RefreshPlots()
     {
+        ApplyPlotSeriesVisibility(); // offer only the channels the active track carries
         var plt = ProfilePlot.Plot;
         plt.Clear();
         plt.Axes.Remove(ScottPlot.Edge.Right); // drop any right axis added on the previous refresh

@@ -229,17 +229,84 @@ public partial class MainWindow : Window
         SelectPointInGrid(_active.Points.Count - 1);
     }
 
-    /// <summary>Shows/hides the optional points-list columns per settings (the index column always shows).</summary>
+    /// <summary>Shows/hides the optional points-list columns. A column appears only when the user has it
+    /// enabled AND the active track actually carries that data — empty columns hide themselves (Lat/Lon/Km
+    /// always have values; the index column always shows).</summary>
     private void ApplyColumnVisibility()
     {
         if (ColWaypoint is null) return; // during InitializeComponent
         static Visibility V(bool on) => on ? Visibility.Visible : Visibility.Collapsed;
-        ColWaypoint.Visibility = V(_settings.ColWaypoint);
+        var pts = _active?.Points;
+        bool Has(Func<TrackPoint, bool> f) => pts is not null && pts.Count > 0 && pts.Any(f);
+
+        ColWaypoint.Visibility = V(_settings.ColWaypoint && Has(p => p.IsWaypoint));
         ColLat.Visibility = V(_settings.ColLat);
         ColLon.Visibility = V(_settings.ColLon);
-        ColEle.Visibility = V(_settings.ColEle);
-        ColTime.Visibility = V(_settings.ColTime);
+        ColEle.Visibility = V(_settings.ColEle && Has(p => p.Ele is not null));
+        ColTime.Visibility = V(_settings.ColTime && Has(p => p.Time is not null));
         ColDist.Visibility = V(_settings.ColDist);
+        ColHr.Visibility = V(_settings.ColHr && Has(p => p.Hr is not null));
+        ColCad.Visibility = V(_settings.ColCad && Has(p => p.Cad is not null));
+        ColTemp.Visibility = V(_settings.ColTemp && Has(p => p.Temp is not null));
+        ColSurface.Visibility = V(_settings.ColSurface && Has(p => !string.IsNullOrEmpty(p.Surface)));
+    }
+
+    /// <summary>Shows/hides the profile-plot series checkboxes so only channels the active track carries
+    /// (with 2+ samples) are offered. Speed follows timestamps; altitude follows elevation.</summary>
+    private void ApplyPlotSeriesVisibility()
+    {
+        if (ChkAlt is null) return; // during InitializeComponent
+        static Visibility V(bool on) => on ? Visibility.Visible : Visibility.Collapsed;
+        var pts = _active?.Points;
+        bool Has(Func<TrackPoint, bool> f) => pts is not null && pts.Count > 1 && pts.Count(f) > 1;
+
+        ChkAlt.Visibility = V(Has(p => p.Ele is not null));
+        ChkSpeed.Visibility = V(Has(p => p.Time is not null));
+        ChkHr.Visibility = V(Has(p => p.Hr is not null));
+        ChkCad.Visibility = V(Has(p => p.Cad is not null));
+        ChkTemp.Visibility = V(Has(p => p.Temp is not null));
+    }
+
+    /// <summary>Points-list column menu: reflect current settings and grey out channels the active
+    /// track lacks, so the toggles match what can actually be shown.</summary>
+    private void ColumnsMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        var pts = _active?.Points;
+        bool Has(Func<TrackPoint, bool> f) => pts is not null && pts.Count > 0 && pts.Any(f);
+        void Set(MenuItem mi, bool @checked, bool enabled) { mi.IsChecked = @checked; mi.IsEnabled = enabled; }
+
+        Set(ColMnuWaypoint, _settings.ColWaypoint, Has(p => p.IsWaypoint));
+        Set(ColMnuLat, _settings.ColLat, true);
+        Set(ColMnuLon, _settings.ColLon, true);
+        Set(ColMnuEle, _settings.ColEle, Has(p => p.Ele is not null));
+        Set(ColMnuTime, _settings.ColTime, Has(p => p.Time is not null));
+        Set(ColMnuDist, _settings.ColDist, true);
+        Set(ColMnuHr, _settings.ColHr, Has(p => p.Hr is not null));
+        Set(ColMnuCad, _settings.ColCad, Has(p => p.Cad is not null));
+        Set(ColMnuTemp, _settings.ColTemp, Has(p => p.Temp is not null));
+        Set(ColMnuSurface, _settings.ColSurface, Has(p => !string.IsNullOrEmpty(p.Surface)));
+    }
+
+    /// <summary>Toggles a points-list column on/off (persisted), then re-applies column visibility.</summary>
+    private void ColumnToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem mi || mi.Tag is not string tag) return;
+        bool on = mi.IsChecked;
+        switch (tag)
+        {
+            case "Waypoint": _settings.ColWaypoint = on; break;
+            case "Lat": _settings.ColLat = on; break;
+            case "Lon": _settings.ColLon = on; break;
+            case "Ele": _settings.ColEle = on; break;
+            case "Time": _settings.ColTime = on; break;
+            case "Dist": _settings.ColDist = on; break;
+            case "Hr": _settings.ColHr = on; break;
+            case "Cad": _settings.ColCad = on; break;
+            case "Temp": _settings.ColTemp = on; break;
+            case "Surface": _settings.ColSurface = on; break;
+        }
+        _settings.Save();
+        ApplyColumnVisibility();
     }
 
     private void ClearTileCache_Click(object sender, RoutedEventArgs e)
@@ -770,15 +837,26 @@ public partial class MainWindow : Window
             PointsGrid.ItemsSource = rows;
         }
         finally { _syncingUi = false; }
+        ApplyColumnVisibility(); // re-hide columns the (possibly changed) active track has no data for
     }
 
     private void PointsGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_syncingUi) return;
+        // Skipped while a programmatic (map/plot) selection is mid-flight: SelectPointInGrid mutates
+        // SelectedItems row by row, and syncing on every one both thrashed the map/plot (slow on big
+        // tracks) and let the anchor drift so Shift-ranges could not extend backwards.
+        if (_syncingUi || _suppressSelSync) return;
         var indices = SelectedIndices();
         // A single row picked directly in the grid is an unambiguous anchor for a later Shift-range
         // started from the map or the profile plot.
         if (indices.Count == 1) _gridAnchor = indices[0];
+        ApplySelectionToViews(indices);
+    }
+
+    /// <summary>Pushes the current point selection to the map, profile plot and stats panel. Called once
+    /// per selection change (native grid edit, or a programmatic map/plot click) — never per added row.</summary>
+    private void ApplySelectionToViews(IReadOnlyList<int> indices)
+    {
         _mapMgr.SetSelection(_active, indices);
         UpdatePlotMarkers(indices);
         if (indices.Count > 1) StatusInfo.Text = $"{indices.Count} points selected";
@@ -896,32 +974,43 @@ public partial class MainWindow : Window
     /// </summary>
     private int _gridAnchor = -1;
 
+    /// <summary>Set while SelectPointInGrid rewrites the grid selection, so PointsGrid_SelectionChanged
+    /// stays quiet until the whole change is in place (one sync, stable anchor).</summary>
+    private bool _suppressSelSync;
+
     private void SelectPointInGrid(int index, bool ctrl = false, bool shift = false)
     {
         if (PointsGrid.ItemsSource is not List<PointRow> rows || index < 0 || index >= rows.Count) return;
 
-        if (shift && _gridAnchor >= 0 && _gridAnchor < rows.Count)
+        _suppressSelSync = true;
+        try
         {
-            // Range in either direction; the anchor stays put so it can be re-extended both ways.
-            PointsGrid.SelectedItems.Clear();
-            for (int i = Math.Min(_gridAnchor, index); i <= Math.Max(_gridAnchor, index); i++)
-                PointsGrid.SelectedItems.Add(rows[i]);
-        }
-        else if (ctrl)
-        {
-            if (PointsGrid.SelectedItems.Contains(rows[index]))
-                PointsGrid.SelectedItems.Remove(rows[index]);
+            if (shift && _gridAnchor >= 0 && _gridAnchor < rows.Count)
+            {
+                // Range in either direction; the anchor stays put so it can be re-extended both ways.
+                PointsGrid.SelectedItems.Clear();
+                for (int i = Math.Min(_gridAnchor, index); i <= Math.Max(_gridAnchor, index); i++)
+                    PointsGrid.SelectedItems.Add(rows[i]);
+            }
+            else if (ctrl)
+            {
+                if (PointsGrid.SelectedItems.Contains(rows[index]))
+                    PointsGrid.SelectedItems.Remove(rows[index]);
+                else
+                    PointsGrid.SelectedItems.Add(rows[index]);
+                _gridAnchor = index;
+            }
             else
+            {
+                PointsGrid.SelectedItems.Clear();
                 PointsGrid.SelectedItems.Add(rows[index]);
-            _gridAnchor = index;
+                _gridAnchor = index;
+            }
         }
-        else
-        {
-            PointsGrid.SelectedItems.Clear();
-            PointsGrid.SelectedItems.Add(rows[index]);
-            _gridAnchor = index;
-        }
+        finally { _suppressSelSync = false; }
+
         PointsGrid.ScrollIntoView(rows[index]);
+        ApplySelectionToViews(SelectedIndices()); // one sync for the whole selection change
     }
 
     // ======================= editing commands =======================
