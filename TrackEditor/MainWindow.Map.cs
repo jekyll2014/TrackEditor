@@ -149,13 +149,15 @@ public partial class MainWindow
         if (p.IsWaypoint) sb.AppendLine($"⚑ {p.Name}");
         double toEnd = _cumDist[^1] - _cumDist[idx];
         sb.AppendLine($"From start: {_cumDist[idx] / 1000:F2} km   To end: {toEnd / 1000:F2} km");
-        if (p.Ele is double ele) sb.AppendLine($"Ele (track): {ele:F0} m");
+        // Plot-series lines mirror the checkboxes: a channel shows only when its series is both
+        // toggled on AND present on this point ("selected + existing"). Non-plot fields (SRTM,
+        // surface) ignore the toggles.
+        if (ChkAlt?.IsChecked == true && p.Ele is double ele) sb.AppendLine($"Ele (track): {ele:F0} m");
         if (SrtmActive && _srtm.GetElevation(p.Lat, p.Lon) is double srtmEle) sb.AppendLine($"Ele (SRTM): {srtmEle:F0} m");
-        if (idx < _speeds.Length && _speeds[idx] is double v) sb.AppendLine($"Speed: {v * 3.6:F1} km/h");
-        // Every recorded sensor channel present on this point, so the popup mirrors what the plot can show.
-        if (p.Hr is int hr) sb.AppendLine($"HR: {hr} bpm");
-        if (p.Cad is int cad) sb.AppendLine($"Cadence: {cad}");
-        if (p.Temp is double temp) sb.AppendLine($"Temp: {temp:F0} °C");
+        if (ChkSpeed?.IsChecked == true && idx < _speeds.Length && _speeds[idx] is double v) sb.AppendLine($"Speed: {v * 3.6:F1} km/h");
+        if (ChkHr?.IsChecked == true && p.Hr is int hr) sb.AppendLine($"HR: {hr} bpm");
+        if (ChkCad?.IsChecked == true && p.Cad is int cad) sb.AppendLine($"Cadence: {cad}");
+        if (ChkTemp?.IsChecked == true && p.Temp is double temp) sb.AppendLine($"Temp: {temp:F0} °C");
         if (!string.IsNullOrEmpty(p.Surface)) sb.AppendLine($"Surface: {p.Surface}");
         return sb.ToString().TrimEnd();
     }
