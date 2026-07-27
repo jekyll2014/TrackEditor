@@ -36,8 +36,10 @@ This document is also the in-app **Help ▸ User Guide** (press **F1**).
 - **Toolbar** — quick access to the common actions: Open, Save, New track, Undo,
   Redo, the three modes (View / Edit / Measure), 3D View, the **Route** dropdown
   (auto-routing) and the Flags toggle.
-- **Left panel** — the track list, the active track's colour/width, the points
-  list, and the Statistics / Selection statistics / Measurement panels.
+- **Left panel** — a **Tracks / Points tab strip** (only one list is shown at a
+  time, so each gets the full panel height): the **Tracks** tab holds the track
+  list plus the active track's colour/width; the **Points** tab holds the points
+  list. Below the tabs sit the Statistics / Selection statistics / Measurement panels.
 - **Map** — the interactive 2D map with your tracks drawn on top.
 - **Profile** — altitude and speed against distance, below the map.
 - **Status bar** — current mode, the cursor's coordinates, and the last action.
@@ -51,8 +53,8 @@ This document is also the in-app **Help ▸ User Guide** (press **F1**).
   **Save All Tracks** writes every loaded track into one GPX.
 - The **track list** shows every track with a checkbox (show/hide), a colour
   swatch and its name. **Right-click a row** anywhere along it for: Rename,
-  Track Information, Save as GPX, Reverse, Simplify, Re-evaluate Elevation,
-  Evaluate Surface, Zoom to Track, and Remove from List.
+  Track Information, Save as GPX, Reverse, Join Tracks, Merge Tracks, Simplify,
+  Re-evaluate Elevation, Evaluate Surface, Zoom to Track, and Remove from List.
 - The **active track** is the one you're editing; its vertices and profile are
   shown. Click a track's line on the map (in View mode) to make it active, or
   pick it in the list.
@@ -157,6 +159,15 @@ Available from the Track menu and the points-list / track-list menus:
   width; both originals are left untouched. While a join is waiting for its
   second track the other menu commands are greyed out and the command reads
   **Cancel Join** — press **Esc**, or choose it again, to back out.
+- **Merge Tracks** — fuse a **second recording of the same route** into the active
+  track, adding the result as a new track (both originals kept). Available from
+  **Track ▸ Merge Tracks…** or **Merge Tracks…** on the track's right-click menu.
+  The two are matched point-for-point — by **timestamp** when both are timed and
+  their clocks overlap, otherwise by **distance** — within a proximity gate, so
+  unrelated tracks match nothing and are left alone. The merged track gains the
+  channels the base lacks (HR, cadence, temperature, surface, elevation); the
+  geometry either keeps the base line or averages the two where they overlap, and
+  the dialog reports the overlap coverage and mean separation before you add it.
 - **Copy / Paste** points (Ctrl+C / Ctrl+V); paste inserts after the selection.
 - **Undo / Redo** (Ctrl+Z / Ctrl+Y) — whole-document history covering every edit.
 
