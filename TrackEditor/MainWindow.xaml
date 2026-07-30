@@ -286,8 +286,10 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <!-- Background is required so the stretched (otherwise empty) area is hit-testable.
-                                 The menu lives in the template so each row gets its own instance. -->
-                            <StackPanel Orientation="Horizontal" Background="Transparent">
+                                 The menu lives in the template so each row gets its own instance.
+                                 ToolTip shows the track's terrain/load/effort classification, built on hover. -->
+                            <StackPanel Orientation="Horizontal" Background="Transparent"
+                                        ToolTip="{Binding ClassTip}" ToolTipService.ShowDuration="20000">
                                 <StackPanel.ContextMenu>
                                     <ContextMenu Opened="TrackCtxMenu_Opened">
                                         <MenuItem Header="Rename…" Click="CtxRenameTrack_Click"/>

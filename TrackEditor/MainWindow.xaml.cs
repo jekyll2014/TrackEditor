@@ -1727,6 +1727,8 @@ public class TrackRow
     public TrackRow(Track t) => T = t;
 
     public string Title => $"{T.Name}{(T.IsModified ? " *" : "")}  ({T.Points.Count} pts)";
+    /// <summary>Terrain / load / effort classification, built lazily when the row's tooltip opens.</summary>
+    public string ClassTip => TrackClassifier.Classify(T.Points).Tooltip();
     public bool Visible { get => T.Visible; set => T.Visible = value; }
     public System.Windows.Media.Brush Swatch =>
         new SolidColorBrush((System.Windows.Media.Color)ColorConverter.ConvertFromString(T.ColorHex));
