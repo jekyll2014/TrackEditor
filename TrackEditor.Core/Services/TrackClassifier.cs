@@ -175,4 +175,32 @@ public static class TrackClassifier
         if (kcalPerHour < 800) return IntensityClass.Moderate;
         return IntensityClass.Hard;
     }
+
+    /// <summary>Score in 0..1 of how good an analog one track is for another — i.e. how well a recorded track
+    /// would model a prediction target. Compares terrain band, load, surface and distance; a dimension that is
+    /// Unknown on either side is skipped and the rest are re-weighted. Returns a neutral 0.5 when nothing is
+    /// comparable (e.g. neither track has elevation, time or surface).</summary>
+    public static double Similarity(TrackClass a, TrackClass b)
+    {
+        double wSum = 0, sSum = 0;
+        void Add(double w, double s) { wSum += w; sSum += w * s; }
+
+        if (a.Terrain != TerrainClass.Unknown && b.Terrain != TerrainClass.Unknown)
+        {
+            int d = Math.Abs((int)a.Terrain - (int)b.Terrain);
+            Add(0.35, d == 0 ? 1.0 : d == 1 ? 0.5 : 0.0);   // adjacent bands are partly comparable
+        }
+        if (a.Load != LoadClass.Unknown && b.Load != LoadClass.Unknown)
+            Add(0.30, a.Load == b.Load ? 1.0 : 0.0);
+        if (a.Surface != SurfaceClass.Unknown && b.Surface != SurfaceClass.Unknown)
+            Add(0.15, a.Surface == b.Surface ? 1.0 : 0.5);  // Road vs Trail still share some traits
+        if (a.DistanceKm > 0 && b.DistanceKm > 0)
+            Add(0.20, Math.Min(a.DistanceKm, b.DistanceKm) / Math.Max(a.DistanceKm, b.DistanceKm));
+
+        return wSum > 0 ? sSum / wSum : 0.5;
+    }
+
+    /// <summary>Whether <paramref name="candidate"/> is a good enough analog of <paramref name="target"/> to
+    /// highlight it as a fitting input (<see cref="Similarity"/> ≥ 0.6).</summary>
+    public static bool IsAnalog(TrackClass target, TrackClass candidate) => Similarity(target, candidate) >= 0.6;
 }

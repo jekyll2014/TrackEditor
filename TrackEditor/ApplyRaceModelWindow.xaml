@@ -19,6 +19,9 @@
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
             <Button x:Name="ImportButton" Content="Import Model…" Width="120" Click="Import_Click"/>
+            <Button x:Name="CreateProfileButton" Content="Create Profile…" Width="120" Margin="8,0,0,0"
+                    Click="CreateProfile_Click"
+                    ToolTip="Fit a new model from your recorded tracks, with the ones most like this target highlighted"/>
             <TextBlock x:Name="ModelText" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#666"
                        Text="No model loaded." TextWrapping="Wrap"/>
         </StackPanel>

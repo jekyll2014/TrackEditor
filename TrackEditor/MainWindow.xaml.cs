@@ -443,7 +443,7 @@ public partial class MainWindow : Window
             StatusInfo.Text = "Apply race model: select a track with at least two points";
             return;
         }
-        var dlg = new ApplyRaceModelWindow(_active, _settings) { Owner = this };
+        var dlg = new ApplyRaceModelWindow(_active, _doc.Tracks, _settings) { Owner = this };
         if (dlg.ShowDialog() != true || dlg.PredictedTrack is null) return;
 
         var predicted = dlg.PredictedTrack;

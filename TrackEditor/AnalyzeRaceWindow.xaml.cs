@@ -30,16 +30,32 @@ public partial class AnalyzeRaceWindow : Window
     private readonly List<TrackPick> _picks;
     private RaceModel? _model;
 
-    public AnalyzeRaceWindow(IEnumerable<Track> tracks)
+    /// <summary>The fitted model, or null until Analyze succeeds. Lets a caller (e.g. Apply Race Model's
+    /// "Create profile") adopt the result directly without a file round-trip.</summary>
+    public RaceModel? Model => _model;
+
+    /// <param name="target">Optional prediction target. When given, recorded tracks that are a good analog of
+    /// it (terrain / load / distance) are marked ★ and pre-ticked, so the fit uses like-for-like efforts.</param>
+    public AnalyzeRaceWindow(IEnumerable<Track> tracks, Track? target = null)
     {
         InitializeComponent();
+
+        TrackClass? tc = target is { Points.Count: >= 2 } ? TrackClassifier.Classify(target.Points) : null;
 
         _picks = tracks.Select(t =>
         {
             bool timed = t.Points.Any(p => p.Time is not null);
-            return new TrackPick { T = t, CanUse = timed, Include = timed, Label = DescribeTrack(t, timed) };
+            bool analog = tc is not null && !ReferenceEquals(t, target)
+                          && TrackClassifier.IsAnalog(tc, TrackClassifier.Classify(t.Points));
+            string label = DescribeTrack(t, timed) + (analog ? "   ★ similar to target" : "");
+            // With a target, pre-tick only its analogs; without one, keep the old "all timestamped" default.
+            return new TrackPick { T = t, CanUse = timed, Include = timed && (tc is null || analog), Label = label };
         }).ToList();
         TracksList.ItemsSource = _picks;
+
+        if (tc is not null)
+            IntroText.Text = $"Fitting a profile to predict “{target!.Name}”. ★ marks recorded tracks similar to " +
+                             "it (terrain, load, distance); those are pre-ticked — adjust as you like.";
     }
 
     private static string DescribeTrack(Track t, bool timed)

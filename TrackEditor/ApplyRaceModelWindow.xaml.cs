@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Windows;
@@ -20,6 +21,7 @@ namespace TrackEditor;
 public partial class ApplyRaceModelWindow : Window
 {
     private readonly Track _target;
+    private readonly IReadOnlyList<Track> _allTracks;
     private readonly AppSettings _settings;
     private RaceModel? _model;
     private double[]? _surface;   // per-point surface multiplier from routing inference, or null
@@ -27,10 +29,11 @@ public partial class ApplyRaceModelWindow : Window
     /// <summary>The predicted copy the user chose to add; null until "Add Predicted Track" is pressed.</summary>
     public Track? PredictedTrack { get; private set; }
 
-    public ApplyRaceModelWindow(Track target, AppSettings settings)
+    public ApplyRaceModelWindow(Track target, IReadOnlyList<Track> allTracks, AppSettings settings)
     {
         InitializeComponent();
         _target = target;
+        _allTracks = allTracks;
         _settings = settings;
         LoadProfileToUi(settings.Profile);
         TargetText.Text = $"Predict the race flow on “{target.Name}” ({target.Points.Count} pts) " +
@@ -61,6 +64,19 @@ public partial class ApplyRaceModelWindow : Window
             RunButton.IsEnabled = false;
             ModelText.Text = "Failed to load model: " + ex.Message;
         }
+    }
+
+    /// <summary>Opens Analyze Race Ability seeded with this prediction target, so it can mark and pre-tick the
+    /// recorded tracks most like the target. If a model is fitted there, adopt it here without a file round-trip.</summary>
+    private void CreateProfile_Click(object sender, RoutedEventArgs e)
+    {
+        var an = new AnalyzeRaceWindow(_allTracks, _target) { Owner = this };
+        an.ShowDialog();
+        if (an.Model is not RaceModel m) return;
+        _model = m;
+        ModelText.Text = "Created: " + DescribeModel(m);
+        RunButton.IsEnabled = true;
+        HintText.Text = "Profile created — press Predict.";
     }
 
     private static string DescribeModel(RaceModel m)

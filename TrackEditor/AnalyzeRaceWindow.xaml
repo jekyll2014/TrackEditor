@@ -12,7 +12,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
+        <TextBlock x:Name="IntroText" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
                    Text="Learn the athlete's speed-vs-terrain behaviour from one or more recorded tracks. Only timestamped tracks can be used; tick the ones to include."/>
 
         <ListBox x:Name="TracksList" Grid.Row="1" Margin="0,0,0,8">
