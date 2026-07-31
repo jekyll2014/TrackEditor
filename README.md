@@ -54,7 +54,13 @@ This document is also the in-app **Help ▸ User Guide** (press **F1**).
 - The **track list** shows every track with a checkbox (show/hide), a colour
   swatch and its name. **Right-click a row** anywhere along it for: Rename,
   Track Information, Save as GPX, Reverse, Join Tracks, Merge Tracks, Simplify,
-  Re-evaluate Elevation, Evaluate Surface, Zoom to Track, and Remove from List.
+  Re-evaluate Elevation, Evaluate Surface, Apply Race Model, Zoom to Track, and
+  Remove from List.
+- **Hover a track row** for its **classification** — terrain (Flat / Rolling /
+  Hilly / Mountainous, plus a Road / Trail surface tag), the dominant load
+  (Speed / Endurance / Climbing / Mixed), and an estimated effort in kcal — with
+  the key numbers (distance, ascent/descent, time, speed). See *Track
+  classification* below.
 - The **active track** is the one you're editing; its vertices and profile are
   shown. Click a track's line on the map (in View mode) to make it active, or
   pick it in the list.
@@ -260,7 +266,15 @@ on any planned route. Everything is on the **Race** menu.
   reports the finish time, moving pace and per-waypoint ETAs. Set the **start
   time** (default 08:00), a **surface / conditions** multiplier, and optionally
   the altitude derate. If the target has no elevation you're warned to apply
-  elevation first, since every grade would otherwise read as flat.
+  elevation first, since every grade would otherwise read as flat. Also on a
+  track's right-click menu as **Apply Race Model…**.
+  - **Create Profile…** (next to Import Model) fits a model right here from your
+    recorded tracks, seeded with this target: recorded tracks are rated by how
+    similar they are to the target (a **green / yellow / red** dot — terrain,
+    load, distance), and the close matches are pre-ticked so the fit uses
+    like-for-like efforts. Tracks with no timestamps (unusable) and the target
+    itself are hidden. The fitted model is handed straight back to Predict — no
+    export/import round-trip.
 - **Evaluate Surface (routing)…** — fill each point's surface **type** from OSM by
   auto-routing along the track (BRouter) and adopting the way's surface — but only
   where the route actually hugs your track (within a proximity gate). Off-route or
@@ -306,6 +320,26 @@ routing-inferred per-point surface), and the optional **altitude** derate — th
 reports the finish time, moving pace and per-waypoint ETAs.
 
 ---
+
+## Track classification
+
+Hovering a track in the list shows a quick, **athlete-independent** read of what
+the track is — computed from its own geometry, time and surface, so two tracks
+compare on the same footing:
+
+- **Terrain** — Flat / Rolling / Hilly / Mountainous from the hilliness index
+  (ascent + descent per km), plus a **Road / Trail / Mixed** tag when the track
+  carries OSM surface data.
+- **Load** — the dominant demand: **Speed** (short and quick), **Endurance**
+  (long or long-lasting), **Climbing** (lots of vertical), or **Mixed**.
+- **Effort** — an estimated energy cost in **kcal** (level work plus the work of
+  the total climb, at a fixed 70 kg reference mass) and a rough **Easy /
+  Moderate / Hard** intensity from kcal per hour when the track is timed.
+
+The same classification drives **Create Profile** (see *Race analysis*), which
+rates recorded tracks by how similar they are to a prediction target. The
+thresholds are transparent heuristics, meant as a fast label rather than a lab
+measurement.
 
 ## 3D terrain view
 
