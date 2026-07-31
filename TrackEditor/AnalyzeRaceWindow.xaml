@@ -23,8 +23,13 @@
             </ListBox.ItemContainerStyle>
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <CheckBox IsChecked="{Binding Include, Mode=TwoWay}" IsEnabled="{Binding CanUse}"
-                              Content="{Binding Label}" VerticalContentAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal">
+                        <!-- Traffic-light dot: green/yellow/red by similarity to the target; transparent with no target. -->
+                        <Ellipse Width="9" Height="9" Margin="0,0,6,0" VerticalAlignment="Center"
+                                 Fill="{Binding SimBrush}"/>
+                        <CheckBox IsChecked="{Binding Include, Mode=TwoWay}" IsEnabled="{Binding CanUse}"
+                                  Content="{Binding Label}" VerticalContentAlignment="Center"/>
+                    </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>

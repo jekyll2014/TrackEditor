@@ -25,6 +25,10 @@ public partial class AnalyzeRaceWindow : Window
         public required string Label { get; init; }
         public bool CanUse { get; init; }
         public bool Include { get; set; }
+        /// <summary>Similarity to the prediction target (0..1), or −1 when opened without a target.</summary>
+        public double Score { get; init; }
+        /// <summary>Traffic-light dot for <see cref="Score"/>; transparent when there is no target.</summary>
+        public System.Windows.Media.Brush SimBrush { get; init; } = System.Windows.Media.Brushes.Transparent;
     }
 
     private readonly List<TrackPick> _picks;
@@ -42,21 +46,40 @@ public partial class AnalyzeRaceWindow : Window
 
         TrackClass? tc = target is { Points.Count: >= 2 } ? TrackClassifier.Classify(target.Points) : null;
 
-        _picks = tracks.Select(t =>
+        // Only usable (timestamped) tracks are shown; when seeded from a target, the target itself is dropped.
+        var usable = tracks.Where(t => t.Points.Any(p => p.Time is not null)
+                                       && (tc is null || !ReferenceEquals(t, target)));
+        _picks = usable.Select(t =>
         {
-            bool timed = t.Points.Any(p => p.Time is not null);
-            bool analog = tc is not null && !ReferenceEquals(t, target)
-                          && TrackClassifier.IsAnalog(tc, TrackClassifier.Classify(t.Points));
-            string label = DescribeTrack(t, timed) + (analog ? "   ★ similar to target" : "");
-            // With a target, pre-tick only its analogs; without one, keep the old "all timestamped" default.
-            return new TrackPick { T = t, CanUse = timed, Include = timed && (tc is null || analog), Label = label };
+            double score = tc is not null ? TrackClassifier.Similarity(tc, TrackClassifier.Classify(t.Points)) : -1;
+            bool analog = score >= 0.6;
+            return new TrackPick
+            {
+                T = t,
+                CanUse = true,
+                // With a target, pre-tick its close analogs (green); without one, tick all.
+                Include = tc is null || analog,
+                Score = score,
+                SimBrush = BrushFor(score),
+                Label = DescribeTrack(t, true),
+            };
         }).ToList();
         TracksList.ItemsSource = _picks;
 
         if (tc is not null)
-            IntroText.Text = $"Fitting a profile to predict “{target!.Name}”. ★ marks recorded tracks similar to " +
-                             "it (terrain, load, distance); those are pre-ticked — adjust as you like.";
+            IntroText.Text = $"Fitting a profile to predict “{target!.Name}”. The dot rates how similar each track " +
+                             "is (green = close, yellow = loose, red = different — terrain, load, distance); close " +
+                             "matches are pre-ticked.";
     }
+
+    // Traffic-light brush for a 0..1 similarity score; transparent when no target was given (score < 0).
+    private static System.Windows.Media.Brush BrushFor(double score) => score switch
+    {
+        >= 0.6 => System.Windows.Media.Brushes.ForestGreen,
+        >= 0.4 => System.Windows.Media.Brushes.Goldenrod,
+        >= 0.0 => System.Windows.Media.Brushes.IndianRed,
+        _ => System.Windows.Media.Brushes.Transparent,
+    };
 
     private static string DescribeTrack(Track t, bool timed)
     {
