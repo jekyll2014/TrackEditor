@@ -147,28 +147,46 @@ public static class RacePredictor
             timeAtRs[i] = elapsed;
         }
 
-        // Map the integrated times back onto the original points by along-track distance.
+        // Map the integrated times back onto the original points by along-track distance. The resampled
+        // polyline is a hair shorter than the original (straight chords undercut the true arc length), so the
+        // last original points sit just past cumRs[^1]. Extrapolating them with the final segment's pace keeps
+        // the timestamps strictly increasing; clamping to cumRs[^1] instead collapsed the tail onto a single
+        // finish time and produced duplicate end-of-track timestamps.
+        // Overall average pace (s/m) drives the tail extrapolation — robust, since the last grid segment can be
+        // a sub-metre corner-cut sliver, and the tail is a tiny fraction of the route anyway.
+        double tailPace = cumRs[^1] > 1 ? timeAtRs[^1] / cumRs[^1] : 0;
+
         var cumOrig = GeoMath.CumulativeDistancesM(pts);
         var copy = target.Clone();
         copy.Name = target.Name + " (predicted)";
         int j = 1;
         for (int i = 0; i < copy.Points.Count; i++)
         {
-            double d = Math.Min(cumOrig[i], cumRs[^1]);
-            while (j < rs.Count - 1 && cumRs[j] < d) j++;
-            double d0 = cumRs[j - 1], d1 = cumRs[j];
-            double f = d1 > d0 ? (d - d0) / (d1 - d0) : 0;
-            double sec = timeAtRs[j - 1] + (timeAtRs[j] - timeAtRs[j - 1]) * f;
+            double d = cumOrig[i];
+            double sec;
+            if (d >= cumRs[^1])
+                sec = timeAtRs[^1] + (d - cumRs[^1]) * tailPace;   // beyond the resampled end: extend, don't clamp
+            else
+            {
+                while (j < rs.Count - 1 && cumRs[j] < d) j++;
+                double d0 = cumRs[j - 1], d1 = cumRs[j];
+                double f = d1 > d0 ? (d - d0) / (d1 - d0) : 0;
+                sec = timeAtRs[j - 1] + (timeAtRs[j] - timeAtRs[j - 1]) * f;
+            }
             copy.Points[i].Time = opt.StartTime.AddSeconds(sec);
         }
         copy.ResetBaseline();
 
+        // Finish time is the last point's stamp, which includes the extrapolated tail past the resampled grid,
+        // so the report matches the track (elapsed alone stops at cumRs[^1], a touch short on wiggly finishes).
+        double totalSec = (copy.Points[^1].Time!.Value - opt.StartTime).TotalSeconds;
+
         return new PredictResult
         {
             PredictedTrack = copy,
-            TotalTime = TimeSpan.FromSeconds(elapsed),
+            TotalTime = TimeSpan.FromSeconds(totalSec),
             DistanceKm = cumOrig[^1] / 1000.0,
-            Report = BuildReport(copy, model, opt, elapsed, cumOrig[^1]),
+            Report = BuildReport(copy, model, opt, totalSec, cumOrig[^1]),
         };
     }
 
