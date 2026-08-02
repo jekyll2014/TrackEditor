@@ -15,6 +15,14 @@ public class RoutingService
 {
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(25) };
 
+    /// <summary>BRouter-compatible hosts, tried in order — the second is a fallback when the first is down or
+    /// rate-limiting. Both speak the same <c>/brouter?lonlats=…</c> GeoJSON API.</summary>
+    private static readonly string[] Endpoints = { "https://brouter.de/brouter", "https://bikerouter.de/brouter" };
+
+    /// <summary>Max via-points per request. Long tracks are routed in overlapping chunks of this size so each
+    /// request stays small/reliable AND the via-points stay dense enough that the route hugs the real track.</summary>
+    private const int MaxWaypointsPerRequest = 50;
+
     /// <summary>BRouter profiles that make sense for track drawing.</summary>
     public static readonly string[] Profiles =
         { "trekking", "hiking-beta", "fastbike", "shortest", "car-fast" };
@@ -48,26 +56,63 @@ public class RoutingService
         IReadOnlyList<(double Lat, double Lon)> waypoints, CancellationToken ct = default)
     {
         if (waypoints.Count < 2) return null;
-        var json = await FetchAsync(waypoints, ct);
-        return json is null ? null : ParseRoutedPath(json);
+        if (waypoints.Count <= MaxWaypointsPerRequest)
+        {
+            var json = await FetchAsync(waypoints, ct);
+            return json is null ? null : ParseRoutedPath(json);
+        }
+
+        // Long track: route in overlapping chunks (consecutive chunks share one via-point) and stitch. A chunk
+        // that fails is skipped, leaving a gap rather than aborting the whole thing — partial surface beats none.
+        var merged = new RoutedPath();
+        bool any = false;
+        for (int start = 0; start < waypoints.Count - 1; start += MaxWaypointsPerRequest - 1)
+        {
+            int end = Math.Min(start + MaxWaypointsPerRequest, waypoints.Count);
+            var slice = new List<(double Lat, double Lon)>(end - start);
+            for (int i = start; i < end; i++) slice.Add(waypoints[i]);
+
+            var json = await FetchAsync(slice, ct);
+            var rp = json is null ? null : ParseRoutedPath(json);
+            if (rp is not null && rp.Points.Count > 0)
+            {
+                int skip = any ? 1 : 0;   // drop the vertex shared with the previous chunk's end
+                for (int k = skip; k < rp.Points.Count; k++)
+                {
+                    merged.Points.Add(rp.Points[k]);
+                    merged.WayTags.Add(rp.WayTags[k]);
+                }
+                any = true;
+            }
+            if (end >= waypoints.Count) break;
+        }
+        return any ? merged : null;
     }
 
     private async Task<string?> FetchAsync(IReadOnlyList<(double Lat, double Lon)> waypoints, CancellationToken ct)
     {
         static string N(double v) => v.ToString("F6", CultureInfo.InvariantCulture);
         string lonlats = string.Join("|", waypoints.Select(w => $"{N(w.Lon)},{N(w.Lat)}"));
-        string url = "https://brouter.de/brouter" +
-                     $"?lonlats={lonlats}&profile={Uri.EscapeDataString(Profile)}&alternativeidx=0&format=geojson";
-        try
+        string query = $"?lonlats={lonlats}&profile={Uri.EscapeDataString(Profile)}&alternativeidx=0&format=geojson";
+
+        // Try each compatible host in turn; fall through to the next on any failure (down / rate-limited / CORS).
+        foreach (var baseUrl in Endpoints)
         {
-            using var resp = await Http.GetAsync(url, ct);
-            if (!resp.IsSuccessStatusCode) return null;
-            return await resp.Content.ReadAsStringAsync(ct);
+            try
+            {
+                using var resp = await Http.GetAsync(baseUrl + query, ct);
+                if (resp.IsSuccessStatusCode) return await resp.Content.ReadAsStringAsync(ct);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;   // a real user cancel should stop, not silently try the fallback
+            }
+            catch
+            {
+                // offline / rate-limited / no route on this host -> try the next
+            }
         }
-        catch
-        {
-            return null; // offline / rate-limited / no route -> caller draws a straight segment
-        }
+        return null;
     }
 
     /// <summary>Reads features[0].geometry.coordinates ([lon, lat, ele?]) from a BRouter GeoJSON response.</summary>

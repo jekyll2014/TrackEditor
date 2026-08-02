@@ -91,10 +91,13 @@ public static class SurfaceCatalog
 /// <summary>Options for surface inference.</summary>
 public class SurfaceInferOptions
 {
-    /// <summary>Spacing (m) at which the target is decimated into BRouter via-points.</summary>
+    /// <summary>Spacing (m) at which the target is decimated into BRouter via-points. Kept dense so the routed
+    /// path hugs the real track (coarse spacing lets the router wander off, and the gate then rejects everything).</summary>
     public double WaypointSpacingM { get; set; } = 150;
-    /// <summary>Cap on via-points sent to BRouter (public service limit / URL length).</summary>
-    public int MaxWaypoints { get; set; } = 120;
+    /// <summary>Overall cap on via-points. High because long tracks are routed in chunks now, so this no longer
+    /// has to keep a single request small — it only bounds pathological point counts. At 150 m spacing this
+    /// covers ~600 km before the spacing is forced coarser.</summary>
+    public int MaxWaypoints { get; set; } = 4000;
     /// <summary>A target point adopts a routed way's surface only if the route passes within this many metres.</summary>
     public double GateM { get; set; } = 25;
 }
