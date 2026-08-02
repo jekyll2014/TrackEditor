@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Input;
 
 using TrackEditor.Core.Models;
+using TrackEditor.Core.Services;
 using TrackEditor.Services;
 
 namespace TrackEditor;
@@ -154,7 +155,8 @@ public partial class MainWindow
         // surface) ignore the toggles.
         if (ChkAlt?.IsChecked == true && p.Ele is double ele) sb.AppendLine($"Ele (track): {ele:F0} m");
         if (SrtmActive && _srtm.GetElevation(p.Lat, p.Lon) is double srtmEle) sb.AppendLine($"Ele (SRTM): {srtmEle:F0} m");
-        if (ChkSpeed?.IsChecked == true && idx < _speeds.Length && _speeds[idx] is double v) sb.AppendLine($"Speed: {v * 3.6:F1} km/h");
+        if (ChkSpeed?.IsChecked == true && idx < _speeds.Length && _speeds[idx] is double v)
+            sb.AppendLine(_settings.PaceMode ? $"Pace: {PaceFormat.MinPerKm(v)} min/km" : $"Speed: {v * 3.6:F1} km/h");
         if (ChkHr?.IsChecked == true && p.Hr is int hr) sb.AppendLine($"HR: {hr} bpm");
         if (ChkCad?.IsChecked == true && p.Cad is int cad) sb.AppendLine($"Cadence: {cad}");
         if (ChkTemp?.IsChecked == true && p.Temp is double temp) sb.AppendLine($"Temp: {temp:F0} °C");
@@ -503,7 +505,7 @@ public partial class MainWindow
             {
                 double km = _cumDist[i] / 1000;
                 if (_active.Points[i].Ele is double ele) { xsE.Add(km); ysE.Add(ele); }
-                if (_speeds[i] is double v) { xsS.Add(km); ysS.Add(v * 3.6); }
+                if (_speeds[i] is double v) { xsS.Add(km); ysS.Add(_settings.PaceMode ? PaceFormat.MinPerKmValue(v) : v * 3.6); }
             }
 
             if (showAlt && xsE.Count > 1)
@@ -526,11 +528,11 @@ public partial class MainWindow
                 sc.MarkerSize = 0;
                 sc.LineWidth = 2;
                 sc.Color = spdColor;
-                sc.LegendText = "Speed";
+                sc.LegendText = _settings.PaceMode ? "Pace" : "Speed";
                 // Altitude keeps the left axis; speed goes on a right axis, or on the left if alone.
                 ScottPlot.IYAxis yax = hasAlt ? plt.Axes.AddRightAxis() : plt.Axes.Left;
                 sc.Axes.YAxis = yax;
-                StyleYAxis(yax, "Speed, km/h", spdColor);
+                StyleYAxis(yax, _settings.PaceMode ? "Pace, min/km" : "Speed, km/h", spdColor);
                 hasSpeed = true;
             }
         }
