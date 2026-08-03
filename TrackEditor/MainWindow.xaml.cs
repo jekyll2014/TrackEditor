@@ -742,6 +742,30 @@ public partial class MainWindow : Window
         finally { _syncingUi = false; }
     }
 
+    /// <summary>Syncs the track list's selection and the colour/width controls to the active track WITHOUT
+    /// rebuilding the list. Rebuilding ItemsSource (as RefreshTracksList does) discards the focused container,
+    /// which is why arrow-key navigation used to lose focus after one keypress.</summary>
+    private void SyncActiveTrackUi()
+    {
+        _syncingUi = true;
+        try
+        {
+            if (TracksList.ItemsSource is IEnumerable<TrackRow> rows)
+            {
+                var match = rows.FirstOrDefault(r => ReferenceEquals(r.T, _active));
+                if (!ReferenceEquals(TracksList.SelectedItem, match)) TracksList.SelectedItem = match;
+            }
+            if (_active is not null)
+            {
+                WidthSlider.Value = _active.Width;
+                WidthLabel.Text = ((int)_active.Width).ToString();
+                foreach (ComboBoxItem item in ColorCombo.Items)
+                    if ((string)item.Tag == _active.ColorHex) { ColorCombo.SelectedItem = item; break; }
+            }
+        }
+        finally { _syncingUi = false; }
+    }
+
     private void TracksList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_syncingUi) return;
@@ -755,7 +779,7 @@ public partial class MainWindow : Window
         if (_joinFrom is not null) { JoinWith(t); return; }
         if (ReferenceEquals(_active, t)) return;
         SetActive(t);
-        RefreshTracksList();
+        SyncActiveTrackUi();   // sync selection/controls without rebuilding the list, so keyboard focus survives
         RefreshPointsGrid();
         _mapMgr.RebuildTracks(_doc.Tracks, _active);
         _mapMgr.SetSelection(null, Array.Empty<int>());
