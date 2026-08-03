@@ -103,15 +103,19 @@ public static class GeoMath
     /// <summary>
     /// Per-point speed in m/s smoothed over a ±window neighborhood, null when no time data.
     /// </summary>
-    public static double?[] SpeedsMps(IReadOnlyList<TrackPoint> pts, int window = 2)
+    public static double?[] SpeedsMps(IReadOnlyList<TrackPoint> pts, int window = 2, double halfWindowM = 15.0)
     {
         var speeds = new double?[pts.Count];
         if (pts.Count < 2) return speeds;
         var cum = CumulativeDistancesM(pts);
         for (int i = 0; i < pts.Count; i++)
         {
-            int a = Math.Max(0, i - window);
-            int b = Math.Min(pts.Count - 1, i + window);
+            // Expand to at least ±window points AND ±halfWindowM metres. A pure ±2-point delta is very noisy on
+            // densely/unevenly sampled tracks (e.g. predicted ones), which shows up as a jagged speed graph;
+            // averaging over a fixed distance instead cancels that without washing out real speed changes.
+            int a = i, b = i;
+            while (a > 0 && (i - a < window || cum[i] - cum[a] < halfWindowM)) a--;
+            while (b < pts.Count - 1 && (b - i < window || cum[b] - cum[i] < halfWindowM)) b++;
             if (pts[a].Time is DateTime ta && pts[b].Time is DateTime tb)
             {
                 double dt = (tb - ta).TotalSeconds;
