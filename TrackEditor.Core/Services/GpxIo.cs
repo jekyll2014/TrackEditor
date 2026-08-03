@@ -110,7 +110,13 @@ public static class GpxIo
                 if (p.Ele is double ele)
                     pt.Add(new XElement(ns + "ele", ele.ToString("F1", CultureInfo.InvariantCulture)));
                 if (p.Time is DateTime t)
-                    pt.Add(new XElement(ns + "time", t.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")));
+                {
+                    // Emit sub-second precision when present. Predicted times are fractional; rounding them to
+                    // whole seconds makes per-point Δt uneven, which shows up as a spiky derived-speed graph.
+                    var u = t.ToUniversalTime();
+                    string fmt = u.Millisecond == 0 ? "yyyy-MM-dd'T'HH:mm:ss'Z'" : "yyyy-MM-dd'T'HH:mm:ss.fff'Z'";
+                    pt.Add(new XElement(ns + "time", u.ToString(fmt, CultureInfo.InvariantCulture)));
+                }
                 if (p.IsWaypoint)
                 {
                     pt.Add(new XElement(ns + "name", p.Name));
