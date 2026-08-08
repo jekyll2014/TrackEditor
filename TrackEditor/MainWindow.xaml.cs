@@ -176,7 +176,9 @@ public partial class MainWindow : Window
             _settings.AutoRoute = true;
             _settings.RoutingProfile = sel;
             _router.Profile = sel;
-            StatusInfo.Text = $"Auto-route on ({sel}) — new points follow paths";
+            StatusInfo.Text = sel == "river"
+                ? "Auto-route on (river) — new points follow waterways (rivers, canals)"
+                : $"Auto-route on ({sel}) — new points follow paths";
         }
         _settings.Save();
     }

@@ -25,7 +25,7 @@ public class RoutingService
 
     /// <summary>BRouter profiles that make sense for track drawing.</summary>
     public static readonly string[] Profiles =
-        { "trekking", "hiking-beta", "fastbike", "shortest", "car-fast" };
+        { "trekking", "hiking-beta", "fastbike", "shortest", "car-fast", "river" };
 
     public string Profile { get; set; } = "trekking";
 
