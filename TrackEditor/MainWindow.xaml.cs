@@ -40,6 +40,7 @@ public partial class MainWindow : Window
 
     private Track? _active;
     private double[] _cumDist = Array.Empty<double>();
+    private double[] _cumGain = Array.Empty<double>(); // cumulative ascent (m) to each point, for gain flags
     private double?[] _speeds = Array.Empty<double?>();
     private EditMode _mode = EditMode.View;
     private readonly List<(double Lat, double Lon)> _measurePts = new(); // multi-point map measurement
@@ -49,7 +50,6 @@ public partial class MainWindow : Window
     private bool _syncingRoute; // guards the toolbar Route combo while it is set programmatically
     private bool _syncingBaseMap; // guards the toolbar Map combo while it is set programmatically
     private int _paletteCursor;
-    private int _flagContent; // 0 dist, 1 time, 2 both (chosen from View → Mileage Flag Content)
 
     public MainWindow()
     {
@@ -120,6 +120,7 @@ public partial class MainWindow : Window
         SyncRouteCombo();
         SyncBaseMapCombo();
         ApplyColumnVisibility();
+        SyncFlagContentChecks();
     }
 
     /// <summary>The toolbar Route combo is "Off" plus every routing profile.</summary>
@@ -696,7 +697,35 @@ public partial class MainWindow : Window
     {
         _active = track;
         _cumDist = _active is not null ? GeoMath.CumulativeDistancesM(_active.Points) : Array.Empty<double>();
+        _cumGain = _active is not null ? CumulativeAscentM(_active.Points) : Array.Empty<double>();
         _speeds = _active is not null ? GeoMath.SpeedsMps(_active.Points) : Array.Empty<double?>();
+    }
+
+    /// <summary>
+    /// Cumulative ascent (metres climbed) at each point, using the same small-noise hysteresis as the
+    /// statistics panel (<see cref="TrackStatistics.EleThresholdM"/>) so the final flag matches the Ascent total.
+    /// Points without elevation carry forward the running total.
+    /// </summary>
+    private static double[] CumulativeAscentM(IReadOnlyList<TrackPoint> pts)
+    {
+        var gain = new double[pts.Count];
+        double running = 0;
+        double? refEle = null;
+        for (int i = 0; i < pts.Count; i++)
+        {
+            if (pts[i].Ele is double e)
+            {
+                if (refEle is double r)
+                {
+                    double diff = e - r;
+                    if (diff >= TrackStatistics.EleThresholdM) { running += diff; refEle = e; }
+                    else if (diff <= -TrackStatistics.EleThresholdM) { refEle = e; }
+                }
+                else refEle = e;
+            }
+            gain[i] = running;
+        }
+        return gain;
     }
 
     /// <summary>Full UI refresh after any document mutation.</summary>

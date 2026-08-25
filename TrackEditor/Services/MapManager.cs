@@ -481,6 +481,8 @@ public class MapManager : IDisposable
                 Offset = new Offset(0, -14),
                 HorizontalAlignment = LabelStyle.HorizontalAlignmentEnum.Center,
                 VerticalAlignment = LabelStyle.VerticalAlignmentEnum.Bottom,
+                // Flags can carry several fields stacked on their own lines; give them tidy spacing.
+                LineHeight = 1.2,
             });
             features.Add(f);
         }

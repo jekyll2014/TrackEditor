@@ -405,15 +405,44 @@ public partial class MainWindow
         UpdateFlags();
     }
 
-    /// <summary>View → Mileage Flag Content radio items: pick distance / time / both.</summary>
-    private void FlagContentMenu_Click(object sender, RoutedEventArgs e)
+    /// <summary>Opens the flag-content menu hanging off the toolbar Flags dropdown arrow.</summary>
+    private void FlagMenuBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button b && b.ContextMenu is System.Windows.Controls.ContextMenu cm)
+        {
+            cm.PlacementTarget = b;
+            cm.IsOpen = true;
+        }
+    }
+
+    /// <summary>
+    /// A flag-content field was toggled (from the View menu or the toolbar dropdown). Each field is
+    /// independent; the clicked item's new IsChecked state is written back to settings, mirrored onto
+    /// the twin control in the other menu, persisted, and the flags rebuilt.
+    /// </summary>
+    private void FlagContentToggle_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not System.Windows.Controls.MenuItem mi) return;
-        _flagContent = int.Parse((string)mi.Tag);
-        FlagContentDist.IsChecked = _flagContent == 0;
-        FlagContentTime.IsChecked = _flagContent == 1;
-        FlagContentBoth.IsChecked = _flagContent == 2;
+        bool on = mi.IsChecked;
+        switch ((string)mi.Tag)
+        {
+            case "dist": _settings.FlagShowDistance = on; break;
+            case "time": _settings.FlagShowTime = on; break;
+            case "ele": _settings.FlagShowElevation = on; break;
+            case "gain": _settings.FlagShowGain = on; break;
+        }
+        _settings.Save();
+        SyncFlagContentChecks();
         UpdateFlags();
+    }
+
+    /// <summary>Reflects the persisted flag-content choices onto both the View-menu and dropdown items.</summary>
+    private void SyncFlagContentChecks()
+    {
+        FlagContentDist.IsChecked = DropFlagDist.IsChecked = _settings.FlagShowDistance;
+        FlagContentTime.IsChecked = DropFlagTime.IsChecked = _settings.FlagShowTime;
+        FlagContentEle.IsChecked = DropFlagEle.IsChecked = _settings.FlagShowElevation;
+        FlagContentGain.IsChecked = DropFlagGain.IsChecked = _settings.FlagShowGain;
     }
 
     /// <summary>
@@ -429,7 +458,6 @@ public partial class MainWindow
             return;
         }
 
-        int contentMode = _flagContent; // 0 dist, 1 time, 2 both
         var pts = _active.Points;
         var placed = new List<Rect>();
         var flags = new List<(TrackPoint, string)>();
@@ -442,11 +470,14 @@ public partial class MainWindow
             if (s is null) return; // viewport not ready
             if (s.X < -100 || s.Y < -100 || s.X > w + 100 || s.Y > h + 100) continue;
 
-            string text = BuildFlagText(i, contentMode, t0);
+            string text = BuildFlagText(i, t0);
             if (text.Length == 0) continue;
 
-            double rw = 7.5 * text.Length + 16;
-            double rh = 26;
+            // Each enabled field is on its own line: size the label box to the widest line and the line count.
+            var lines = text.Split('\n');
+            int widest = lines.Max(l => l.Length);
+            double rw = 7.5 * widest + 16;
+            double rh = 8 + 18 * lines.Length;
             var rect = new Rect(s.X - rw / 2, s.Y - 14 - rh, rw, rh);
             if (placed.Any(r => r.IntersectsWith(rect))) continue;
 
@@ -457,19 +488,25 @@ public partial class MainWindow
         _mapMgr.SetFlags(flags);
     }
 
-    private string BuildFlagText(int idx, int contentMode, DateTime? t0)
+    /// <summary>Builds a flag label: every enabled content field on its own line (empty if none apply).</summary>
+    private string BuildFlagText(int idx, DateTime? t0)
     {
-        string dist = $"{_cumDist[idx] / 1000:F1} km";
-        string time = "";
-        if (_active!.Points[idx].Time is DateTime t && t0 is DateTime start && t >= start)
-            time = FmtSpan(t - start);
+        var lines = new List<string>();
 
-        return contentMode switch
-        {
-            0 => dist,
-            1 => time,
-            _ => time.Length > 0 ? $"{dist} | {time}" : dist,
-        };
+        if (_settings.FlagShowDistance)
+            lines.Add($"{_cumDist[idx] / 1000:F1} km");
+
+        if (_settings.FlagShowTime
+            && _active!.Points[idx].Time is DateTime t && t0 is DateTime start && t >= start)
+            lines.Add(FmtSpan(t - start));
+
+        if (_settings.FlagShowElevation && _active!.Points[idx].Ele is double ele)
+            lines.Add($"{ele:F0} m");
+
+        if (_settings.FlagShowGain && idx < _cumGain.Length)
+            lines.Add($"↗ {_cumGain[idx]:F0} m");
+
+        return string.Join("\n", lines);
     }
 
     // ======================= plots =======================

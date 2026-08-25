@@ -88,6 +88,15 @@ public class AppSettings
     /// <summary>When on, speed figures in the statistics panel are shown as pace (min/km) instead of km/h.</summary>
     public bool PaceMode { get; set; }
 
+    // Which values each mileage flag shows; enabled fields stack on their own line in the flag.
+    // Distance defaults on (the classic mileage marker); the rest are opt-in.
+    public bool FlagShowDistance { get; set; } = true;
+    public bool FlagShowTime { get; set; }
+    /// <summary>Absolute altitude (metres above sea level) at the flagged point.</summary>
+    public bool FlagShowElevation { get; set; }
+    /// <summary>Cumulative ascent (metres climbed) from the track start to the flagged point.</summary>
+    public bool FlagShowGain { get; set; }
+
     /// <summary>Athlete physiology/biometrics reused across race predictions (mass, age, sex, HR anchors, pack,
     /// recent race). All fields optional; predictions degrade gracefully to whatever is supplied.</summary>
     public AthleteProfile Profile { get; set; } = new();

@@ -86,13 +86,16 @@
             <MenuItem Header="_View">
                 <MenuItem x:Name="MenuFlags" Header="Show _Mileage Flags" IsCheckable="True" Click="FlagsToggle_Click"
                           IsEnabled="{Binding IsEnabled, ElementName=FlagsCheck}"/>
-                <MenuItem Header="Mileage Flag _Content">
-                    <MenuItem x:Name="FlagContentDist" Header="_Distance" IsCheckable="True" IsChecked="True"
-                              Tag="0" Click="FlagContentMenu_Click"/>
+                <MenuItem Header="Mileage Flag _Content"
+                          ToolTip="Each enabled value appears on its own line in the flag">
+                    <MenuItem x:Name="FlagContentDist" Header="_Distance" IsCheckable="True"
+                              Tag="dist" Click="FlagContentToggle_Click"/>
                     <MenuItem x:Name="FlagContentTime" Header="_Time" IsCheckable="True"
-                              Tag="1" Click="FlagContentMenu_Click"/>
-                    <MenuItem x:Name="FlagContentBoth" Header="Distance + t_ime" IsCheckable="True"
-                              Tag="2" Click="FlagContentMenu_Click"/>
+                              Tag="time" Click="FlagContentToggle_Click"/>
+                    <MenuItem x:Name="FlagContentEle" Header="_Elevation (altitude)" IsCheckable="True"
+                              Tag="ele" Click="FlagContentToggle_Click"/>
+                    <MenuItem x:Name="FlagContentGain" Header="Height _gain (ascent)" IsCheckable="True"
+                              Tag="gain" Click="FlagContentToggle_Click"/>
                 </MenuItem>
                 <Separator/>
                 <MenuItem Header="_Altitude on Profile" IsCheckable="True"
@@ -222,6 +225,23 @@
                         <TextBlock Text="Flags" VerticalAlignment="Center"/>
                     </StackPanel>
                 </CheckBox>
+                <!-- Split-button style dropdown: quickly pick what the flags show without diving into the View menu. -->
+                <Button x:Name="FlagMenuBtn" Click="FlagMenuBtn_Click" VerticalAlignment="Center"
+                        Padding="2,0" Margin="1,0,0,0" ToolTip="Choose what the flags show">
+                    <TextBlock Text="▾" FontSize="10" VerticalAlignment="Center"/>
+                    <Button.ContextMenu>
+                        <ContextMenu x:Name="FlagContentCtx" Placement="Bottom">
+                            <MenuItem x:Name="DropFlagDist" Header="Distance" IsCheckable="True"
+                                      Tag="dist" Click="FlagContentToggle_Click"/>
+                            <MenuItem x:Name="DropFlagTime" Header="Time" IsCheckable="True"
+                                      Tag="time" Click="FlagContentToggle_Click"/>
+                            <MenuItem x:Name="DropFlagEle" Header="Elevation (altitude)" IsCheckable="True"
+                                      Tag="ele" Click="FlagContentToggle_Click"/>
+                            <MenuItem x:Name="DropFlagGain" Header="Height gain (ascent)" IsCheckable="True"
+                                      Tag="gain" Click="FlagContentToggle_Click"/>
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                </Button>
             </ToolBar>
         </ToolBarTray>
 
@@ -256,9 +276,11 @@
             <Grid Grid.Column="0">
                 <Grid.RowDefinitions>
                     <!-- Tracks and Points live in tabs so each list uses the full panel height;
-                         only one is visible at a time. Statistics stay pinned below. -->
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
+                         only one is visible at a time. Statistics sit below, and the splitter row
+                         lets the user drag the boundary between the two. -->
+                    <RowDefinition Height="*" MinHeight="120"/>
+                    <RowDefinition Height="5"/>
+                    <RowDefinition x:Name="StatsRow" Height="Auto" MinHeight="40"/>
                 </Grid.RowDefinitions>
 
                 <TabControl x:Name="LeftTabs" Grid.Row="0" Margin="6,4,6,0">
@@ -388,23 +410,30 @@
                 </TabItem>
                 </TabControl>
 
-                <StackPanel Grid.Row="1" Margin="6,4,6,6">
-                    <Expander Header="Statistics" IsExpanded="True">
-                        <TextBlock x:Name="StatsText" FontFamily="Consolas" FontSize="12" Margin="4" Text="—"/>
-                    </Expander>
-                    <!-- Shown only while 2+ points are selected. -->
-                    <Expander x:Name="SelStatsPanel" Header="Selection statistics" IsExpanded="True"
-                              Margin="0,4,0,0" Visibility="Collapsed">
-                        <TextBlock x:Name="SelStatsText" FontFamily="Consolas" FontSize="12" Margin="4"
-                                   Text="Select 2+ points"/>
-                    </Expander>
-                    <!-- Shown only in Measure mode. -->
-                    <Expander x:Name="MeasurePanel" Header="Measurement" IsExpanded="True"
-                              Margin="0,4,0,0" Visibility="Collapsed">
-                        <TextBlock x:Name="MeasureText" FontFamily="Consolas" FontSize="12" Margin="4"
-                                   Text="Click points on the map to measure"/>
-                    </Expander>
-                </StackPanel>
+                <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                              Background="#DDD" ResizeBehavior="PreviousAndNext"
+                              ToolTip="Drag to resize the list and statistics panels"/>
+
+                <!-- Scrolls when the user drags the boundary down past the content height. -->
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="6,4,6,6">
+                        <Expander Header="Statistics" IsExpanded="True">
+                            <TextBlock x:Name="StatsText" FontFamily="Consolas" FontSize="12" Margin="4" Text="—"/>
+                        </Expander>
+                        <!-- Shown only while 2+ points are selected. -->
+                        <Expander x:Name="SelStatsPanel" Header="Selection statistics" IsExpanded="True"
+                                  Margin="0,4,0,0" Visibility="Collapsed">
+                            <TextBlock x:Name="SelStatsText" FontFamily="Consolas" FontSize="12" Margin="4"
+                                       Text="Select 2+ points"/>
+                        </Expander>
+                        <!-- Shown only in Measure mode. -->
+                        <Expander x:Name="MeasurePanel" Header="Measurement" IsExpanded="True"
+                                  Margin="0,4,0,0" Visibility="Collapsed">
+                            <TextBlock x:Name="MeasureText" FontFamily="Consolas" FontSize="12" Margin="4"
+                                       Text="Click points on the map to measure"/>
+                        </Expander>
+                    </StackPanel>
+                </ScrollViewer>
             </Grid>
 
             <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#DDD"/>
