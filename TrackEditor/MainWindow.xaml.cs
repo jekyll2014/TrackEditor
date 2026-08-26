@@ -490,7 +490,8 @@ public partial class MainWindow : Window
     {
         var dlg = new OpenFileDialog
         {
-            Filter = "Tracks (*.gpx;*.kml;*.kmz)|*.gpx;*.kml;*.kmz|GPX|*.gpx|KML/KMZ|*.kml;*.kmz|All files|*.*",
+            Filter = "Tracks (*.gpx;*.tcx;*.fit;*.kml;*.kmz)|*.gpx;*.tcx;*.fit;*.kml;*.kmz|" +
+                     "GPX|*.gpx|TCX|*.tcx|FIT|*.fit|KML/KMZ|*.kml;*.kmz|All files|*.*",
             Multiselect = true,
         };
         if (dlg.ShowDialog() != true) return;
@@ -504,9 +505,13 @@ public partial class MainWindow : Window
         {
             try
             {
-                var tracks = file.EndsWith(".gpx", StringComparison.OrdinalIgnoreCase)
-                    ? GpxIo.Load(file)
-                    : KmlIo.Load(file);
+                var tracks = System.IO.Path.GetExtension(file).ToLowerInvariant() switch
+                {
+                    ".gpx" => GpxIo.Load(file),
+                    ".tcx" => TcxIo.Load(file),
+                    ".fit" => FitIo.Load(file),
+                    _ => KmlIo.Load(file),
+                };
                 foreach (var t in tracks) t.SourceFile = file;
                 loaded.AddRange(tracks);
             }
@@ -551,7 +556,7 @@ public partial class MainWindow : Window
     private void OpenUrl_Click(object sender, RoutedEventArgs e)
     {
         string? url = InputDialog.Ask(this, "Open from URL",
-            "Address of a GPX, KML or KMZ file:", "https://");
+            "Address of a GPX, TCX, FIT, KML or KMZ file:", "https://");
         if (url is not null) _ = LoadFromUrlAsync(url);
     }
 
@@ -596,23 +601,28 @@ public partial class MainWindow : Window
         finally { EndBusy(); }
     }
 
-    /// <summary>Parses downloaded bytes as GPX/KML/KMZ, using the extension if it says, else the content.</summary>
+    /// <summary>Parses downloaded bytes as GPX/TCX/FIT/KML/KMZ, using the extension if it says, else the content.</summary>
     private static List<Track> ParseTrackBytes(byte[] bytes, string extension, string baseName)
     {
         string ext = extension.ToLowerInvariant();
         using var ms = new MemoryStream(bytes);
 
         if (ext == ".gpx") return GpxIo.Load(ms, baseName);
+        if (ext == ".tcx") return TcxIo.Load(ms, baseName);
+        if (ext == ".fit") return FitIo.Load(ms, baseName);
         if (ext == ".kmz") return KmlIo.Load(ms, isKmz: true, baseName);
         if (ext == ".kml") return KmlIo.Load(ms, isKmz: false, baseName);
 
+        // FIT is binary: bytes 8..11 are the ASCII signature ".FIT".
+        if (bytes.Length >= 12 && bytes[8] == '.' && bytes[9] == 'F' && bytes[10] == 'I' && bytes[11] == 'T')
+            return FitIo.Load(ms, baseName);
         if (bytes.Length > 1 && bytes[0] == 'P' && bytes[1] == 'K') // zip magic => KMZ
             return KmlIo.Load(ms, isKmz: true, baseName);
-        // Text: GPX and KML are both XML, so look for the GPX root element.
+        // Text: GPX, TCX and KML are all XML — match on the root element.
         string head = System.Text.Encoding.UTF8.GetString(bytes, 0, Math.Min(bytes.Length, 2048));
-        return head.Contains("<gpx", StringComparison.OrdinalIgnoreCase)
-            ? GpxIo.Load(ms, baseName)
-            : KmlIo.Load(ms, isKmz: false, baseName);
+        if (head.Contains("<gpx", StringComparison.OrdinalIgnoreCase)) return GpxIo.Load(ms, baseName);
+        if (head.Contains("TrainingCenterDatabase", StringComparison.OrdinalIgnoreCase)) return TcxIo.Load(ms, baseName);
+        return KmlIo.Load(ms, isKmz: false, baseName);
     }
 
     private void SaveActive_Click(object sender, RoutedEventArgs e)
@@ -631,18 +641,31 @@ public partial class MainWindow : Window
     {
         var dlg = new SaveFileDialog
         {
-            Filter = "GPX|*.gpx",
+            Filter = "GPX|*.gpx|TCX|*.tcx|FIT course|*.fit",
             FileName = string.Join("_", suggestedName.Split(System.IO.Path.GetInvalidFileNameChars())) + ".gpx",
         };
         if (dlg.ShowDialog() != true) return;
         try
         {
             var saved = tracks.ToList();
-            GpxIo.Save(dlg.FileName, saved);
+            // Prefer the typed extension; if none of ours, follow the chosen filter (1=GPX, 2=TCX, 3=FIT).
+            string path = dlg.FileName;
+            string ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
+            if (ext is not (".gpx" or ".tcx" or ".fit"))
+            {
+                ext = dlg.FilterIndex switch { 2 => ".tcx", 3 => ".fit", _ => ".gpx" };
+                path = System.IO.Path.ChangeExtension(path, ext);
+            }
+            switch (ext)
+            {
+                case ".tcx": TcxIo.Save(path, saved); break;
+                case ".fit": FitIo.Save(path, saved); break;
+                default: GpxIo.Save(path, saved); break;
+            }
             // Saving establishes a new clean baseline and source for the written tracks.
-            foreach (var t in saved) { t.SourceFile = dlg.FileName; t.ResetBaseline(); }
+            foreach (var t in saved) { t.SourceFile = path; t.ResetBaseline(); }
             RefreshTracksList();
-            StatusInfo.Text = $"Saved {dlg.FileName}";
+            StatusInfo.Text = $"Saved {path}";
         }
         catch (Exception ex)
         {

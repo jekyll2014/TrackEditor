@@ -18,10 +18,16 @@ int failures = 0;
 foreach (string file in Directory.GetFiles(dir).OrderBy(f => f))
 {
     string ext = Path.GetExtension(file).ToLowerInvariant();
-    if (ext is not (".gpx" or ".kml" or ".kmz")) continue;
+    if (ext is not (".gpx" or ".tcx" or ".fit" or ".kml" or ".kmz")) continue;
     try
     {
-        var tracks = ext == ".gpx" ? GpxIo.Load(file) : KmlIo.Load(file);
+        var tracks = ext switch
+        {
+            ".gpx" => GpxIo.Load(file),
+            ".tcx" => TcxIo.Load(file),
+            ".fit" => FitIo.Load(file),
+            _ => KmlIo.Load(file),
+        };
         Console.WriteLine($"=== {Path.GetFileName(file)}: {tracks.Count} track(s)");
         foreach (var t in tracks)
         {

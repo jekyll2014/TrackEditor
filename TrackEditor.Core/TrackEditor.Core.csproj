@@ -9,6 +9,7 @@
   <!-- UI-agnostic core shared by the WPF app and the Blazor WASM app. No WPF/Mapsui/Skia. -->
   <ItemGroup>
     <PackageReference Include="SharpKml.Core" Version="6.1.0" />
+    <PackageReference Include="Garmin.FIT.Sdk" Version="21.214.0" />
   </ItemGroup>
 
 </Project>
