@@ -9,6 +9,8 @@ namespace TrackEditor.Core.Services.RaceAnalysis;
 public class RaceAnalysisOptions
 {
     public bool UseHr { get; set; } = true;
+    /// <summary>Optional runner name recorded in the model's metadata to identify whose ability it describes.</summary>
+    public string? AthleteName { get; set; }
     public FatigueDriver Driver { get; set; } = FatigueDriver.CumAscent;
     public bool NormalizePerTrack { get; set; } = true;
     public double SpacingM { get; set; } = TrackResampler.DefaultSpacingM;
@@ -171,6 +173,7 @@ public static class RaceAnalyzer
             AthleteBaseline = new AthleteBaseline { FlatSpeedMps = athleteFlat, RefHr = refHr },
             Meta = new RaceModelMeta
             {
+                AthleteName = string.IsNullOrWhiteSpace(opt.AthleteName) ? null : opt.AthleteName.Trim(),
                 SourceTracks = names,
                 TotalKm = totalKm,
                 FitDateUtc = DateTime.UtcNow,

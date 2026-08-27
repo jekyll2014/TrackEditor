@@ -40,6 +40,9 @@ public class RaceModel
 
 public class RaceModelMeta
 {
+    /// <summary>Optional runner/athlete name, entered when the model is fitted, so a saved or applied model can
+    /// be identified by who it describes (shown when applying and folded into the predicted track's name).</summary>
+    public string? AthleteName { get; set; }
     public List<string> SourceTracks { get; set; } = new();
     public double TotalKm { get; set; }
     public DateTime FitDateUtc { get; set; }

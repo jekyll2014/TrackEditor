@@ -106,6 +106,7 @@ public partial class AnalyzeRaceWindow : Window
 
         var options = new RaceAnalysisOptions
         {
+            AthleteName = TxtRunnerName.Text,
             UseHr = ChkUseHr.IsChecked == true,
             NormalizePerTrack = ChkNormalize.IsChecked == true,
             Driver = SelectedDriver(),
@@ -128,6 +129,16 @@ public partial class AnalyzeRaceWindow : Window
         }
     }
 
+    // A filename based on the runner's name (spaces/invalid chars stripped), falling back to "athlete".
+    private static string SuggestedFileName(string? name)
+    {
+        string slug = string.IsNullOrWhiteSpace(name)
+            ? "athlete"
+            : string.Concat(name.Trim().Split(System.IO.Path.GetInvalidFileNameChars())).Replace(' ', '_');
+        if (slug.Length == 0) slug = "athlete";
+        return slug + ".racemodel.json";
+    }
+
     private FatigueDriver SelectedDriver() =>
         ((CmbDriver.SelectedItem as ComboBoxItem)?.Tag as string) switch
         {
@@ -143,7 +154,7 @@ public partial class AnalyzeRaceWindow : Window
         {
             Title = "Export race model",
             Filter = "Race model (*.racemodel.json)|*.racemodel.json|JSON|*.json|All files|*.*",
-            FileName = "athlete.racemodel.json",
+            FileName = SuggestedFileName(_model.Meta.AthleteName),
             AddExtension = true,
         };
         if (dlg.ShowDialog(this) != true) return;

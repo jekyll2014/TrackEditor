@@ -158,7 +158,9 @@ public static class RacePredictor
 
         var cumOrig = GeoMath.CumulativeDistancesM(pts);
         var copy = target.Clone();
-        copy.Name = target.Name + " (predicted)";
+        copy.Name = string.IsNullOrWhiteSpace(model.Meta.AthleteName)
+            ? target.Name + " (predicted)"
+            : $"{target.Name} (predicted for {model.Meta.AthleteName.Trim()})";
         // A prediction is fresh output: keep only geometry, elevation and the time we generate below. Drop the
         // source's recorded sensor channels and surface so they don't masquerade as predicted data.
         foreach (var pt in copy.Points) { pt.Hr = null; pt.Cad = null; pt.Temp = null; pt.Surface = null; }

@@ -35,6 +35,11 @@
         </ListBox>
 
         <StackPanel Grid.Row="2" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                <TextBlock Text="Runner name:" VerticalAlignment="Center" Width="130"/>
+                <TextBox x:Name="TxtRunnerName" Width="200"
+                         ToolTip="Optional — saved into the model to identify whose ability it describes"/>
+            </StackPanel>
             <CheckBox x:Name="ChkUseHr" Content="Use heart rate to calibrate fatigue (when present)"
                       IsChecked="True" Margin="0,0,0,6"/>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">

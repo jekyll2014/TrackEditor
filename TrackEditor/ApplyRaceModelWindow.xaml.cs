@@ -82,7 +82,8 @@ public partial class ApplyRaceModelWindow : Window
     private static string DescribeModel(RaceModel m)
     {
         string src = m.Meta.SourceTracks.Count > 0 ? string.Join(", ", m.Meta.SourceTracks) : "unknown";
-        return $"Flat pace {m.AthleteBaseline.FlatSpeedMps * 3.6:F1} km/h · fatigue by {m.Fatigue.Driver} · " +
+        string who = string.IsNullOrWhiteSpace(m.Meta.AthleteName) ? "" : m.Meta.AthleteName.Trim() + " · ";
+        return $"{who}Flat pace {m.AthleteBaseline.FlatSpeedMps * 3.6:F1} km/h · fatigue by {m.Fatigue.Driver} · " +
                $"from: {src}";
     }
 
