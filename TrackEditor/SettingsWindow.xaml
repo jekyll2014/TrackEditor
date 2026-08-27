@@ -94,6 +94,14 @@
                     </StackPanel>
                 </GroupBox>
 
+                <!-- ===== Gradient colouring ===== -->
+                <GroupBox Header="Gradient colouring (active track)" Margin="0,10,0,0">
+                    <StackPanel Margin="6">
+                        <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11"
+                                   Text="The gradient metric is chosen from the Gradient dropdown on the toolbar. It draws the selected track with a red (fast / easy / descending) → blue (slow / hard / climbing) gradient along its segments; other tracks keep their own colour. Segments with no pavement information are treated as unpaved."/>
+                    </StackPanel>
+                </GroupBox>
+
                 <!-- ===== Auto-route ===== -->
                 <GroupBox Header="Auto-route (drawing)" Margin="0,10,0,0">
                     <StackPanel Margin="6">

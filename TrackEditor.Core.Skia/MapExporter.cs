@@ -5,6 +5,7 @@ using Mapsui.Projections;
 using SkiaSharp;
 
 using TrackEditor.Core.Models;
+using TrackEditor.Core.Services;
 
 namespace TrackEditor.Core.Skia;
 
@@ -50,9 +51,13 @@ public static class MapExporter
         IReadOnlyList<Track> tracks,
         string path,
         IProgress<string>? progress = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        Track? gradientTrack = null,
+        GradientMetric gradientMetric = GradientMetric.None,
+        bool paceMode = false)
     {
-        using var bmp = await RenderAsync(source, e, zoom, scale, tracks, drawScaleBar: true, progress, ct);
+        using var bmp = await RenderAsync(source, e, zoom, scale, tracks, drawScaleBar: true, progress, ct,
+            gradientTrack, gradientMetric, paceMode);
         using var image = SKImage.FromBitmap(bmp);
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         using var fs = File.Create(path);
@@ -70,7 +75,10 @@ public static class MapExporter
         IReadOnlyList<Track> tracks,
         bool drawScaleBar = true,
         IProgress<string>? progress = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        Track? gradientTrack = null,
+        GradientMetric gradientMetric = GradientMetric.None,
+        bool paceMode = false)
     {
         double res = ResolutionAtZoom(zoom), span = 256 * res;
         int outW = Math.Max(1, (int)Math.Round((e.MaxX - e.MinX) / res * scale));
@@ -115,11 +123,63 @@ public static class MapExporter
         foreach (var t in tracks)
         {
             if (!t.Visible || t.Points.Count < 2) continue;
+            float strokeW = (float)Math.Max(1, t.Width * scale);
+
+            // The gradient track is drawn as red→blue runs (matching the on-screen map); every other
+            // track (and the gradient track when its metric can't be computed) is one solid polyline.
+            var grad = ReferenceEquals(t, gradientTrack)
+                ? TrackGradient.Compute(t.Points, gradientMetric, paceMode)
+                : null;
+
+            if (grad is not null)
+            {
+                // Black casing under the runs (1px each side, scaled) so the gradient reads on any basemap.
+                using (var casePaint = new SKPaint
+                {
+                    Style = SKPaintStyle.Stroke,
+                    Color = SKColors.Black,
+                    StrokeWidth = strokeW + 2 * (float)scale,
+                    IsAntialias = true,
+                    StrokeCap = SKStrokeCap.Round,
+                    StrokeJoin = SKStrokeJoin.Round,
+                })
+                using (var casePath = new SKPath())
+                {
+                    for (int i = 0; i < t.Points.Count; i++)
+                    {
+                        var (x, y) = SphericalMercator.FromLonLat(t.Points[i].Lon, t.Points[i].Lat);
+                        if (i == 0) casePath.MoveTo(PX(x), PY(y)); else casePath.LineTo(PX(x), PY(y));
+                    }
+                    canvas.DrawPath(casePath, casePaint);
+                }
+
+                foreach (var (start, end, r, g, b) in TrackGradient.ColorRuns(grad.Goodness))
+                {
+                    using var runPaint = new SKPaint
+                    {
+                        Style = SKPaintStyle.Stroke,
+                        Color = new SKColor(r, g, b),
+                        StrokeWidth = strokeW,
+                        IsAntialias = true,
+                        StrokeCap = SKStrokeCap.Round,
+                        StrokeJoin = SKStrokeJoin.Round,
+                    };
+                    using var runPath = new SKPath();
+                    for (int i = start; i <= end; i++)
+                    {
+                        var (x, y) = SphericalMercator.FromLonLat(t.Points[i].Lon, t.Points[i].Lat);
+                        if (i == start) runPath.MoveTo(PX(x), PY(y)); else runPath.LineTo(PX(x), PY(y));
+                    }
+                    canvas.DrawPath(runPath, runPaint);
+                }
+                continue;
+            }
+
             using var paint = new SKPaint
             {
                 Style = SKPaintStyle.Stroke,
                 Color = ParseHex(t.ColorHex),
-                StrokeWidth = (float)Math.Max(1, t.Width * scale),
+                StrokeWidth = strokeW,
                 IsAntialias = true,
                 StrokeCap = SKStrokeCap.Round,
                 StrokeJoin = SKStrokeJoin.Round,

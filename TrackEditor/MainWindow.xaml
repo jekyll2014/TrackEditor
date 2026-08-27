@@ -218,6 +218,16 @@
                           SelectionChanged="AutoRouteCombo_Changed"
                           ToolTip="Auto-route new points along real paths (BRouter). 'Off' draws straight segments."/>
                 <Separator/>
+                <TextBlock Text="Gradient:" VerticalAlignment="Center" Margin="2,0,4,0"/>
+                <ComboBox x:Name="GradientCombo" Width="108" VerticalAlignment="Center"
+                          SelectionChanged="GradientCombo_Changed"
+                          ToolTip="Colour the active track red (fast/easy) → blue (slow/hard) by a per-segment metric. 'Off' keeps the track's own colour.">
+                    <ComboBoxItem Content="Off"/>
+                    <ComboBoxItem Content="Speed"/>
+                    <ComboBoxItem Content="Inclination"/>
+                    <ComboBoxItem Content="Pavement"/>
+                </ComboBox>
+                <Separator/>
                 <CheckBox x:Name="FlagsCheck" Click="FlagsToggle_Click" VerticalAlignment="Center"
                           ToolTip="Show mileage/time flags along the track">
                     <StackPanel Orientation="Horizontal">
@@ -472,6 +482,21 @@
                         </ContextMenu>
                     </mapsui:MapControl.ContextMenu>
                 </mapsui:MapControl>
+
+                <!-- Gradient colour legend: shown only while the active track is gradient-coloured.
+                     Non-hit-testable so it never blocks map interaction; sits bottom-left, clear of the scale bar. -->
+                <Border x:Name="GradientLegend" Grid.Row="0" Visibility="Collapsed" IsHitTestVisible="False"
+                        HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,14"
+                        Background="#F2FFFFFF" BorderBrush="#888" BorderThickness="1" CornerRadius="3" Padding="8,6">
+                    <StackPanel>
+                        <TextBlock x:Name="LegendCaption" FontWeight="Bold" FontSize="11" Margin="0,0,0,3"/>
+                        <Rectangle x:Name="LegendBar" Width="150" Height="10" RadiusX="2" RadiusY="2"/>
+                        <Grid Width="150" Margin="0,2,0,0">
+                            <TextBlock x:Name="LegendLow" FontSize="10" HorizontalAlignment="Left" Foreground="#333"/>
+                            <TextBlock x:Name="LegendHigh" FontSize="10" HorizontalAlignment="Right" Foreground="#333"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
 
                 <Popup x:Name="HoverPopup" Placement="Relative" PlacementTarget="{Binding ElementName=MapCtrl}"
                        AllowsTransparency="True" IsHitTestVisible="False">

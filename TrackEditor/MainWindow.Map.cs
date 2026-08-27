@@ -374,6 +374,7 @@ public partial class MainWindow
                         RefreshPointsGrid();
                         _mapMgr.RebuildTracks(_doc.Tracks, _active);
                         UpdateFlags();
+                        UpdateGradientLegend();
                         RefreshPlots();
                         RefreshStats();
                         StatusInfo.Text = $"Active track: {hit.Name}";

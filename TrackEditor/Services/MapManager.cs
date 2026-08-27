@@ -44,6 +44,14 @@ public class MapManager : IDisposable
     private Color _wpBack = new(106, 27, 154); // purple
     private Color _wpText = Color.White;
 
+    // Gradient colouring applies to the active track only (see SetGradient).
+    private GradientMetric _gradientMetric = GradientMetric.None;
+    private bool _paceMode;
+
+    /// <summary>The gradient computed for the active track on the last <see cref="RebuildTracks"/>, or null when
+    /// gradient colouring is off or the metric can't be represented. The caller reads it to draw the legend.</summary>
+    public TrackGradientResult? ActiveGradient { get; private set; }
+
     public MapManager(Mapsui.UI.Wpf.MapControl ctrl, BaseMapProvider provider = BaseMapProvider.OpenStreetMap, int tileLimitMB = 0)
     {
         _ctrl = ctrl;
@@ -253,9 +261,18 @@ public class MapManager : IDisposable
         catch { return new Color(229, 57, 53); }
     }
 
+    /// <summary>Selects the metric that gradient-colours the active track (None = each track keeps its own solid
+    /// colour). Does not redraw; the caller rebuilds. <paramref name="paceMode"/> only affects the legend labels.</summary>
+    public void SetGradient(GradientMetric metric, bool paceMode)
+    {
+        _gradientMetric = metric;
+        _paceMode = paceMode;
+    }
+
     /// <summary>Rebuilds line + vertex + start/end marker features for all visible tracks.</summary>
     public void RebuildTracks(IReadOnlyList<Track> tracks, Track? activeTrack)
     {
+        ActiveGradient = null;
         var lineFeatures = new List<IFeature>();
         var vertexFeatures = new List<IFeature>();
         var waypointFeatures = new List<IFeature>();
@@ -271,23 +288,37 @@ public class MapManager : IDisposable
 
             if (track.Points.Count > 1)
             {
-                var coords = track.Points.Select(p =>
+                // The active track is gradient-coloured when a metric is chosen and it can be computed;
+                // every other track (and the active one under "None") keeps its own solid colour.
+                TrackGradientResult? grad = isActive && _gradientMetric != GradientMetric.None
+                    ? TrackGradient.Compute(track.Points, _gradientMetric, _paceMode)
+                    : null;
+
+                if (grad is not null)
                 {
-                    var (x, y) = SphericalMercator.FromLonLat(p.Lon, p.Lat);
-                    return new Coordinate(x, y);
-                }).ToArray();
-                var lf = new GeometryFeature(new LineString(coords));
-                lf.Styles.Add(new VectorStyle
+                    ActiveGradient = grad;
+                    AddGradientLine(lineFeatures, track, grad);
+                }
+                else
                 {
-                    Line = new Pen(color, isActive ? track.Width : Math.Max(1, track.Width - 1))
+                    var coords = track.Points.Select(p =>
                     {
-                        PenStrokeCap = PenStrokeCap.Round,
-                        StrokeJoin = StrokeJoin.Round,
-                    },
-                });
-                if (!isActive) lf.Styles.OfType<VectorStyle>().First().Line!.Color =
-                    new Color(color.R, color.G, color.B, 160);
-                lineFeatures.Add(lf);
+                        var (x, y) = SphericalMercator.FromLonLat(p.Lon, p.Lat);
+                        return new Coordinate(x, y);
+                    }).ToArray();
+                    var lf = new GeometryFeature(new LineString(coords));
+                    lf.Styles.Add(new VectorStyle
+                    {
+                        Line = new Pen(color, isActive ? track.Width : Math.Max(1, track.Width - 1))
+                        {
+                            PenStrokeCap = PenStrokeCap.Round,
+                            StrokeJoin = StrokeJoin.Round,
+                        },
+                    });
+                    if (!isActive) lf.Styles.OfType<VectorStyle>().First().Line!.Color =
+                        new Color(color.R, color.G, color.B, 160);
+                    lineFeatures.Add(lf);
+                }
             }
 
             // start / end markers
@@ -321,6 +352,41 @@ public class MapManager : IDisposable
         _vertexLayer.DataHasChanged();
         _waypointLayer.DataHasChanged();
         _ctrl.RefreshGraphics();
+    }
+
+    /// <summary>Draws the active track as red→blue gradient runs (merged by <see cref="TrackGradient.ColorRuns"/>
+    /// so a smoothly varying metric stays cheap); runs share their boundary vertex so the line is continuous, and
+    /// segments whose metric is undefined are drawn neutral grey. A 1px black casing under the runs keeps the
+    /// gradient legible over any basemap (satellite, dark tiles).</summary>
+    private static void AddGradientLine(List<IFeature> lineFeatures, Track track, TrackGradientResult grad)
+    {
+        var pts = track.Points;
+        var coords = new Coordinate[pts.Count];
+        for (int i = 0; i < pts.Count; i++)
+        {
+            var (x, y) = SphericalMercator.FromLonLat(pts[i].Lon, pts[i].Lat);
+            coords[i] = new Coordinate(x, y);
+        }
+
+        // Black casing 1px wider each side, drawn first so the coloured runs sit on top of it.
+        var casing = new GeometryFeature(new LineString((Coordinate[])coords.Clone()));
+        casing.Styles.Add(new VectorStyle
+        {
+            Line = new Pen(Color.Black, track.Width + 2) { PenStrokeCap = PenStrokeCap.Round, StrokeJoin = StrokeJoin.Round },
+        });
+        lineFeatures.Add(casing);
+
+        foreach (var (start, end, r, g, b) in TrackGradient.ColorRuns(grad.Goodness))
+        {
+            var slice = new Coordinate[end - start + 1];
+            Array.Copy(coords, start, slice, 0, slice.Length);
+            var lf = new GeometryFeature(new LineString(slice));
+            lf.Styles.Add(new VectorStyle
+            {
+                Line = new Pen(new Color(r, g, b), track.Width) { PenStrokeCap = PenStrokeCap.Round, StrokeJoin = StrokeJoin.Round },
+            });
+            lineFeatures.Add(lf);
+        }
     }
 
     /// <summary>Sets the waypoint label/marker background and text colours (hex), then redraws.</summary>

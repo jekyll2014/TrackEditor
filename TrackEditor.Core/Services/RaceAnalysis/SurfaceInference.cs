@@ -56,6 +56,22 @@ public static class SurfaceCatalog
         return surface ?? tracktype ?? highway;
     }
 
+    /// <summary>Passability multiplier for a bare surface/tracktype/highway token (as stored on
+    /// <see cref="TrackPoint.Surface"/>), e.g. "gravel", "grade3", "path". Higher = easier/faster.
+    /// A null/blank/unknown token falls back to the "unpaved" value, so stretches with no surface
+    /// information are treated as unpaved rather than dropped.</summary>
+    public static double PassabilityForToken(string? token)
+    {
+        double unpaved = SurfaceMult("unpaved")!.Value;
+        if (string.IsNullOrWhiteSpace(token)) return unpaved;
+        string v = token.Trim().ToLowerInvariant();
+        return SurfaceMult(v) ?? TrackTypeMult(v) ?? HighwayMult(v) ?? unpaved;
+    }
+
+    /// <summary>The span of <see cref="PassabilityForToken"/> values, for normalising a pavement gradient.</summary>
+    public const double PassabilityMin = 0.60;   // steps — hardest
+    public const double PassabilityMax = 1.05;   // asphalt / paved road — easiest
+
     private static double? SurfaceMult(string s) => s switch
     {
         "asphalt" or "paved" or "concrete" or "concrete:plates" or "paving_stones" or "metal" or "wood" => 1.05,

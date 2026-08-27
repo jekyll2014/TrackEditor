@@ -49,6 +49,7 @@ public partial class MainWindow : Window
     private bool _syncingUi;
     private bool _syncingRoute; // guards the toolbar Route combo while it is set programmatically
     private bool _syncingBaseMap; // guards the toolbar Map combo while it is set programmatically
+    private bool _syncingGradient; // guards the toolbar Gradient combo while it is set programmatically
     private int _paletteCursor;
 
     public MainWindow()
@@ -127,9 +128,11 @@ public partial class MainWindow : Window
         _online.OpenTopoDataset = _settings.OpenTopoDataset;
         _mapMgr.SetBaseMap(_settings.BaseMap, _settings.ParamsFor(_settings.BaseMap).TileCacheLimitMB);
         _mapMgr.SetWaypointColors(_settings.WaypointLabelBackHex, _settings.WaypointLabelTextHex);
+        _mapMgr.SetGradient(_settings.GradientMetric, _settings.PaceMode);
         _router.Profile = _settings.RoutingProfile;
         SyncRouteCombo();
         SyncBaseMapCombo();
+        SyncGradientCombo();
         ApplyColumnVisibility();
         SyncFlagContentChecks();
     }
@@ -160,6 +163,31 @@ public partial class MainWindow : Window
         _syncingBaseMap = true;
         BaseMapCombo.SelectedIndex = (int)_settings.BaseMap;
         _syncingBaseMap = false;
+    }
+
+    /// <summary>Reflects the active gradient metric in the toolbar combo (items are ordered to match the enum).</summary>
+    private void SyncGradientCombo()
+    {
+        if (GradientCombo is null) return;
+        _syncingGradient = true;
+        GradientCombo.SelectedIndex = (int)_settings.GradientMetric;
+        _syncingGradient = false;
+    }
+
+    /// <summary>Switches the metric that gradient-colours the active track, straight from the toolbar.</summary>
+    private void GradientCombo_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_syncingGradient || GradientCombo.SelectedIndex < 0) return;
+        var metric = (GradientMetric)GradientCombo.SelectedIndex;
+        if (metric == _settings.GradientMetric) return;
+        _settings.GradientMetric = metric;
+        _mapMgr.SetGradient(metric, _settings.PaceMode);
+        _mapMgr.RebuildTracks(_doc.Tracks, _active);
+        UpdateGradientLegend();
+        _settings.Save();
+        StatusInfo.Text = metric == GradientMetric.None
+            ? "Gradient colouring off — the active track uses its own colour"
+            : $"Gradient colouring: {metric} — active track, red = fast/easy, blue = slow/hard";
     }
 
     /// <summary>Switches the active base map (and applies that map's cache cap) straight from the toolbar.</summary>
@@ -346,7 +374,10 @@ public partial class MainWindow : Window
             _mapMgr.BaseMaxZoom,
             _mapMgr.BaseTileSource,
             _doc.Tracks.ToList(),
-            _srtm)
+            _srtm,
+            gradientTrack: _active,
+            gradientMetric: _settings.GradientMetric,
+            paceMode: _settings.PaceMode)
         { Owner = this };
 
         // Keep the 2D viewer marker in step with the 3D camera.
@@ -710,7 +741,8 @@ public partial class MainWindow : Window
         try
         {
             await MapExporter.ExportAsync(_mapMgr.BaseTileSource, extent, dlg.Zoom, dlg.Scale,
-                _doc.Tracks, save.FileName, BusyProgress());
+                _doc.Tracks, save.FileName, BusyProgress(),
+                gradientTrack: _active, gradientMetric: _settings.GradientMetric, paceMode: _settings.PaceMode);
             StatusInfo.Text = $"Exported {save.FileName}";
         }
         catch (Exception ex)
@@ -774,9 +806,49 @@ public partial class MainWindow : Window
         _mapMgr.RebuildTracks(_doc.Tracks, _active);
         _mapMgr.SetSelection(null, Array.Empty<int>());
         UpdateFlags();
+        UpdateGradientLegend();
         RefreshPlots();
         RefreshStats();
         UpdateUndoButtons();
+    }
+
+    private static System.Windows.Media.Brush? _legendBrush;
+
+    /// <summary>Shows/hides the gradient colour legend to match the active track's current gradient (if any),
+    /// filling in its caption and the fast/slow (red/blue) end labels.</summary>
+    private void UpdateGradientLegend()
+    {
+        if (GradientLegend is null) return; // during InitializeComponent
+        var g = _mapMgr?.ActiveGradient;
+        if (g is null)
+        {
+            GradientLegend.Visibility = Visibility.Collapsed;
+            return;
+        }
+        LegendCaption.Text = g.Caption;
+        LegendLow.Text = g.LowLabel;    // blue end (slow / hard / climbing)
+        LegendHigh.Text = g.HighLabel;  // red end (fast / easy / descending)
+        LegendBar.Fill = _legendBrush ??= BuildLegendBrush();
+        GradientLegend.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>A horizontal blue→red bar sampled from the same ramp the map uses, so the legend matches the line.</summary>
+    private static System.Windows.Media.Brush BuildLegendBrush()
+    {
+        var brush = new System.Windows.Media.LinearGradientBrush
+        {
+            StartPoint = new System.Windows.Point(0, 0),
+            EndPoint = new System.Windows.Point(1, 0),
+        };
+        for (int i = 0; i <= 10; i++)
+        {
+            double t = i / 10.0;
+            var (r, gg, b) = TrackGradient.Color(t);
+            brush.GradientStops.Add(new System.Windows.Media.GradientStop(
+                System.Windows.Media.Color.FromRgb(r, gg, b), t));
+        }
+        brush.Freeze();
+        return brush;
     }
 
     private void UpdateUndoButtons()
@@ -849,6 +921,7 @@ public partial class MainWindow : Window
         _mapMgr.RebuildTracks(_doc.Tracks, _active);
         _mapMgr.SetSelection(null, Array.Empty<int>());
         UpdateFlags();
+        UpdateGradientLegend();
         RefreshPlots();
         RefreshStats();
     }
@@ -857,6 +930,7 @@ public partial class MainWindow : Window
     {
         _mapMgr.RebuildTracks(_doc.Tracks, _active);
         UpdateFlags();
+        UpdateGradientLegend();
     }
 
     private void BuildColorCombo()

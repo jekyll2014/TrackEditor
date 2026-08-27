@@ -15,6 +15,8 @@
     </Window.Resources>
 
     <Grid>
+        <!-- Terrain + flag overlay together (rendered as a unit for the Save-image button). -->
+        <Grid x:Name="MapScene">
         <h:HelixViewport3D x:Name="Viewport"
                            ShowViewCube="False" ShowCoordinateSystem="False"
                            ZoomExtentsWhenLoaded="False" IsHeadLightEnabled="False"
@@ -27,6 +29,23 @@
             <h:SunLight/>
             <ModelVisual3D x:Name="TerrainVisual"/>
         </h:HelixViewport3D>
+
+        <!-- Flag overlay: a second viewport with its own depth buffer and a camera mirrored from the main
+             one, so waypoint / track-point flags always face the observer AND draw on top of the terrain
+             (visible through hills). Hit-test off so all mouse navigation falls through to the map. Its own
+             white ambient light keeps the label billboards fully lit. -->
+        <Viewport3D x:Name="FlagViewport" IsHitTestVisible="False">
+            <Viewport3D.Camera>
+                <PerspectiveCamera x:Name="FlagCam" FieldOfView="55"
+                                   Position="0,-1000,600" LookDirection="0,1000,-400" UpDirection="0,0,1"/>
+            </Viewport3D.Camera>
+            <ModelVisual3D>
+                <ModelVisual3D.Content>
+                    <AmbientLight Color="White"/>
+                </ModelVisual3D.Content>
+            </ModelVisual3D>
+        </Viewport3D>
+        </Grid>
 
         <!-- ===== compass ===== -->
         <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12"
@@ -142,6 +161,30 @@
                         <ComboBox x:Name="DetailCombo" Width="132" Height="21" FontSize="10"
                                   VerticalContentAlignment="Center" SelectionChanged="Detail_Changed"
                                   ToolTip="Basemap detail level for the 3D texture (same region, finer or coarser tiles)"/>
+                    </StackPanel>
+
+                    <!-- Always-on-top flags that face the observer -->
+                    <StackPanel Orientation="Horizontal" Margin="0,7,0,0">
+                        <TextBlock Text="Flags" FontSize="10" Foreground="#555"
+                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <CheckBox x:Name="ChkWaypointFlags" Content="Waypoints" IsChecked="True" FontSize="11"
+                                  VerticalAlignment="Center" Checked="Flags_Toggled" Unchecked="Flags_Toggled"
+                                  ToolTip="Show a flag at each named waypoint, always facing you and drawn on top"/>
+                        <TextBlock Text="Track pts:" FontSize="10" Foreground="#555"
+                                   VerticalAlignment="Center" Margin="12,0,4,0"/>
+                        <ComboBox x:Name="CmbPointFlags" Width="66" Height="21" FontSize="10"
+                                  VerticalContentAlignment="Center" SelectionChanged="PointFlags_Changed"
+                                  ToolTip="Distance between flags along the active track (Off hides them)">
+                            <ComboBoxItem Content="Off" Tag="0" IsSelected="True"/>
+                            <ComboBoxItem Content="50 m" Tag="50"/>
+                            <ComboBoxItem Content="100 m" Tag="100"/>
+                            <ComboBoxItem Content="250 m" Tag="250"/>
+                            <ComboBoxItem Content="500 m" Tag="500"/>
+                            <ComboBoxItem Content="1 km" Tag="1000"/>
+                            <ComboBoxItem Content="2 km" Tag="2000"/>
+                            <ComboBoxItem Content="5 km" Tag="5000"/>
+                            <ComboBoxItem Content="10 km" Tag="10000"/>
+                        </ComboBox>
                     </StackPanel>
                 </StackPanel>
             </StackPanel>

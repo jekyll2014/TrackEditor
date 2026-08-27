@@ -34,8 +34,9 @@ This document is also the in-app **Help ▸ User Guide** (press **F1**).
 - **Menu bar** — every command lives here, grouped as File, Edit, Track, Mode,
   View, Race, Tools and Help. Commands that can't do anything right now are greyed out.
 - **Toolbar** — quick access to the common actions: Open, Save, New track, Undo,
-  Redo, the three modes (View / Edit / Measure), 3D View, the **Route** dropdown
-  (auto-routing) and the Flags toggle.
+  Redo, the three modes (View / Edit / Measure), 3D View, the **Map** and **Route**
+  dropdowns, the **Gradient** dropdown (colour the active track by speed / grade /
+  pavement — see below) and the Flags toggle.
 - **Left panel** — a **Tracks / Points tab strip** (only one list is shown at a
   time, so each gets the full panel height): the **Tracks** tab holds the track
   list plus the active track's colour/width; the **Points** tab holds the points
@@ -120,6 +121,33 @@ Routes come back very densely sampled, so **Settings ▸ Auto-route** offers
 this thins each routed leg while keeping its shape and its endpoints. If a route
 can't be found (offline, or no path exists), the new point is joined with a
 straight segment instead.
+
+---
+
+## Gradient colouring
+
+The toolbar **Gradient** dropdown draws the **active** track with a red → blue
+gradient along its segments, so you can read a metric straight off the line —
+**red = fast / easy, blue = slow / hard**. Every other track keeps its own solid
+colour, and picking a different track in the list moves the gradient to it.
+A small legend in the map's bottom-left corner shows the metric and the value at
+each end of the ramp.
+
+- **Off** — the active track uses its own colour (the default).
+- **Speed** — needs timestamps; red is the fastest stretch, blue the slowest
+  (the ramp is normalised to the track's own 5th–95th-percentile speeds, so a
+  single GPS spike doesn't wash it out). In pace mode the legend labels show
+  min/km instead of km/h.
+- **Inclination** — needs elevation; the per-segment grade, with **descending**
+  at the red end and **climbing** at the blue end.
+- **Pavement** — the per-segment surface passability from the point's Surface tag
+  (fill it with Race ▸ Evaluate Surface). Segments with no surface information are
+  treated as **unpaved**.
+
+The choice persists between sessions, and the gradient carries through to the
+**PNG map export** and the **3D terrain view** (both draw the selected track with
+the same red→blue runs). There's a matching note under
+**Settings ▸ Gradient colouring**.
 
 ---
 
@@ -361,6 +389,12 @@ tiles cover the area rather than by any single texture's size.
   can add map detail (or simplify it) in 3D without changing the area shown.
   Levels needing many tiles are marked ⚠ (slower to build); levels beyond the
   limit for the area are listed but can't be picked.
+- **Flags:** label flags that always face you as you orbit and stay visible
+  through the terrain, so you never lose one behind a hill. **Waypoints** (a
+  checkbox, on by default) plants a named flag at each waypoint; **Track pts** (a
+  dropdown) drops distance flags along the active track at a chosen spacing —
+  Off, or 50 m up to 10 km — always including the finish. Both follow the vertical
+  exaggeration and only cover the region currently in view.
 - **Save image:** the **💾 Save** button next to the exaggeration slider writes
   the current 3D view to a PNG — exactly what you see, at the current camera
   angle and exaggeration, without the on-screen controls.
@@ -401,6 +435,9 @@ scale bar.
   track hides itself automatically. Mirrors the **View ▸ Points List Columns** menu.
 - **Statistics** — **Show speed as pace (min/km)** swaps every speed readout in
   the statistics and profile from km/h to running pace.
+- **Gradient colouring** — a note only; the metric (Off / Speed / Inclination /
+  Pavement) is chosen on the toolbar **Gradient** dropdown. See *Gradient
+  colouring* above.
 - **Auto-route** — **Simplify routed legs** and its **tolerance** in metres
   (larger = fewer points). The on/off switch and the routing profile itself live
   on the toolbar **Route** dropdown, not here.

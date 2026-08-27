@@ -39,6 +39,11 @@ public partial class Map3DWindow : Window
     private readonly IReadOnlyList<Track> _tracks;
     private readonly SrtmService _srtm;
     private readonly int _maxZoom;
+
+    // Gradient colouring applies to this one track only (the 2D map's active track); null = none.
+    private readonly Track? _gradientTrack;
+    private readonly GradientMetric _gradientMetric;
+    private readonly bool _paceMode;
     private int _zoom;                  // basemap tile zoom for the draped texture (user-selectable)
     private bool _detailReady;          // gate Detail_Changed until the first build finishes
 
@@ -54,12 +59,19 @@ public partial class Map3DWindow : Window
     private List<Patch> _patches = new();
     private int _lastBlocked;           // tiles skipped (fetch/decode failed) in the last drape build
 
+    // Always-on-top flag billboards (waypoints + optional track points), drawn in the overlay viewport.
+    private BillboardTextGroupVisual3D? _waypointFlags;
+    private BillboardTextGroupVisual3D? _pointFlags;
+    private bool _flagsReady;           // gates flag builds until the terrain heights exist
+    private const int MaxPointFlags = 2000; // safety cap on interval flags (protects very long tracks)
+
     /// <summary>Raised whenever the camera moves so the 2D map can show where the viewer stands.</summary>
     public event Action<double, double, double>? ViewpointChanged; // lat, lon, heading°
 
     public Map3DWindow(
         (double MinX, double MinY, double MaxX, double MaxY) extent,
-        int zoom, int maxZoom, ITileSource tiles, IReadOnlyList<Track> tracks, SrtmService srtm)
+        int zoom, int maxZoom, ITileSource tiles, IReadOnlyList<Track> tracks, SrtmService srtm,
+        Track? gradientTrack = null, GradientMetric gradientMetric = GradientMetric.None, bool paceMode = false)
     {
         InitializeComponent();
         _extent = extent;
@@ -67,6 +79,9 @@ public partial class Map3DWindow : Window
         _tracks = tracks;
         _srtm = srtm;
         _maxZoom = maxZoom;
+        _gradientTrack = gradientTrack;
+        _gradientMetric = gradientMetric;
+        _paceMode = paceMode;
 
         _cx = (extent.MinX + extent.MaxX) / 2;
         _cy = (extent.MinY + extent.MaxY) / 2;
@@ -118,6 +133,9 @@ public partial class Map3DWindow : Window
             foreach (var p in _patches) _terrain.Children.Add(p.Model);
 
             ResetView_Click(this, new RoutedEventArgs());
+
+            _flagsReady = true;
+            BuildFlags();
 
             StatusText.Text = StatusLine(withEle);
             _detailReady = true;
@@ -213,6 +231,8 @@ public partial class Map3DWindow : Window
         public SKColor Color;
         public float Width;
         public double MinX, MaxX, MinY, MaxY;
+        /// <summary>Per-segment gradient runs (inclusive point ranges + colour), or null for a solid line.</summary>
+        public (int Start, int End, SKColor Color)[]? Runs;
     }
 
     /// <summary>Projects every visible track to Mercator metres once, shared by all tile bakes.</summary>
@@ -231,12 +251,23 @@ public partial class Map3DWindow : Window
                 if (x < minX) minX = x; if (x > maxX) maxX = x;
                 if (y < minY) minY = y; if (y > maxY) maxY = y;
             }
+
+            // The gradient track bakes as red→blue runs (matching the 2D map); others stay solid.
+            var grad = ReferenceEquals(t, _gradientTrack)
+                ? TrackGradient.Compute(t.Points, _gradientMetric, _paceMode)
+                : null;
+            var runs = grad is null
+                ? null
+                : TrackGradient.ColorRuns(grad.Goodness)
+                    .Select(r => (r.Start, r.End, new SKColor(r.R, r.G, r.B))).ToArray();
+
             list.Add(new DrawTrack
             {
                 Pts = pts,
                 Color = ParseHex(t.ColorHex),
                 Width = (float)Math.Max(2, t.Width),
                 MinX = minX, MaxX = maxX, MinY = minY, MaxY = maxY,
+                Runs = runs,
             });
         }
         return list;
@@ -360,6 +391,52 @@ public partial class Map3DWindow : Window
             foreach (var tr in tracks)
             {
                 if (tr.MaxX < tileMinX || tr.MinX > tileMaxX || tr.MaxY < tileMinY || tr.MinY > tileMaxY) continue;
+
+                float TX(int i) => (float)((tr.Pts[i].X - tileMinX) / span * px);
+                float TY(int i) => (float)((tileMaxY - tr.Pts[i].Y) / span * py);
+
+                if (tr.Runs is not null)
+                {
+                    // Black casing under the runs so the gradient reads over the draped basemap.
+                    using (var casePaint = new SKPaint
+                    {
+                        Style = SKPaintStyle.Stroke,
+                        Color = SKColors.Black,
+                        StrokeWidth = tr.Width + 2,
+                        IsAntialias = true,
+                        StrokeCap = SKStrokeCap.Round,
+                        StrokeJoin = SKStrokeJoin.Round,
+                    })
+                    using (var casePath = new SKPath())
+                    {
+                        for (int i = 0; i < tr.Pts.Length; i++)
+                        {
+                            if (i == 0) casePath.MoveTo(TX(i), TY(i)); else casePath.LineTo(TX(i), TY(i));
+                        }
+                        canvas.DrawPath(casePath, casePaint);
+                    }
+
+                    foreach (var (start, end, col) in tr.Runs)
+                    {
+                        using var runPaint = new SKPaint
+                        {
+                            Style = SKPaintStyle.Stroke,
+                            Color = col,
+                            StrokeWidth = tr.Width,
+                            IsAntialias = true,
+                            StrokeCap = SKStrokeCap.Round,
+                            StrokeJoin = SKStrokeJoin.Round,
+                        };
+                        using var runPath = new SKPath();
+                        for (int i = start; i <= end; i++)
+                        {
+                            if (i == start) runPath.MoveTo(TX(i), TY(i)); else runPath.LineTo(TX(i), TY(i));
+                        }
+                        canvas.DrawPath(runPath, runPaint);
+                    }
+                    continue;
+                }
+
                 using var paint = new SKPaint
                 {
                     Style = SKPaintStyle.Stroke,
@@ -372,9 +449,7 @@ public partial class Map3DWindow : Window
                 using var path = new SKPath();
                 for (int i = 0; i < tr.Pts.Length; i++)
                 {
-                    float X = (float)((tr.Pts[i].X - tileMinX) / span * px);
-                    float Y = (float)((tileMaxY - tr.Pts[i].Y) / span * py);
-                    if (i == 0) path.MoveTo(X, Y); else path.LineTo(X, Y);
+                    if (i == 0) path.MoveTo(TX(i), TY(i)); else path.LineTo(TX(i), TY(i));
                 }
                 canvas.DrawPath(path, paint);
             }
@@ -389,6 +464,17 @@ public partial class Map3DWindow : Window
         return new PatchData { Xs = xs, Ys = ys, BaseZ = bz, Uvs = uv, Indices = indices, Material = mat };
     }
 
+    /// <summary>Plain grey underside so looking "into" the terrain (from below, or through a gap) reads as the
+    /// inside of the surface rather than a mirror of the map.</summary>
+    private static readonly Material InnerMaterial = CreateInnerMaterial();
+
+    private static Material CreateInnerMaterial()
+    {
+        var m = new DiffuseMaterial(new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88)));
+        m.Freeze();
+        return m;
+    }
+
     /// <summary>Assembles a live patch (mesh + model) from patch data on the UI thread.</summary>
     private Patch BuildPatchModel(PatchData d)
     {
@@ -398,7 +484,8 @@ public partial class Map3DWindow : Window
             TextureCoordinates = new PointCollection(d.Uvs),
             TriangleIndices = new Int32Collection(d.Indices),
         };
-        var model = new GeometryModel3D(mesh, d.Material) { BackMaterial = d.Material };
+        // Front = draped map; back (underside) = plain grey so the interior is unmistakable.
+        var model = new GeometryModel3D(mesh, d.Material) { BackMaterial = InnerMaterial };
         return new Patch { Model = model, Mesh = mesh, Xs = d.Xs, Ys = d.Ys, BaseZ = d.BaseZ };
     }
 
@@ -592,6 +679,7 @@ public partial class Map3DWindow : Window
         if (ExagLabel is not null) ExagLabel.Text = $"{_exaggeration:0.0}×";
         foreach (var p in _patches)
             p.Mesh.Positions = BuildPositions(p.Xs, p.Ys, p.BaseZ, _exaggeration);
+        BuildFlags(); // flag heights follow the exaggerated terrain
     }
 
     /// <summary>Compass heading of the view direction, 0° = north, clockwise.</summary>
@@ -603,6 +691,8 @@ public partial class Map3DWindow : Window
 
         NeedleRotate.Angle = heading;
         HeadingText.Text = $"{heading:F0}°  {Compass(heading)}";
+
+        SyncFlagCamera(); // keep the flag overlay locked to the main camera
 
         // Report where the camera stands so the 2D map can draw the viewer icon.
         var (lon, lat) = SphericalMercator.ToLonLat(_cx + Cam.Position.X / _k, _cy + Cam.Position.Y / _k);
@@ -690,7 +780,7 @@ public partial class Map3DWindow : Window
     /// <summary>Saves the current 3D viewport (map only, without the overlay controls) to a PNG file.</summary>
     private void SaveImage_Click(object sender, RoutedEventArgs e)
     {
-        int w = (int)Math.Ceiling(Viewport.ActualWidth), h = (int)Math.Ceiling(Viewport.ActualHeight);
+        int w = (int)Math.Ceiling(MapScene.ActualWidth), h = (int)Math.Ceiling(MapScene.ActualHeight);
         if (w < 1 || h < 1) { StatusText.Text = "Nothing to save yet."; return; }
 
         var dlg = new Microsoft.Win32.SaveFileDialog
@@ -703,9 +793,9 @@ public partial class Map3DWindow : Window
 
         try
         {
-            // Render just the Viewport (the compass/nav/status overlays are siblings, so they're excluded).
+            // Render the terrain + flag overlay together (the compass/nav/status HUD are siblings, so excluded).
             var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
-            rtb.Render(Viewport);
+            rtb.Render(MapScene);
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(rtb));
             using var fs = File.Create(dlg.FileName);
@@ -720,6 +810,121 @@ public partial class Map3DWindow : Window
 
     private static string Compass(double deg) =>
         new[] { "N", "NE", "E", "SE", "S", "SW", "W", "NW" }[(int)Math.Round(deg / 45.0) % 8];
+
+    // ======================= flags (always-on-top billboards) =======================
+
+    /// <summary>Copies the live camera to the flag overlay's camera so the two viewports project identically
+    /// (the flags then sit exactly over their ground positions while drawing on top of the terrain).</summary>
+    private void SyncFlagCamera()
+    {
+        if (FlagCam is null) return;
+        FlagCam.Position = Cam.Position;
+        FlagCam.LookDirection = Cam.LookDirection;
+        FlagCam.UpDirection = Cam.UpDirection;
+        FlagCam.FieldOfView = Cam.FieldOfView;
+        FlagCam.NearPlaneDistance = Cam.NearPlaneDistance;
+        FlagCam.FarPlaneDistance = Cam.FarPlaneDistance;
+    }
+
+    private void Flags_Toggled(object sender, RoutedEventArgs e) => BuildFlags();
+    private void PointFlags_Changed(object sender, SelectionChangedEventArgs e) => BuildFlags();
+
+    /// <summary>(Re)builds the waypoint and track-point flag billboards from the current toggles. Waypoints are
+    /// labelled by name; track-point flags (opt-in) mark the active track's distance, thinned to stay readable.
+    /// The billboards live in a separate overlay locked to the main camera, so they always face the observer and
+    /// stay visible through hills. Positions sit on the exaggerated terrain and only cover the region in view.</summary>
+    private void BuildFlags()
+    {
+        if (!_flagsReady || FlagViewport is null) return;
+
+        if (_waypointFlags is not null) { FlagViewport.Children.Remove(_waypointFlags); _waypointFlags = null; }
+        if (_pointFlags is not null) { FlagViewport.Children.Remove(_pointFlags); _pointFlags = null; }
+
+        if (ChkWaypointFlags?.IsChecked == true)
+        {
+            var items = new List<BillboardTextItem>();
+            foreach (var t in _tracks)
+            {
+                if (!t.Visible) continue;
+                foreach (var p in t.Points)
+                    if (p.IsWaypoint && FlagPosition(p.Lat, p.Lon) is Point3D pos)
+                        items.Add(new BillboardTextItem { Text = p.Name!, Position = pos });
+            }
+            if (items.Count > 0)
+                _waypointFlags = AddFlagGroup(items,
+                    bg: Brushes.White, fg: Brushes.Black,
+                    pin: new SolidColorBrush(Color.FromRgb(106, 27, 154)), fontSize: 12);
+        }
+
+        // "Track points" marks the active track (the one carrying the gradient) with distance flags placed at
+        // the interval chosen in the combo (interpolated along the line, so spacing is exact) plus the finish.
+        double interval = PointFlagIntervalM();
+        if (interval > 0 && _gradientTrack is { } act && act.Points.Count > 1)
+        {
+            var pts = act.Points;
+            var cum = GeoMath.CumulativeDistancesM(pts);
+            int n = pts.Count;
+            double total = cum[^1];
+            var items = new List<BillboardTextItem>();
+
+            int seg = 0;
+            for (double d = interval; d < total - 1 && items.Count < MaxPointFlags; d += interval)
+            {
+                while (seg < n - 2 && cum[seg + 1] < d) seg++;
+                double span = cum[seg + 1] - cum[seg];
+                double t = span > 1e-6 ? (d - cum[seg]) / span : 0;
+                double lat = pts[seg].Lat + (pts[seg + 1].Lat - pts[seg].Lat) * t;
+                double lon = pts[seg].Lon + (pts[seg + 1].Lon - pts[seg].Lon) * t;
+                if (FlagPosition(lat, lon) is Point3D pos)
+                    items.Add(new BillboardTextItem { Text = FormatDist(d), Position = pos });
+            }
+            if (FlagPosition(pts[^1].Lat, pts[^1].Lon) is Point3D finish) // always flag the finish distance
+                items.Add(new BillboardTextItem { Text = FormatDist(total), Position = finish });
+
+            if (items.Count > 0)
+                _pointFlags = AddFlagGroup(items,
+                    bg: new SolidColorBrush(Color.FromArgb(235, 255, 253, 231)), fg: Brushes.Black,
+                    pin: Brushes.DimGray, fontSize: 10);
+        }
+    }
+
+    /// <summary>The selected track-point flag spacing in metres, or 0 when "Off".</summary>
+    private double PointFlagIntervalM() =>
+        CmbPointFlags?.SelectedItem is System.Windows.Controls.ComboBoxItem it
+        && it.Tag is string s && int.TryParse(s, out int m) ? m : 0;
+
+    private static string FormatDist(double meters) =>
+        meters < 1000 ? $"{meters:0} m" : $"{meters / 1000:0.##} km";
+
+    /// <summary>Builds one styled billboard group (label + pin) and adds it to the overlay viewport.</summary>
+    private BillboardTextGroupVisual3D AddFlagGroup(List<BillboardTextItem> items, Brush bg, Brush fg, Brush pin, double fontSize)
+    {
+        var group = new BillboardTextGroupVisual3D
+        {
+            Items = items,
+            Background = bg,
+            Foreground = fg,
+            BorderBrush = pin,
+            BorderThickness = new Thickness(1),
+            PinBrush = pin,
+            PinWidth = 2,
+            Padding = new Thickness(4, 2, 4, 2),
+            FontSize = fontSize,
+            FontWeight = FontWeights.SemiBold,
+            Offset = new Vector(0, -28), // float the label above its ground point; the pin drops to the point
+        };
+        FlagViewport!.Children.Add(group);
+        return group;
+    }
+
+    /// <summary>The 3D position of a lat/lon on the exaggerated terrain, or null when it lies outside the viewed
+    /// extent (so off-screen tracks don't scatter flags at the map edges).</summary>
+    private Point3D? FlagPosition(double lat, double lon)
+    {
+        var (mx, my) = SphericalMercator.FromLonLat(lon, lat);
+        if (mx < _extent.MinX || mx > _extent.MaxX || my < _extent.MinY || my > _extent.MaxY) return null;
+        return new Point3D((mx - _cx) * _k, (my - _cy) * _k, SampleEle(mx, my) * _exaggeration);
+    }
 
     /// <summary>Moves the camera to a lat/lon (used when the viewer icon is dragged on the 2D map).</summary>
     public void SetViewpoint(double lat, double lon)

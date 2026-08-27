@@ -9,6 +9,10 @@ public enum OnlineElevationProvider { OpenTopoData, OpenElevation, OpenMeteo }
 
 public enum BaseMapProvider { OpenStreetMap, OpenTopoMap, CyclOSM, EsriWorldImagery, CartoLight }
 
+/// <summary>Which per-segment metric drives the red→blue gradient colouring of the active track.
+/// <see cref="None"/> (the default) keeps the track's own solid colour.</summary>
+public enum GradientMetric { None, Speed, Inclination, Pavement }
+
 /// <summary>Per-map parameters, configured in Settings. The <em>active</em> map itself is chosen on the
 /// main-window toolbar, not here — these settings only tune a given map, they don't switch to it.</summary>
 public class MapParams
@@ -87,6 +91,11 @@ public class AppSettings
 
     /// <summary>When on, speed figures in the statistics panel are shown as pace (min/km) instead of km/h.</summary>
     public bool PaceMode { get; set; }
+
+    /// <summary>Colours the <em>active</em> track with a red (fast/easy) → blue (slow/hard) gradient bound to this
+    /// per-segment metric. <see cref="GradientMetric.None"/> (default) leaves every track its own solid colour;
+    /// only the selected track is ever gradient-coloured, and only when a metric other than None is chosen.</summary>
+    public GradientMetric GradientMetric { get; set; } = GradientMetric.None;
 
     // Which values each mileage flag shows; enabled fields stack on their own line in the flag.
     // Distance defaults on (the classic mileage marker); the rest are opt-in.
