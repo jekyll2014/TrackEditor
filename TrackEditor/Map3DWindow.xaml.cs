@@ -78,7 +78,9 @@ public partial class Map3DWindow : Window
     private bool _shadowApplied;        // true when the current patches were baked with a shadow mask
     private bool _drapeBusy;            // a drape (re)build is in flight — serialise the next one
     private System.Windows.Threading.DispatcherTimer? _sunTimer; // debounces shadow re-bakes during interaction
+    private CancellationTokenSource? _sunCts; // cancels an in-flight shadow render when the time changes again
     private const int ShadowMaxAlpha = 135; // how dark a fully-shadowed texel gets (ambient still lights it)
+    private const int ShadowRebakeDelayMs = 1200; // quiet period before a shadow render starts
 
     /// <summary>Raised whenever the camera moves so the 2D map can show where the viewer stands.</summary>
     public event Action<double, double, double>? ViewpointChanged; // lat, lon, heading°
@@ -116,8 +118,8 @@ public partial class Map3DWindow : Window
         PopulateDetailLevels();
 
         _sunTimer = new System.Windows.Threading.DispatcherTimer
-            { Interval = TimeSpan.FromMilliseconds(350) };
-        _sunTimer.Tick += async (_, _) => { _sunTimer!.Stop(); await RebakeShadowsAsync(); };
+            { Interval = TimeSpan.FromMilliseconds(ShadowRebakeDelayMs) };
+        _sunTimer.Tick += async (_, _) => { _sunTimer!.Stop(); await StartShadowRebakeAsync(); };
         InitSun();
 
         // Google-Earth-style mouse mapping: left drag pans (Helix), right drag orbits/tilts and the
@@ -163,7 +165,7 @@ public partial class Map3DWindow : Window
             _detailReady = true;
 
             // If the sun was switched on while the terrain was still building, bake its shadows now.
-            if (ChkSun.IsChecked == true) await RebakeShadowsAsync();
+            if (ChkSun.IsChecked == true) await StartShadowRebakeAsync();
         }
         catch (Exception ex)
         {
@@ -319,7 +321,7 @@ public partial class Map3DWindow : Window
     /// Fetches every tile covering the extent at <paramref name="zoom"/> and builds one textured patch
     /// per tile. Tiles that fail to fetch/decode are skipped (left as a gap), like the PNG export.
     /// </summary>
-    private async Task<List<Patch>> BuildDrapeAsync(int zoom, IProgress<string>? progress)
+    private async Task<List<Patch>> BuildDrapeAsync(int zoom, IProgress<string>? progress, CancellationToken ct = default)
     {
         long count = TileCount(zoom);
         if (count > MaxPatches)
@@ -338,6 +340,7 @@ public partial class Map3DWindow : Window
         for (int ty = ty0; ty <= ty1; ty++)
             for (int tx = tx0; tx <= tx1; tx++)
             {
+                ct.ThrowIfCancellationRequested(); // stop promptly when a newer sun time supersedes this render
                 done++;
                 if (ty < 0 || ty >= worldTiles) continue;              // nothing above/below the world
                 int wx = ((tx % worldTiles) + worldTiles) % worldTiles; // wrap across the antimeridian
@@ -788,7 +791,7 @@ public partial class Map3DWindow : Window
 
     /// <summary>Rebuilds the drape at <paramref name="zoom"/> with the current shadow mask, swapping it in only on
     /// success (a failure keeps the old view). Serialised so overlapping requests can't corrupt the scene.</summary>
-    private async Task SwapDrapeAsync(int zoom, string startStatus)
+    private async Task SwapDrapeAsync(int zoom, string startStatus, CancellationToken ct = default)
     {
         if (_drapeBusy) return;
         _drapeBusy = true;
@@ -796,7 +799,8 @@ public partial class Map3DWindow : Window
         try
         {
             var progress = new Progress<string>(s => StatusText.Text = s);
-            var built = await BuildDrapeAsync(zoom, progress);
+            var built = await BuildDrapeAsync(zoom, progress, ct);
+            ct.ThrowIfCancellationRequested(); // discard a render the user has already superseded
 
             _terrain.Children.Clear();
             _patches = built;
@@ -807,6 +811,10 @@ public partial class Map3DWindow : Window
             string blocked = _lastBlocked > 0 ? $"   ·   {_lastBlocked} tile(s) skipped" : "";
             string shade = _shadowApplied ? "   ·   ☀ shadows" : "";
             StatusText.Text = $"Terrain {_minEle:F0}–{_maxEle:F0} m   ·   basemap z{_zoom} · {_patches.Count} tiles{blocked}{shade}";
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer sun time cancelled this render; the next one will refresh the status.
         }
         catch (Exception ex)
         {
@@ -992,11 +1000,14 @@ public partial class Map3DWindow : Window
             _sunDate = utc.Date;
             _sunReady = false;
             SunSlider.Value = utc.TimeOfDay.TotalHours;
+            SunDate.SelectedDate = _sunDate;
             _sunReady = true;
             ChkSun.IsEnabled = true;
         }
         else
         {
+            _sunDate = DateTime.UtcNow.Date;
+            SunDate.SelectedDate = _sunDate;
             ChkSun.IsEnabled = false;
             ChkSun.IsChecked = false;
         }
@@ -1007,7 +1018,7 @@ public partial class Map3DWindow : Window
     {
         ApplySun();
         _sunTimer?.Stop();       // toggling should add/clear shadows at once, not after the debounce
-        await RebakeShadowsAsync();
+        await StartShadowRebakeAsync();
     }
 
     private void SunTime_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -1015,12 +1026,32 @@ public partial class Map3DWindow : Window
         if (_sunReady) ApplySun(); // updates the light live; shadows re-bake once the drag settles
     }
 
-    /// <summary>Restarts the debounce so cast shadows re-bake only after the user pauses (a bake re-drapes).</summary>
+    private void SunDate_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_sunReady || SunDate.SelectedDate is not DateTime d) return;
+        _sunDate = d.Date; // season sets the sun's arc; re-aim the light and re-bake shadows
+        ApplySun();
+    }
+
+    /// <summary>Cancels any shadow render already running for an older time and restarts the quiet-period
+    /// countdown, so a rapidly dragged slider re-bakes only once, ~1.2 s after it settles.</summary>
     private void ScheduleShadowRebake()
     {
         if (_sunTimer is null) return;
+        _sunCts?.Cancel();  // abandon a render started for a now-stale time
         _sunTimer.Stop();
         _sunTimer.Start();
+    }
+
+    /// <summary>Starts a fresh, cancellable shadow render, superseding any previous one.</summary>
+    private async Task StartShadowRebakeAsync()
+    {
+        _sunCts?.Cancel(); // stop whatever render is running for the old time
+        var cts = new CancellationTokenSource();
+        _sunCts = cts;
+        try { await RebakeShadowsAsync(cts.Token); }
+        catch (OperationCanceledException) { /* superseded by a newer time — drop it */ }
+        finally { cts.Dispose(); } // safe now: this render has finished awaiting
     }
 
     /// <summary>Applies the current sun state: either the even default daylight, or a directional light aimed
@@ -1030,6 +1061,7 @@ public partial class Map3DWindow : Window
     {
         bool on = ChkSun.IsChecked == true && ChkSun.IsEnabled;
         if (SunSlider is not null) SunSlider.IsEnabled = on;
+        if (SunDate is not null) SunDate.IsEnabled = on;
 
         if (!on)
         {
@@ -1083,7 +1115,7 @@ public partial class Map3DWindow : Window
     /// <summary>Recomputes the cast-shadow mask for the current sun and, if it changed the scene, re-bakes the
     /// drape. Runs the ray-march off the UI thread. No-op until the terrain exists (the first build bakes with
     /// whatever mask is set). When the sun is off or below the horizon the mask is cleared.</summary>
-    private async Task RebakeShadowsAsync()
+    private async Task RebakeShadowsAsync(CancellationToken ct = default)
     {
         if (!_flagsReady) return; // terrain not built yet
         if (_drapeBusy) { ScheduleShadowRebake(); return; } // a rebuild is running — retry after it settles
@@ -1096,20 +1128,21 @@ public partial class Map3DWindow : Window
             if (altDeg > 0)
             {
                 double exag = _exaggeration;
-                grid = await Task.Run(() => ComputeShadowGrid(azDeg, altDeg, exag));
+                grid = await Task.Run(() => ComputeShadowGrid(azDeg, altDeg, exag, ct), ct);
             }
         }
 
+        ct.ThrowIfCancellationRequested();
         if (grid is null && !_shadowApplied) { _shadowGrid = null; return; } // nothing baked, nothing to clear
 
         _shadowGrid = grid;
-        await SwapDrapeAsync(_zoom, grid is null ? "Clearing shadows…" : "Casting terrain shadows…");
+        await SwapDrapeAsync(_zoom, grid is null ? "Clearing shadows…" : "Casting terrain shadows…", ct);
     }
 
     /// <summary>Ray-marches the elevation grid toward the sun: each cell is shadowed when some nearer terrain
     /// rises above the straight line to the sun. Heights use the current exaggeration so shadows match the relief
     /// on screen. Returns a per-cell mask (1 = lit, 0 = shadowed).</summary>
-    private double[,] ComputeShadowGrid(double azDeg, double altDeg, double exag)
+    private double[,] ComputeShadowGrid(double azDeg, double altDeg, double exag, CancellationToken ct = default)
     {
         double az = azDeg * Math.PI / 180.0, alt = altDeg * Math.PI / 180.0;
         double toE = Math.Cos(alt) * Math.Sin(az), toN = Math.Cos(alt) * Math.Cos(az);
@@ -1141,7 +1174,7 @@ public partial class Map3DWindow : Window
         double eps = Math.Max(0.5, (_maxEle - _minEle) * 0.003) * exag; // bias against self-shadow acne
         int maxSteps = (int)(Grid * 1.6);
 
-        System.Threading.Tasks.Parallel.For(0, Grid, j =>
+        System.Threading.Tasks.Parallel.For(0, Grid, new System.Threading.Tasks.ParallelOptions { CancellationToken = ct }, j =>
         {
             for (int i = 0; i < Grid; i++)
             {

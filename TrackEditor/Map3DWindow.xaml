@@ -194,11 +194,15 @@
                         <CheckBox x:Name="ChkSun" Content="☀ Sun" FontSize="11" VerticalAlignment="Center"
                                   Checked="Sun_Toggled" Unchecked="Sun_Toggled"
                                   ToolTip="Light the terrain from the sun's real position at the selected time (needs point timestamps)"/>
-                        <Slider x:Name="SunSlider" Width="118" Minimum="0" Maximum="24" Value="12"
+                        <DatePicker x:Name="SunDate" Width="104" FontSize="10" Height="22" Margin="8,0,0,0"
+                                    VerticalContentAlignment="Center" VerticalAlignment="Center" IsEnabled="False"
+                                    SelectedDateChanged="SunDate_Changed"
+                                    ToolTip="Date (UTC) for the sun's position — sets how high and where it rises/sets"/>
+                        <Slider x:Name="SunSlider" Width="110" Minimum="0" Maximum="24" Value="12"
                                 TickFrequency="0.25" IsSnapToTickEnabled="True" IsEnabled="False"
                                 ValueChanged="SunTime_Changed" VerticalAlignment="Center" Margin="8,0,0,0"
                                 ToolTip="Time of day (UTC) — drag to move the sun across the sky"/>
-                        <TextBlock x:Name="SunLabel" Text="—" Width="126" Margin="6,0,0,0"
+                        <TextBlock x:Name="SunLabel" Text="—" Width="120" Margin="6,0,0,0"
                                    VerticalAlignment="Center" FontSize="10" Foreground="#555"/>
                     </StackPanel>
                 </StackPanel>

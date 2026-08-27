@@ -399,13 +399,16 @@ tiles cover the area rather than by any single texture's size.
   instead of the flat default daylight. Slopes facing the sun brighten and those
   turned away fall into shade, and hills **cast real shadows** across the ground
   — computed by ray-marching the elevation grid toward the sun and baked into the
-  drape, so a ridge shadows the valley behind it. The time is seeded from the
+  drape, so a ridge shadows the valley behind it. The **time** is seeded from the
   selected track point (or the first timestamped point) and the slider moves the
-  sun across that day (UTC); the label shows the time and the sun's altitude, or
-  *below horizon* at night. Slope shading follows the slider live; the cast
-  shadows re-bake a moment after you stop dragging (and after a change of vertical
-  exaggeration, which they follow). The checkbox is disabled when no point in the
-  loaded tracks carries a timestamp.
+  sun across that day (UTC); the **date** (a picker next to it) sets the season, so
+  the sun's arc — how high it climbs and where it rises and sets — is correct. The
+  label shows the time and the sun's altitude, or *below horizon* at night. Slope
+  shading follows the controls live; the cast shadows are heavier to compute, so
+  they re-bake about a second after you stop changing the time/date (or the vertical
+  exaggeration, which they also follow) — moving the sun again cancels an in-flight
+  render and restarts that wait, so a dragged slider re-bakes only once. The
+  checkbox is disabled when no point in the loaded tracks carries a timestamp.
 
   *Note:* WPF's 3D pipeline has no GPU shadow mapping, so these are heightfield
   cast shadows computed on the terrain itself rather than shadow-mapped in the
