@@ -388,7 +388,8 @@ tiles cover the area rather than by any single texture's size.
   basemap tiles over the same region — independent of the 2D map's zoom, so you
   can add map detail (or simplify it) in 3D without changing the area shown.
   Levels needing many tiles are marked ⚠ (slower to build); levels beyond the
-  limit for the area are listed but can't be picked.
+  limit for the area are listed but can't be picked. Picking another level while
+  one is still rendering cancels that render and starts the new one.
 - **Flags:** label flags that always face you as you orbit and stay visible
   through the terrain, so you never lose one behind a hill. **Waypoints** (a
   checkbox, on by default) plants a named flag at each waypoint; **Track pts** (a

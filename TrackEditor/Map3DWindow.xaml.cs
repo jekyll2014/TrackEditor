@@ -76,7 +76,8 @@ public partial class Map3DWindow : Window
     // heightfield instead. Recomputing re-bakes the drape, so slider drags are debounced.
     private double[,]? _shadowGrid;     // null = no cast shadows baked
     private bool _shadowApplied;        // true when the current patches were baked with a shadow mask
-    private bool _drapeBusy;            // a drape (re)build is in flight — serialise the next one
+    private CancellationTokenSource? _drapeCts; // cancels the in-flight drape build (scale change / sun re-bake)
+    private Task _drapeTask = Task.CompletedTask; // the in-flight (or last) drape build, to serialise the next
     private System.Windows.Threading.DispatcherTimer? _sunTimer; // debounces shadow re-bakes during interaction
     private CancellationTokenSource? _sunCts; // cancels an in-flight shadow render when the time changes again
     private const int ShadowMaxAlpha = 135; // how dark a fully-shadowed texel gets (ambient still lights it)
@@ -779,23 +780,34 @@ public partial class Map3DWindow : Window
         DetailCombo.SelectedItem = current ?? lastEnabled;
     }
 
-    /// <summary>Rebuilds the drape at the chosen tile zoom, keeping the same terrain and region.</summary>
+    /// <summary>Re-drapes at the chosen tile zoom. Picking another scale mid-render cancels the running build and
+    /// starts the new one, so the combo stays live throughout.</summary>
     private async void Detail_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (!_detailReady || DetailCombo.SelectedItem is not DetailLevel lvl || lvl.Zoom == _zoom) return;
-
-        DetailCombo.IsEnabled = false;
-        try { await SwapDrapeAsync(lvl.Zoom, $"Rendering basemap at z{lvl.Zoom} ({TileCount(lvl.Zoom)} tiles)…"); }
-        finally { DetailCombo.IsEnabled = true; }
+        await StartDrapeAsync(lvl.Zoom, $"Rendering basemap at z{lvl.Zoom} ({TileCount(lvl.Zoom)} tiles)…");
     }
 
-    /// <summary>Rebuilds the drape at <paramref name="zoom"/> with the current shadow mask, swapping it in only on
-    /// success (a failure keeps the old view). Serialised so overlapping requests can't corrupt the scene.</summary>
-    private async Task SwapDrapeAsync(int zoom, string startStatus, CancellationToken ct = default)
+    /// <summary>Starts a drape (re)build, cancelling any build already in flight and waiting for it to unwind
+    /// first — so a new scale (or a sun change) supersedes the previous render instead of queueing behind it.
+    /// <paramref name="linked"/> lets a caller's own token (e.g. the sun's) also cancel this build.</summary>
+    private async Task StartDrapeAsync(int zoom, string status, CancellationToken linked = default)
     {
-        if (_drapeBusy) return;
-        _drapeBusy = true;
-        StatusText.Text = startStatus;
+        _drapeCts?.Cancel(); // abort whatever is rendering now
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(linked);
+        _drapeCts = cts;
+        _drapeTask = DrapeAfterAsync(_drapeTask, zoom, status, cts);
+        await _drapeTask;
+    }
+
+    /// <summary>Waits for the previous build to stop, then (if not already superseded) builds and swaps the drape.</summary>
+    private async Task DrapeAfterAsync(Task previous, int zoom, string status, CancellationTokenSource cts)
+    {
+        try { await previous; } catch { /* the build we cancelled — its outcome isn't ours */ }
+        if (!ReferenceEquals(_drapeCts, cts)) { cts.Dispose(); return; } // a newer request already took over
+
+        var ct = cts.Token;
+        StatusText.Text = status;
         try
         {
             var progress = new Progress<string>(s => StatusText.Text = s);
@@ -814,7 +826,7 @@ public partial class Map3DWindow : Window
         }
         catch (OperationCanceledException)
         {
-            // A newer sun time cancelled this render; the next one will refresh the status.
+            // Superseded by a newer scale/sun change; the replacement render will refresh the status.
         }
         catch (Exception ex)
         {
@@ -822,7 +834,9 @@ public partial class Map3DWindow : Window
         }
         finally
         {
-            _drapeBusy = false;
+            // Clear the field before disposing so a later Cancel() can't hit a disposed source.
+            if (ReferenceEquals(_drapeCts, cts)) _drapeCts = null;
+            cts.Dispose();
         }
     }
 
@@ -1124,7 +1138,6 @@ public partial class Map3DWindow : Window
     private async Task RebakeShadowsAsync(CancellationToken ct = default)
     {
         if (!_flagsReady) return; // terrain not built yet
-        if (_drapeBusy) { ScheduleShadowRebake(); return; } // a rebuild is running — retry after it settles
 
         double[,]? grid = null;
         if (ChkSun.IsChecked == true && ChkSun.IsEnabled)
@@ -1142,7 +1155,8 @@ public partial class Map3DWindow : Window
         if (grid is null && !_shadowApplied) { _shadowGrid = null; return; } // nothing baked, nothing to clear
 
         _shadowGrid = grid;
-        await SwapDrapeAsync(_zoom, grid is null ? "Clearing shadows…" : "Casting terrain shadows…", ct);
+        // Route through the same serialised build path so a scale change can cancel this (and vice versa).
+        await StartDrapeAsync(_zoom, grid is null ? "Clearing shadows…" : "Casting terrain shadows…", ct);
     }
 
     /// <summary>Ray-marches the elevation grid toward the sun: each cell is shadowed when some nearer terrain
