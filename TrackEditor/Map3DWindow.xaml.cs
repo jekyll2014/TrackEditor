@@ -71,6 +71,15 @@ public partial class Map3DWindow : Window
     private DateTime _sunDate;          // day used for the sun's declination
     private bool _sunReady;             // gates the slider handler until the seed is applied
 
+    // Cast shadows: a per-cell "lit" mask (1 = sun, 0 = shadow) ray-marched over the elevation grid toward the
+    // sun, baked into the drape as darkening. WPF 3D has no GPU shadows, so hill-cast shadows are computed on the
+    // heightfield instead. Recomputing re-bakes the drape, so slider drags are debounced.
+    private double[,]? _shadowGrid;     // null = no cast shadows baked
+    private bool _shadowApplied;        // true when the current patches were baked with a shadow mask
+    private bool _drapeBusy;            // a drape (re)build is in flight — serialise the next one
+    private System.Windows.Threading.DispatcherTimer? _sunTimer; // debounces shadow re-bakes during interaction
+    private const int ShadowMaxAlpha = 135; // how dark a fully-shadowed texel gets (ambient still lights it)
+
     /// <summary>Raised whenever the camera moves so the 2D map can show where the viewer stands.</summary>
     public event Action<double, double, double>? ViewpointChanged; // lat, lon, heading°
 
@@ -105,6 +114,10 @@ public partial class Map3DWindow : Window
         _zoom = z;
         TerrainVisual.Content = _terrain;
         PopulateDetailLevels();
+
+        _sunTimer = new System.Windows.Threading.DispatcherTimer
+            { Interval = TimeSpan.FromMilliseconds(350) };
+        _sunTimer.Tick += async (_, _) => { _sunTimer!.Stop(); await RebakeShadowsAsync(); };
         InitSun();
 
         // Google-Earth-style mouse mapping: left drag pans (Helix), right drag orbits/tilts and the
@@ -148,6 +161,9 @@ public partial class Map3DWindow : Window
 
             StatusText.Text = StatusLine(withEle);
             _detailReady = true;
+
+            // If the sun was switched on while the terrain was still building, bake its shadows now.
+            if (ChkSun.IsChecked == true) await RebakeShadowsAsync();
         }
         catch (Exception ex)
         {
@@ -462,6 +478,11 @@ public partial class Map3DWindow : Window
                 }
                 canvas.DrawPath(path, paint);
             }
+
+            // Terrain cast shadows: darken texels the sun can't reach (baked on top of the map + tracks).
+            if (_shadowGrid is not null)
+                BakeShadow(canvas, px, py, tileMinX, tileMaxX, tileMinY, tileMaxY);
+
             canvas.Flush();
         }
 
@@ -689,6 +710,7 @@ public partial class Map3DWindow : Window
         foreach (var p in _patches)
             p.Mesh.Positions = BuildPositions(p.Xs, p.Ys, p.BaseZ, _exaggeration);
         BuildFlags(); // flag heights follow the exaggerated terrain
+        if (ChkSun?.IsChecked == true) ScheduleShadowRebake(); // shadows follow the exaggerated relief too
     }
 
     /// <summary>Compass heading of the view direction, 0° = north, clockwise.</summary>
@@ -759,22 +781,32 @@ public partial class Map3DWindow : Window
     {
         if (!_detailReady || DetailCombo.SelectedItem is not DetailLevel lvl || lvl.Zoom == _zoom) return;
 
-        int newZoom = lvl.Zoom;
         DetailCombo.IsEnabled = false;
-        StatusText.Text = $"Rendering basemap at z{newZoom} ({TileCount(newZoom)} tiles)…";
+        try { await SwapDrapeAsync(lvl.Zoom, $"Rendering basemap at z{lvl.Zoom} ({TileCount(lvl.Zoom)} tiles)…"); }
+        finally { DetailCombo.IsEnabled = true; }
+    }
+
+    /// <summary>Rebuilds the drape at <paramref name="zoom"/> with the current shadow mask, swapping it in only on
+    /// success (a failure keeps the old view). Serialised so overlapping requests can't corrupt the scene.</summary>
+    private async Task SwapDrapeAsync(int zoom, string startStatus)
+    {
+        if (_drapeBusy) return;
+        _drapeBusy = true;
+        StatusText.Text = startStatus;
         try
         {
-            // Build the new drape first; only swap once it succeeds so a failure keeps the old view.
             var progress = new Progress<string>(s => StatusText.Text = s);
-            var built = await BuildDrapeAsync(newZoom, progress);
+            var built = await BuildDrapeAsync(zoom, progress);
 
             _terrain.Children.Clear();
             _patches = built;
             foreach (var p in _patches) _terrain.Children.Add(p.Model);
-            _zoom = newZoom;
+            _zoom = zoom;
+            _shadowApplied = _shadowGrid is not null;
 
             string blocked = _lastBlocked > 0 ? $"   ·   {_lastBlocked} tile(s) skipped" : "";
-            StatusText.Text = $"Terrain {_minEle:F0}–{_maxEle:F0} m   ·   basemap z{_zoom} · {_patches.Count} tiles{blocked}";
+            string shade = _shadowApplied ? "   ·   ☀ shadows" : "";
+            StatusText.Text = $"Terrain {_minEle:F0}–{_maxEle:F0} m   ·   basemap z{_zoom} · {_patches.Count} tiles{blocked}{shade}";
         }
         catch (Exception ex)
         {
@@ -782,7 +814,7 @@ public partial class Map3DWindow : Window
         }
         finally
         {
-            DetailCombo.IsEnabled = true;
+            _drapeBusy = false;
         }
     }
 
@@ -971,11 +1003,24 @@ public partial class Map3DWindow : Window
         ApplySun();
     }
 
-    private void Sun_Toggled(object sender, RoutedEventArgs e) => ApplySun();
+    private async void Sun_Toggled(object sender, RoutedEventArgs e)
+    {
+        ApplySun();
+        _sunTimer?.Stop();       // toggling should add/clear shadows at once, not after the debounce
+        await RebakeShadowsAsync();
+    }
 
     private void SunTime_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_sunReady) ApplySun();
+        if (_sunReady) ApplySun(); // updates the light live; shadows re-bake once the drag settles
+    }
+
+    /// <summary>Restarts the debounce so cast shadows re-bake only after the user pauses (a bake re-drapes).</summary>
+    private void ScheduleShadowRebake()
+    {
+        if (_sunTimer is null) return;
+        _sunTimer.Stop();
+        _sunTimer.Start();
     }
 
     /// <summary>Applies the current sun state: either the even default daylight, or a directional light aimed
@@ -991,6 +1036,7 @@ public partial class Map3DWindow : Window
             SolarLightVisual.Content = null;
             SetDefaultSun(true);
             SunLabel.Text = _sunSeed is null ? "no time in track" : "off";
+            ScheduleShadowRebake();
             return;
         }
 
@@ -1021,6 +1067,7 @@ public partial class Map3DWindow : Window
 
         string alten = altDeg > 0 ? $"alt {altDeg:0}°" : "below horizon";
         SunLabel.Text = $"{utc:HH:mm} UTC · {alten}";
+        ScheduleShadowRebake();
     }
 
     /// <summary>Adds or removes the flat default daylight (a Visual3D, so it can't just be hidden).</summary>
@@ -1029,5 +1076,149 @@ public partial class Map3DWindow : Window
         bool inTree = Viewport.Children.Contains(DefaultSun);
         if (present && !inTree) Viewport.Children.Insert(0, DefaultSun);
         else if (!present && inTree) Viewport.Children.Remove(DefaultSun);
+    }
+
+    // ======================= terrain cast shadows =======================
+
+    /// <summary>Recomputes the cast-shadow mask for the current sun and, if it changed the scene, re-bakes the
+    /// drape. Runs the ray-march off the UI thread. No-op until the terrain exists (the first build bakes with
+    /// whatever mask is set). When the sun is off or below the horizon the mask is cleared.</summary>
+    private async Task RebakeShadowsAsync()
+    {
+        if (!_flagsReady) return; // terrain not built yet
+        if (_drapeBusy) { ScheduleShadowRebake(); return; } // a rebuild is running — retry after it settles
+
+        double[,]? grid = null;
+        if (ChkSun.IsChecked == true && ChkSun.IsEnabled)
+        {
+            DateTime utc = DateTime.SpecifyKind(_sunDate + TimeSpan.FromHours(SunSlider.Value), DateTimeKind.Utc);
+            var (azDeg, altDeg) = SolarPosition.AltAz(utc, _latC, _lonC);
+            if (altDeg > 0)
+            {
+                double exag = _exaggeration;
+                grid = await Task.Run(() => ComputeShadowGrid(azDeg, altDeg, exag));
+            }
+        }
+
+        if (grid is null && !_shadowApplied) { _shadowGrid = null; return; } // nothing baked, nothing to clear
+
+        _shadowGrid = grid;
+        await SwapDrapeAsync(_zoom, grid is null ? "Clearing shadows…" : "Casting terrain shadows…");
+    }
+
+    /// <summary>Ray-marches the elevation grid toward the sun: each cell is shadowed when some nearer terrain
+    /// rises above the straight line to the sun. Heights use the current exaggeration so shadows match the relief
+    /// on screen. Returns a per-cell mask (1 = lit, 0 = shadowed).</summary>
+    private double[,] ComputeShadowGrid(double azDeg, double altDeg, double exag)
+    {
+        double az = azDeg * Math.PI / 180.0, alt = altDeg * Math.PI / 180.0;
+        double toE = Math.Cos(alt) * Math.Sin(az), toN = Math.Cos(alt) * Math.Cos(az);
+        double horiz = Math.Sqrt(toE * toE + toN * toN);
+
+        var lit = new double[Grid, Grid];
+        if (horiz < 1e-9) // sun straight overhead → nothing is shadowed
+        {
+            for (int j = 0; j < Grid; j++) for (int i = 0; i < Grid; i++) lit[i, j] = 1.0;
+            return lit;
+        }
+
+        // Heights at display scale, and the ground size of one grid cell.
+        var h = new double[Grid, Grid];
+        double hmax = double.MinValue;
+        for (int j = 0; j < Grid; j++)
+            for (int i = 0; i < Grid; i++)
+            {
+                double v = _elevations[i, j] * exag;
+                h[i, j] = v;
+                if (v > hmax) hmax = v;
+            }
+
+        double cellE = _sizeX / (Grid - 1), cellN = _sizeY / (Grid - 1);
+        double ue = toE / horiz, un = toN / horiz;   // unit horizontal step toward the sun
+        double step = Math.Min(cellE, cellN);         // march ~one cell at a time
+        double stepE = ue * step, stepN = un * step;
+        double dz = Math.Tan(alt) * step;             // ray rise per step
+        double eps = Math.Max(0.5, (_maxEle - _minEle) * 0.003) * exag; // bias against self-shadow acne
+        int maxSteps = (int)(Grid * 1.6);
+
+        System.Threading.Tasks.Parallel.For(0, Grid, j =>
+        {
+            for (int i = 0; i < Grid; i++)
+            {
+                double ex = i * cellE, ny = j * cellN, rz = h[i, j] + eps;
+                bool sunlit = true;
+                for (int k = 1; k <= maxSteps; k++)
+                {
+                    ex += stepE; ny += stepN; rz += dz;
+                    if (rz > hmax) break;                    // ray cleared all terrain → lit
+                    double fi = ex / cellE, fj = ny / cellN;
+                    if (fi < 0 || fi > Grid - 1 || fj < 0 || fj > Grid - 1) break; // left the grid → lit
+                    if (BilinearH(h, fi, fj) > rz) { sunlit = false; break; }      // blocked by terrain
+                }
+                lit[i, j] = sunlit ? 1.0 : 0.0;
+            }
+        });
+
+        return Smooth(lit); // soften the binary mask so shadow edges aren't jagged
+    }
+
+    /// <summary>One 3×3 box blur pass, to give the binary shadow mask soft edges.</summary>
+    private static double[,] Smooth(double[,] m)
+    {
+        var o = new double[Grid, Grid];
+        for (int j = 0; j < Grid; j++)
+            for (int i = 0; i < Grid; i++)
+            {
+                double sum = 0; int n = 0;
+                for (int dj = -1; dj <= 1; dj++)
+                    for (int di = -1; di <= 1; di++)
+                    {
+                        int ii = i + di, jj = j + dj;
+                        if (ii < 0 || ii >= Grid || jj < 0 || jj >= Grid) continue;
+                        sum += m[ii, jj]; n++;
+                    }
+                o[i, j] = sum / n;
+            }
+        return o;
+    }
+
+    private static double BilinearH(double[,] g, double fi, double fj)
+    {
+        int i0 = Math.Clamp((int)Math.Floor(fi), 0, Grid - 1), j0 = Math.Clamp((int)Math.Floor(fj), 0, Grid - 1);
+        int i1 = Math.Min(i0 + 1, Grid - 1), j1 = Math.Min(j0 + 1, Grid - 1);
+        double ti = fi - i0, tj = fj - j0;
+        double a = g[i0, j0], b = g[i1, j0], c = g[i0, j1], d = g[i1, j1];
+        return (a * (1 - ti) + b * ti) * (1 - tj) + (c * (1 - ti) + d * ti) * tj;
+    }
+
+    /// <summary>Lit fraction (1 = full sun, 0 = full shadow) at a Mercator point, or 1 outside the grid.</summary>
+    private double SampleShadow(double mx, double my)
+    {
+        if (_shadowGrid is null) return 1.0;
+        if (mx < _extent.MinX || mx > _extent.MaxX || my < _extent.MinY || my > _extent.MaxY) return 1.0;
+        double fi = (mx - _extent.MinX) / (_extent.MaxX - _extent.MinX) * (Grid - 1);
+        double fj = (my - _extent.MinY) / (_extent.MaxY - _extent.MinY) * (Grid - 1);
+        return BilinearH(_shadowGrid, fi, fj);
+    }
+
+    /// <summary>Draws a low-res shadow layer (translucent black where shadowed) over one tile, stretched with
+    /// smoothing. The mask is sampled from the shared grid so neighbouring tiles stay seamless.</summary>
+    private void BakeShadow(SKCanvas canvas, int px, int py,
+        double tileMinX, double tileMaxX, double tileMinY, double tileMaxY)
+    {
+        const int N = 32;
+        using var layer = new SKBitmap(N, N);
+        for (int sy = 0; sy < N; sy++)
+        {
+            double my = tileMaxY - (tileMaxY - tileMinY) * sy / (N - 1);
+            for (int sx = 0; sx < N; sx++)
+            {
+                double mx = tileMinX + (tileMaxX - tileMinX) * sx / (N - 1);
+                byte a = (byte)Math.Clamp((1.0 - SampleShadow(mx, my)) * ShadowMaxAlpha, 0, 255);
+                layer.SetPixel(sx, sy, new SKColor(0, 0, 0, a));
+            }
+        }
+        using var paint = new SKPaint { FilterQuality = SKFilterQuality.High, IsAntialias = true };
+        canvas.DrawBitmap(layer, new SKRect(0, 0, px, py), paint);
     }
 }

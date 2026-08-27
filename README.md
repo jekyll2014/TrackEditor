@@ -396,12 +396,21 @@ tiles cover the area rather than by any single texture's size.
   Off, or 50 m up to 10 km — always including the finish. Both follow the vertical
   exaggeration and only cover the region currently in view.
 - **Sun:** tick **☀ Sun** to light the terrain from the sun's real position
-  instead of the flat default daylight, so slopes facing the sun brighten and
-  those turned away fall into shade — the relief reads as sun and shadow. The
-  time is seeded from the selected track point (or the first timestamped point)
-  and the slider moves the sun across that day (UTC); the label shows the time
-  and the sun's altitude, or *below horizon* at night. The checkbox is disabled
-  when no point in the loaded tracks carries a timestamp.
+  instead of the flat default daylight. Slopes facing the sun brighten and those
+  turned away fall into shade, and hills **cast real shadows** across the ground
+  — computed by ray-marching the elevation grid toward the sun and baked into the
+  drape, so a ridge shadows the valley behind it. The time is seeded from the
+  selected track point (or the first timestamped point) and the slider moves the
+  sun across that day (UTC); the label shows the time and the sun's altitude, or
+  *below horizon* at night. Slope shading follows the slider live; the cast
+  shadows re-bake a moment after you stop dragging (and after a change of vertical
+  exaggeration, which they follow). The checkbox is disabled when no point in the
+  loaded tracks carries a timestamp.
+
+  *Note:* WPF's 3D pipeline has no GPU shadow mapping, so these are heightfield
+  cast shadows computed on the terrain itself rather than shadow-mapped in the
+  GPU — they shadow the ground (and anything draped on it), which is what a
+  terrain view needs.
 - **Save image:** the **💾 Save** button next to the exaggeration slider writes
   the current 3D view to a PNG — exactly what you see, at the current camera
   angle and exaggeration, without the on-screen controls.
