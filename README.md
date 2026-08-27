@@ -395,6 +395,13 @@ tiles cover the area rather than by any single texture's size.
   dropdown) drops distance flags along the active track at a chosen spacing —
   Off, or 50 m up to 10 km — always including the finish. Both follow the vertical
   exaggeration and only cover the region currently in view.
+- **Sun:** tick **☀ Sun** to light the terrain from the sun's real position
+  instead of the flat default daylight, so slopes facing the sun brighten and
+  those turned away fall into shade — the relief reads as sun and shadow. The
+  time is seeded from the selected track point (or the first timestamped point)
+  and the slider moves the sun across that day (UTC); the label shows the time
+  and the sun's altitude, or *below horizon* at night. The checkbox is disabled
+  when no point in the loaded tracks carries a timestamp.
 - **Save image:** the **💾 Save** button next to the exaggeration slider writes
   the current 3D view to a PNG — exactly what you see, at the current camera
   angle and exaggeration, without the on-screen controls.

@@ -368,6 +368,12 @@ public partial class MainWindow : Window
     {
         if (_map3D is not null) { _map3D.Activate(); return; }
 
+        // Seed the sun from the selected point's timestamp, if one is selected and timed.
+        DateTime? sunTime = null;
+        if (_active is not null)
+            foreach (var i in SelectedIndices())
+                if (i >= 0 && i < _active.Points.Count && _active.Points[i].Time is DateTime t) { sunTime = t; break; }
+
         var win = new Map3DWindow(
             _mapMgr.ViewportExtent(),
             _mapMgr.CurrentZoomLevel(),
@@ -377,7 +383,8 @@ public partial class MainWindow : Window
             _srtm,
             gradientTrack: _active,
             gradientMetric: _settings.GradientMetric,
-            paceMode: _settings.PaceMode)
+            paceMode: _settings.PaceMode,
+            sunTime: sunTime)
         { Owner = this };
 
         // Keep the 2D viewer marker in step with the 3D camera.

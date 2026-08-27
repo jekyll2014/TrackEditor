@@ -48,6 +48,7 @@ public partial class Map3DWindow : Window
     private bool _detailReady;          // gate Detail_Changed until the first build finishes
 
     private readonly double _cx, _cy;   // extent centre in Web-Mercator metres
+    private readonly double _latC, _lonC; // extent centre in degrees (for the sun's position)
     private readonly double _k;         // Mercator -> true ground metres at the centre latitude
 
     private double[,] _elevations = new double[Grid, Grid];
@@ -65,13 +66,19 @@ public partial class Map3DWindow : Window
     private bool _flagsReady;           // gates flag builds until the terrain heights exist
     private const int MaxPointFlags = 2000; // safety cap on interval flags (protects very long tracks)
 
+    // Solar lighting: seeded from a track timestamp; the slider then moves the sun across that day (UTC).
+    private DateTime? _sunSeed;         // seed instant (UTC); null when no point carries a time
+    private DateTime _sunDate;          // day used for the sun's declination
+    private bool _sunReady;             // gates the slider handler until the seed is applied
+
     /// <summary>Raised whenever the camera moves so the 2D map can show where the viewer stands.</summary>
     public event Action<double, double, double>? ViewpointChanged; // lat, lon, heading°
 
     public Map3DWindow(
         (double MinX, double MinY, double MaxX, double MaxY) extent,
         int zoom, int maxZoom, ITileSource tiles, IReadOnlyList<Track> tracks, SrtmService srtm,
-        Track? gradientTrack = null, GradientMetric gradientMetric = GradientMetric.None, bool paceMode = false)
+        Track? gradientTrack = null, GradientMetric gradientMetric = GradientMetric.None, bool paceMode = false,
+        DateTime? sunTime = null)
     {
         InitializeComponent();
         _extent = extent;
@@ -82,11 +89,12 @@ public partial class Map3DWindow : Window
         _gradientTrack = gradientTrack;
         _gradientMetric = gradientMetric;
         _paceMode = paceMode;
+        _sunSeed = sunTime;
 
         _cx = (extent.MinX + extent.MaxX) / 2;
         _cy = (extent.MinY + extent.MaxY) / 2;
-        var (_, latC) = SphericalMercator.ToLonLat(_cx, _cy);
-        _k = Math.Cos(latC * Math.PI / 180.0); // Mercator metres are stretched by 1/cos(lat)
+        (_lonC, _latC) = SphericalMercator.ToLonLat(_cx, _cy);
+        _k = Math.Cos(_latC * Math.PI / 180.0); // Mercator metres are stretched by 1/cos(lat)
 
         _sizeX = (extent.MaxX - extent.MinX) * _k;
         _sizeY = (extent.MaxY - extent.MinY) * _k;
@@ -97,6 +105,7 @@ public partial class Map3DWindow : Window
         _zoom = z;
         TerrainVisual.Content = _terrain;
         PopulateDetailLevels();
+        InitSun();
 
         // Google-Earth-style mouse mapping: left drag pans (Helix), right drag orbits/tilts and the
         // wheel zooms (both handled here so the behaviour is identical to the on-screen buttons).
@@ -932,5 +941,93 @@ public partial class Map3DWindow : Window
         var (mx, my) = SphericalMercator.FromLonLat(lon, lat);
         Cam.Position = new Point3D((mx - _cx) * _k, (my - _cy) * _k, Cam.Position.Z);
         UpdateHeading();
+    }
+
+    // ======================= solar lighting =======================
+
+    /// <summary>Seeds the sun from a track timestamp (the selected point, else the first timed point). With no
+    /// timestamps anywhere the feature can't be positioned, so the checkbox is disabled.</summary>
+    private void InitSun()
+    {
+        _sunSeed ??= _tracks.SelectMany(t => t.Points).Select(p => p.Time).FirstOrDefault(t => t.HasValue);
+
+        if (_sunSeed is DateTime seed)
+        {
+            // GPX timestamps are UTC; treat an unspecified kind as such, and fold a local one to UTC.
+            DateTime utc = seed.Kind == DateTimeKind.Local
+                ? seed.ToUniversalTime()
+                : DateTime.SpecifyKind(seed, DateTimeKind.Utc);
+            _sunDate = utc.Date;
+            _sunReady = false;
+            SunSlider.Value = utc.TimeOfDay.TotalHours;
+            _sunReady = true;
+            ChkSun.IsEnabled = true;
+        }
+        else
+        {
+            ChkSun.IsEnabled = false;
+            ChkSun.IsChecked = false;
+        }
+        ApplySun();
+    }
+
+    private void Sun_Toggled(object sender, RoutedEventArgs e) => ApplySun();
+
+    private void SunTime_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_sunReady) ApplySun();
+    }
+
+    /// <summary>Applies the current sun state: either the even default daylight, or a directional light aimed
+    /// from the sun's real position at the chosen UTC time, with a dim ambient fill so shadowed slopes still
+    /// read. Slopes facing the sun brighten and those turned away darken, so relief shows as sun/shade.</summary>
+    private void ApplySun()
+    {
+        bool on = ChkSun.IsChecked == true && ChkSun.IsEnabled;
+        if (SunSlider is not null) SunSlider.IsEnabled = on;
+
+        if (!on)
+        {
+            SolarLightVisual.Content = null;
+            SetDefaultSun(true);
+            SunLabel.Text = _sunSeed is null ? "no time in track" : "off";
+            return;
+        }
+
+        SetDefaultSun(false); // the computed sun replaces the flat daylight
+
+        DateTime utc = DateTime.SpecifyKind(_sunDate + TimeSpan.FromHours(SunSlider.Value), DateTimeKind.Utc);
+        var (azDeg, altDeg) = SolarPosition.AltAz(utc, _latC, _lonC);
+
+        double az = azDeg * Math.PI / 180.0, alt = altDeg * Math.PI / 180.0;
+        // Direction the light travels (from the sun toward the ground) in scene axes: +X east, +Y north, +Z up.
+        var dir = new Vector3D(-Math.Cos(alt) * Math.Sin(az), -Math.Cos(alt) * Math.Cos(az), -Math.Sin(alt));
+
+        var group = new Model3DGroup();
+        if (altDeg > 0)
+        {
+            // Full white overhead, fading toward the horizon but never to nothing at dawn/dusk.
+            double lit = 0.20 + 0.80 * Math.Sin(alt);
+            byte g = (byte)Math.Clamp(lit * 255, 0, 255);
+            group.Children.Add(new DirectionalLight(Color.FromRgb(g, g, g), dir));
+            group.Children.Add(new AmbientLight(Color.FromRgb(96, 96, 96))); // lift the shaded faces
+        }
+        else
+        {
+            group.Children.Add(new AmbientLight(Color.FromRgb(38, 44, 66))); // night: dim, cool
+        }
+        group.Freeze();
+        SolarLightVisual.Content = group;
+
+        string alten = altDeg > 0 ? $"alt {altDeg:0}°" : "below horizon";
+        SunLabel.Text = $"{utc:HH:mm} UTC · {alten}";
+    }
+
+    /// <summary>Adds or removes the flat default daylight (a Visual3D, so it can't just be hidden).</summary>
+    private void SetDefaultSun(bool present)
+    {
+        bool inTree = Viewport.Children.Contains(DefaultSun);
+        if (present && !inTree) Viewport.Children.Insert(0, DefaultSun);
+        else if (!present && inTree) Viewport.Children.Remove(DefaultSun);
     }
 }

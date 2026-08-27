@@ -26,7 +26,9 @@
                                    Position="0,-1000,600" LookDirection="0,1000,-400" UpDirection="0,0,1"/>
             </h:HelixViewport3D.Camera>
 
-            <h:SunLight/>
+            <!-- Even daylight by default; swapped out for SolarLightVisual when solar lighting is on. -->
+            <h:SunLight x:Name="DefaultSun"/>
+            <ModelVisual3D x:Name="SolarLightVisual"/>
             <ModelVisual3D x:Name="TerrainVisual"/>
         </h:HelixViewport3D>
 
@@ -185,6 +187,19 @@
                             <ComboBoxItem Content="5 km" Tag="5000"/>
                             <ComboBoxItem Content="10 km" Tag="10000"/>
                         </ComboBox>
+                    </StackPanel>
+
+                    <!-- Solar lighting: shade the terrain by the sun's real position at the track's time -->
+                    <StackPanel Orientation="Horizontal" Margin="0,7,0,0">
+                        <CheckBox x:Name="ChkSun" Content="☀ Sun" FontSize="11" VerticalAlignment="Center"
+                                  Checked="Sun_Toggled" Unchecked="Sun_Toggled"
+                                  ToolTip="Light the terrain from the sun's real position at the selected time (needs point timestamps)"/>
+                        <Slider x:Name="SunSlider" Width="118" Minimum="0" Maximum="24" Value="12"
+                                TickFrequency="0.25" IsSnapToTickEnabled="True" IsEnabled="False"
+                                ValueChanged="SunTime_Changed" VerticalAlignment="Center" Margin="8,0,0,0"
+                                ToolTip="Time of day (UTC) — drag to move the sun across the sky"/>
+                        <TextBlock x:Name="SunLabel" Text="—" Width="126" Margin="6,0,0,0"
+                                   VerticalAlignment="Center" FontSize="10" Foreground="#555"/>
                     </StackPanel>
                 </StackPanel>
             </StackPanel>
