@@ -15,6 +15,18 @@ public static class SessionStore
     {
         public int Active { get; set; } = -1;
         public List<Track> Tracks { get; set; } = new();
+
+        /// <summary>Last map viewport (Web-Mercator centre + resolution), restored on start-up so the
+        /// view stays where the user left it. Null in sessions written before this was tracked.</summary>
+        public Viewport? Map { get; set; }
+    }
+
+    /// <summary>A saved map viewport: centre in Web-Mercator metres and the metres-per-pixel resolution.</summary>
+    public class Viewport
+    {
+        public double CenterX { get; set; }
+        public double CenterY { get; set; }
+        public double Resolution { get; set; }
     }
 
     private static readonly JsonSerializerOptions Opts = new() { WriteIndented = false };

@@ -561,4 +561,12 @@ public class MapManager : IDisposable
         var v = _ctrl.Map.Navigator.Viewport;
         return (v.CenterX, v.CenterY, v.Resolution);
     }
+
+    /// <summary>Restores a saved viewport (centre + resolution) instantly, without animation. Ignores a
+    /// non-positive resolution, which marks a viewport that was never rendered.</summary>
+    public void RestoreViewport(double centerX, double centerY, double resolution)
+    {
+        if (resolution <= 0) return;
+        _ctrl.Map.Navigator.CenterOnAndZoomTo(new MPoint(centerX, centerY), resolution);
+    }
 }

@@ -58,8 +58,14 @@ public partial class MainWindow : Window
         _mapMgr = new MapManager(MapCtrl, _settings.BaseMap, _settings.ParamsFor(_settings.BaseMap).TileCacheLimitMB);
         Closed += (_, _) =>
         {
+            var (cx, cy, res) = _mapMgr.ViewportState();
             _mapMgr.Dispose(); // checkpoint/close the MBTiles cache cleanly
-            SessionStore.Save(new SessionStore.Session { Active = ActiveIndex(), Tracks = _doc.Tracks });
+            SessionStore.Save(new SessionStore.Session
+            {
+                Active = ActiveIndex(),
+                Tracks = _doc.Tracks,
+                Map = res > 0 ? new SessionStore.Viewport { CenterX = cx, CenterY = cy, Resolution = res } : null,
+            });
         };
         BuildColorCombo();
         BuildRouteCombo();
@@ -98,7 +104,12 @@ public partial class MainWindow : Window
             ? _doc.Tracks[session.Active]
             : _doc.Tracks.FirstOrDefault();
         RefreshAll();
-        _mapMgr.ZoomToTracks(_doc.Tracks);
+        // Stay on the map piece the user last viewed; only fall back to framing the tracks when no
+        // viewport was saved (e.g. a session file from before this was tracked).
+        if (session.Map is { Resolution: > 0 } vp)
+            _mapMgr.RestoreViewport(vp.CenterX, vp.CenterY, vp.Resolution);
+        else
+            _mapMgr.ZoomToTracks(_doc.Tracks);
         StatusInfo.Text = $"Restored {_doc.Tracks.Count} track(s) from last session";
     }
 
