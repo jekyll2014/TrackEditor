@@ -1051,7 +1051,13 @@ public partial class Map3DWindow : Window
         _sunCts = cts;
         try { await RebakeShadowsAsync(cts.Token); }
         catch (OperationCanceledException) { /* superseded by a newer time — drop it */ }
-        finally { cts.Dispose(); } // safe now: this render has finished awaiting
+        finally
+        {
+            // Clear the field before disposing so a later Cancel() can't hit a disposed source; a newer
+            // render may already have replaced it, in which case leave that one in place.
+            if (ReferenceEquals(_sunCts, cts)) _sunCts = null;
+            cts.Dispose();
+        }
     }
 
     /// <summary>Applies the current sun state: either the even default daylight, or a directional light aimed
