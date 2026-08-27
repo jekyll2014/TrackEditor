@@ -13,6 +13,10 @@ public enum BaseMapProvider { OpenStreetMap, OpenTopoMap, CyclOSM, EsriWorldImag
 /// <see cref="None"/> (the default) keeps the track's own solid colour.</summary>
 public enum GradientMetric { None, Speed, Inclination, Pavement }
 
+/// <summary>Unit the inclination (grade) legend is labelled in: rise/run as a percentage, or the
+/// equivalent slope angle in degrees.</summary>
+public enum GradeUnit { Percent, Degree }
+
 /// <summary>Per-map parameters, configured in Settings. The <em>active</em> map itself is chosen on the
 /// main-window toolbar, not here — these settings only tune a given map, they don't switch to it.</summary>
 public class MapParams
@@ -96,6 +100,10 @@ public class AppSettings
     /// per-segment metric. <see cref="GradientMetric.None"/> (default) leaves every track its own solid colour;
     /// only the selected track is ever gradient-coloured, and only when a metric other than None is chosen.</summary>
     public GradientMetric GradientMetric { get; set; } = GradientMetric.None;
+
+    /// <summary>Unit the inclination gradient legend is labelled in (percent grade or slope degrees).
+    /// Only affects the legend labels — the colouring itself is unchanged.</summary>
+    public GradeUnit GradeUnit { get; set; } = GradeUnit.Percent;
 
     // Which values each mileage flag shows; enabled fields stack on their own line in the flag.
     // Distance defaults on (the classic mileage marker); the rest are opt-in.

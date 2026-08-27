@@ -34,13 +34,14 @@ public static class TrackGradient
     /// represented (Speed without timestamps, Inclination without elevations, or metric None). Pavement is
     /// always representable — segments with no surface information default to "unpaved".
     /// </summary>
-    public static TrackGradientResult? Compute(IReadOnlyList<TrackPoint> pts, GradientMetric metric, bool paceMode = false)
+    public static TrackGradientResult? Compute(IReadOnlyList<TrackPoint> pts, GradientMetric metric,
+        bool paceMode = false, GradeUnit gradeUnit = GradeUnit.Percent)
     {
         if (metric == GradientMetric.None || pts.Count < 2) return null;
         return metric switch
         {
             GradientMetric.Speed => Speed(pts, paceMode),
-            GradientMetric.Inclination => Inclination(pts),
+            GradientMetric.Inclination => Inclination(pts, gradeUnit),
             GradientMetric.Pavement => Pavement(pts),
             _ => null,
         };
@@ -72,7 +73,7 @@ public static class TrackGradient
         };
     }
 
-    private static TrackGradientResult? Inclination(IReadOnlyList<TrackPoint> pts)
+    private static TrackGradientResult? Inclination(IReadOnlyList<TrackPoint> pts, GradeUnit gradeUnit)
     {
         var cum = GeoMath.CumulativeDistancesM(pts);
         int n = pts.Count - 1;
@@ -97,8 +98,8 @@ public static class TrackGradient
         {
             Goodness = g,
             Caption = "Grade",
-            HighLabel = FormatGrade(lo),                  // red end = descending
-            LowLabel = FormatGrade(hi),                   // blue end = climbing
+            HighLabel = FormatGrade(lo, gradeUnit),       // red end = descending
+            LowLabel = FormatGrade(hi, gradeUnit),        // blue end = climbing
         };
     }
 
@@ -224,5 +225,13 @@ public static class TrackGradient
         : paceMode ? $"{PaceFormat.MinPerKm(mps)} /km"
         : $"{mps * 3.6:F1} km/h";
 
-    private static string FormatGrade(double pct) => double.IsNaN(pct) ? "—" : $"{pct:+0.#;-0.#;0}%";
+    /// <summary>Formats a rise/run grade percentage in the chosen unit: the percentage itself, or the
+    /// equivalent slope angle (arctan) in degrees.</summary>
+    private static string FormatGrade(double pct, GradeUnit unit)
+    {
+        if (double.IsNaN(pct)) return "—";
+        return unit == GradeUnit.Degree
+            ? $"{System.Math.Atan(pct / 100.0) * (180.0 / System.Math.PI):+0.#;-0.#;0}°"
+            : $"{pct:+0.#;-0.#;0}%";
+    }
 }

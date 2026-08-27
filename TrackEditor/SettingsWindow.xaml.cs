@@ -70,6 +70,8 @@ public partial class SettingsWindow : Window
 
         ChkPaceMode.IsChecked = Result.PaceMode;
 
+        CmbGradeUnit.SelectedIndex = Result.GradeUnit == GradeUnit.Degree ? 1 : 0;
+
         UpdateEnabledState();
     }
 
@@ -183,6 +185,7 @@ public partial class SettingsWindow : Window
         Result.ColTemp = ChkColTemp.IsChecked == true;
         Result.ColSurface = ChkColSurface.IsChecked == true;
         Result.PaceMode = ChkPaceMode.IsChecked == true;
+        Result.GradeUnit = CmbGradeUnit.SelectedIndex == 1 ? GradeUnit.Degree : GradeUnit.Percent;
         DialogResult = true;
     }
 }

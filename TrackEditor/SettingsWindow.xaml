@@ -99,6 +99,15 @@
                     <StackPanel Margin="6">
                         <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11"
                                    Text="The gradient metric is chosen from the Gradient dropdown on the toolbar. It draws the selected track with a red (fast / easy / descending) → blue (slow / hard / climbing) gradient along its segments; other tracks keep their own colour. Segments with no pavement information are treated as unpaved."/>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <TextBlock Text="Grade unit:" VerticalAlignment="Center" Width="120"/>
+                            <ComboBox x:Name="CmbGradeUnit" Width="180">
+                                <ComboBoxItem Content="Percent (%)"/>
+                                <ComboBoxItem Content="Degrees (°)"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11" Margin="0,4,0,0"
+                                   Text="Unit for the inclination legend labels (the slope shown at the red and blue ends). Percent is rise/run; degrees is the equivalent slope angle."/>
                     </StackPanel>
                 </GroupBox>
 

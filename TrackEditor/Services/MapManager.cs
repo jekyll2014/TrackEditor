@@ -47,6 +47,7 @@ public class MapManager : IDisposable
     // Gradient colouring applies to the active track only (see SetGradient).
     private GradientMetric _gradientMetric = GradientMetric.None;
     private bool _paceMode;
+    private GradeUnit _gradeUnit = GradeUnit.Percent;
 
     /// <summary>The gradient computed for the active track on the last <see cref="RebuildTracks"/>, or null when
     /// gradient colouring is off or the metric can't be represented. The caller reads it to draw the legend.</summary>
@@ -262,11 +263,13 @@ public class MapManager : IDisposable
     }
 
     /// <summary>Selects the metric that gradient-colours the active track (None = each track keeps its own solid
-    /// colour). Does not redraw; the caller rebuilds. <paramref name="paceMode"/> only affects the legend labels.</summary>
-    public void SetGradient(GradientMetric metric, bool paceMode)
+    /// colour). Does not redraw; the caller rebuilds. <paramref name="paceMode"/> and <paramref name="gradeUnit"/>
+    /// only affect the legend labels.</summary>
+    public void SetGradient(GradientMetric metric, bool paceMode, GradeUnit gradeUnit = GradeUnit.Percent)
     {
         _gradientMetric = metric;
         _paceMode = paceMode;
+        _gradeUnit = gradeUnit;
     }
 
     /// <summary>Rebuilds line + vertex + start/end marker features for all visible tracks.</summary>
@@ -291,7 +294,7 @@ public class MapManager : IDisposable
                 // The active track is gradient-coloured when a metric is chosen and it can be computed;
                 // every other track (and the active one under "None") keeps its own solid colour.
                 TrackGradientResult? grad = isActive && _gradientMetric != GradientMetric.None
-                    ? TrackGradient.Compute(track.Points, _gradientMetric, _paceMode)
+                    ? TrackGradient.Compute(track.Points, _gradientMetric, _paceMode, _gradeUnit)
                     : null;
 
                 if (grad is not null)

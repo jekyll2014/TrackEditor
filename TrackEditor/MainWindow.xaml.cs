@@ -128,7 +128,7 @@ public partial class MainWindow : Window
         _online.OpenTopoDataset = _settings.OpenTopoDataset;
         _mapMgr.SetBaseMap(_settings.BaseMap, _settings.ParamsFor(_settings.BaseMap).TileCacheLimitMB);
         _mapMgr.SetWaypointColors(_settings.WaypointLabelBackHex, _settings.WaypointLabelTextHex);
-        _mapMgr.SetGradient(_settings.GradientMetric, _settings.PaceMode);
+        _mapMgr.SetGradient(_settings.GradientMetric, _settings.PaceMode, _settings.GradeUnit);
         _router.Profile = _settings.RoutingProfile;
         SyncRouteCombo();
         SyncBaseMapCombo();
@@ -181,7 +181,7 @@ public partial class MainWindow : Window
         var metric = (GradientMetric)GradientCombo.SelectedIndex;
         if (metric == _settings.GradientMetric) return;
         _settings.GradientMetric = metric;
-        _mapMgr.SetGradient(metric, _settings.PaceMode);
+        _mapMgr.SetGradient(metric, _settings.PaceMode, _settings.GradeUnit);
         _mapMgr.RebuildTracks(_doc.Tracks, _active);
         UpdateGradientLegend();
         _settings.Save();
