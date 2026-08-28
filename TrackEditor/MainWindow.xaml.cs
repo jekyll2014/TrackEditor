@@ -445,6 +445,7 @@ public partial class MainWindow : Window
         MenuAnalyzeRace.IsEnabled = HasTracks;
         MenuApplyRaceModel.IsEnabled = HasActive && (_active?.Points.Count ?? 0) >= 2;
         MenuEvalSurface.IsEnabled = HasActive && (_active?.Points.Count ?? 0) >= 2;
+        MenuExportPacing.IsEnabled = _active is not null && PacingStrategyIo.HasTiming(_active.Points);
     }
 
     private async void EvalSurface_Click(object sender, RoutedEventArgs e)
@@ -506,6 +507,30 @@ public partial class MainWindow : Window
         RefreshAll();
         _mapMgr.ZoomToTracks(new[] { predicted });
         StatusInfo.Text = $"Added predicted track “{predicted.Name}”";
+    }
+
+    private void ExportPacing_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null || !PacingStrategyIo.HasTiming(_active.Points))
+        {
+            StatusInfo.Text = "Export pacing: select a track that has recorded times";
+            return;
+        }
+        var dlg = new SaveFileDialog
+        {
+            Filter = "CSV|*.csv",
+            FileName = string.Join("_", _active.Name.Split(System.IO.Path.GetInvalidFileNameChars())) + "_pacing.csv",
+        };
+        if (dlg.ShowDialog() != true) return;
+        try
+        {
+            PacingStrategyIo.Save(dlg.FileName, _active);
+            StatusInfo.Text = $"Exported pacing strategy {dlg.FileName}";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Export pacing strategy", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void Merge_Click(object sender, RoutedEventArgs e)
@@ -1272,6 +1297,7 @@ public partial class MainWindow : Window
     private void CtxEvalSurface_Click(object sender, RoutedEventArgs e) { if (SelectCtxTrack(sender)) EvalSurface_Click(sender, e); }
     private void CtxMerge_Click(object sender, RoutedEventArgs e) { if (SelectCtxTrack(sender)) Merge_Click(sender, e); }
     private void CtxApplyRaceModel_Click(object sender, RoutedEventArgs e) { if (SelectCtxTrack(sender)) ApplyRaceModel_Click(sender, e); }
+    private void CtxExportPacing_Click(object sender, RoutedEventArgs e) { if (SelectCtxTrack(sender)) ExportPacing_Click(sender, e); }
 
     private void TracksList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
@@ -1434,11 +1460,16 @@ public partial class MainWindow : Window
     {
         if (sender is not ContextMenu menu) return;
         bool armed = _joinFrom is not null;
+        var track = (menu.PlacementTarget as FrameworkElement)?.DataContext as TrackRow;
+        bool canPace = track is not null && PacingStrategyIo.HasTiming(track.T.Points);
         foreach (var obj in menu.Items)
         {
             if (obj is not MenuItem mi) continue; // separators
-            bool isJoin = (mi.Tag as string) == "join";
+            string? tag = mi.Tag as string;
+            bool isJoin = tag == "join";
             mi.IsEnabled = !armed || isJoin;
+            // Pacing export needs recorded times, so also gate it on the clicked track.
+            if (tag == "pacing" && !armed) mi.IsEnabled = canPace;
             if (isJoin) mi.Header = armed ? "Cancel Join" : "Join Tracks…";
         }
     }

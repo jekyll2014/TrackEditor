@@ -127,6 +127,9 @@
                 <Separator/>
                 <MenuItem x:Name="MenuEvalSurface" Header="_Evaluate Surface (routing)…" Click="EvalSurface_Click"
                           ToolTip="Fill each point's surface type from OSM via routing, where the route hugs the track"/>
+                <Separator/>
+                <MenuItem x:Name="MenuExportPacing" Header="Export Pacing _Strategy (CSV)…" Click="ExportPacing_Click"
+                          ToolTip="Export the active track's per-kilometre pace as a CSV (needs recorded times)"/>
             </MenuItem>
             <MenuItem Header="T_ools">
                 <MenuItem Header="_Settings…" Click="Settings_Click"/>
@@ -328,6 +331,7 @@
                                         <MenuItem Header="Track Information…" Click="CtxTrackInfo_Click"/>
                                         <Separator/>
                                         <MenuItem Header="Save Track as GPX…" Click="CtxSaveTrack_Click"/>
+                                        <MenuItem Header="Export Pacing Strategy (CSV)…" Click="CtxExportPacing_Click" Tag="pacing"/>
                                         <MenuItem Header="Reverse Track" Click="CtxReverse_Click"/>
                                         <MenuItem Header="Join Tracks…" Click="CtxJoin_Click" Tag="join"
                                                   ToolTip="Pick this track, then a second one, to combine both into a new track"/>
