@@ -69,6 +69,8 @@ public static class TcxIo
             p.Hr = hr;
         if (int.TryParse(ChildValue(tp, "Cadence"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int cad))
             p.Cad = cad;
+        string? surface = DescendantValue(tp, "surface");
+        if (!string.IsNullOrWhiteSpace(surface)) p.Surface = surface;
         return p;
     }
 
@@ -141,6 +143,8 @@ public static class TcxIo
             tp.Add(new XElement(Tc + "HeartRateBpm", new XElement(Tc + "Value", hr)));
         if (p.Cad is int cad)
             tp.Add(new XElement(Tc + "Cadence", cad));
+        if (!string.IsNullOrWhiteSpace(p.Surface))
+            tp.Add(new XElement(Tc + "Extensions", new XElement("surface", p.Surface)));
         return tp;
     }
 
