@@ -1553,6 +1553,30 @@ public partial class MainWindow : Window
             await ReevaluateElevationAsync(row.T);
     }
 
+    /// <summary>Track menu: clear all elevation values on the active track.</summary>
+    private void ResetElevation_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is not null) ResetElevationData(_active);
+    }
+
+    /// <summary>Context menu: clear all elevation values on the right-clicked track.</summary>
+    private void CtxResetElevation_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is TrackRow row)
+            ResetElevationData(row.T);
+    }
+
+    private void ResetElevationData(Track track)
+    {
+        _doc.Snapshot(ActiveIndex());
+        int cleared = 0;
+        foreach (var p in track.Points)
+            if (p.Ele is not null) { p.Ele = null; cleared++; }
+        track.ElevationEstimated = false;
+        RefreshAll();
+        StatusInfo.Text = $"Elevation reset — {cleared} of {track.Points.Count} points cleared";
+    }
+
     /// <summary>Manual re-evaluation: recompute all heights (SRTM overwrites, online fills the rest).</summary>
     private async Task ReevaluateElevationAsync(Track track)
     {
