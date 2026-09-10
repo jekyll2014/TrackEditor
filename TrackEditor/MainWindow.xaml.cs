@@ -2128,18 +2128,21 @@ public partial class MainWindow : Window
                 "Open Shared Track", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
-        string? input = InputDialog.Ask(this, "Open Shared Track", "Shared track ID (GUID):", "");
+        string? input = InputDialog.Ask(this, "Open Shared Track", "Shared track ID or URL:", "");
         if (input is null) return;
-        if (!Guid.TryParse(input, out var id))
+        var id = input.Trim().Split('/', StringSplitOptions.RemoveEmptyEntries)
+                      .Select(s => Guid.TryParse(s, out var g) ? g : (Guid?)null)
+                      .FirstOrDefault(g => g.HasValue);
+        if (id is null)
         {
-            MessageBox.Show(this, "Invalid ID format.", "Open Shared Track",
+            MessageBox.Show(this, "No valid GUID found in input.", "Open Shared Track",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
         StatusInfo.Text = "Loading shared track…";
         try
         {
-            var dto = await _serverSvc.GetSharedAsync(id);
+            var dto = await _serverSvc.GetSharedAsync(id.Value);
             if (dto is null)
             {
                 StatusInfo.Text = "";
