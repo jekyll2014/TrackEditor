@@ -175,6 +175,18 @@
                     </StackPanel>
                 </GroupBox>
 
+                <!-- ===== Server storage ===== -->
+                <GroupBox Header="Server storage" Margin="0,10,0,0">
+                    <StackPanel Margin="6">
+                        <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11" Margin="0,0,0,6"
+                                   Text="Base URL of the TrackEditor server (e.g. https://myserver.example.com). Leave blank to disable server features. Log in via Server › Login…."/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Server URL:" VerticalAlignment="Center" Width="120"/>
+                            <TextBox x:Name="TxtServerUrl" Width="260" VerticalContentAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+                </GroupBox>
+
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

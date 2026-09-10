@@ -431,8 +431,18 @@ public partial class MainWindow : Window
         // The dialog hosts the "Clear tile cache" button but the cache lives on the map manager.
         dlg.ClearTileCacheRequested += (_, _) => ClearTileCache_Click(dlg, new RoutedEventArgs());
         if (dlg.ShowDialog() != true) return;
+        string? prevServerUrl = _settings.ServerUrl;
         _settings = dlg.Result;
+        // If the server URL changed, the old tokens belong to a different server — clear them.
+        if (_settings.ServerUrl != prevServerUrl)
+        {
+            _settings.ServerAccessToken = null;
+            _settings.ServerRefreshToken = null;
+            _settings.ServerTokenExpires = 0;
+            _settings.ServerEmail = null;
+        }
         _settings.Save();
+        _serverSvc = new ServerTrackService(_settings);
         ApplySettings();
         RefreshAll();
         StatusInfo.Text = "Settings updated";

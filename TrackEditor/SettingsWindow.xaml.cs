@@ -72,6 +72,8 @@ public partial class SettingsWindow : Window
 
         CmbGradeUnit.SelectedIndex = Result.GradeUnit == GradeUnit.Degree ? 1 : 0;
 
+        TxtServerUrl.Text = Result.ServerUrl ?? "";
+
         UpdateEnabledState();
     }
 
@@ -186,6 +188,7 @@ public partial class SettingsWindow : Window
         Result.ColSurface = ChkColSurface.IsChecked == true;
         Result.PaceMode = ChkPaceMode.IsChecked == true;
         Result.GradeUnit = CmbGradeUnit.SelectedIndex == 1 ? GradeUnit.Degree : GradeUnit.Percent;
+        Result.ServerUrl = string.IsNullOrWhiteSpace(TxtServerUrl.Text) ? null : TxtServerUrl.Text.Trim();
         DialogResult = true;
     }
 }
