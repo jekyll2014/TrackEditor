@@ -136,6 +136,15 @@
             <MenuItem Header="T_ools">
                 <MenuItem Header="_Settings…" Click="Settings_Click"/>
             </MenuItem>
+            <MenuItem Header="S_erver" SubmenuOpened="ServerMenu_Opened">
+                <MenuItem x:Name="MenuServerLogin" Header="_Login…" Click="ServerLogin_Click"/>
+                <MenuItem x:Name="MenuServerLogout" Header="Log_out" Click="ServerLogout_Click" Visibility="Collapsed"/>
+                <Separator/>
+                <MenuItem x:Name="MenuServerTracks" Header="Manage _Tracks…" Click="ServerTracks_Click" IsEnabled="False"/>
+                <Separator/>
+                <MenuItem Header="Open _Shared Track by ID…" Click="OpenSharedTrack_Click"
+                          ToolTip="Load a track someone shared with you using its public GUID"/>
+            </MenuItem>
             <MenuItem Header="_Help">
                 <MenuItem Header="_User Guide" Click="Help_Click" InputGestureText="F1"/>
                 <Separator/>

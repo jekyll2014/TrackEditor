@@ -34,6 +34,7 @@ public partial class MainWindow : Window
     private readonly SrtmService _srtm = new();
     private readonly OnlineElevationService _online = new();
     private AppSettings _settings = new();
+    private ServerTrackService _serverSvc = null!;
     private bool _elevBusy;
     private readonly MapManager _mapMgr;
     private readonly DispatcherTimer _viewportTimer;
@@ -56,6 +57,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _settings = AppSettings.Load();
+        _serverSvc = new ServerTrackService(_settings);
         _mapMgr = new MapManager(MapCtrl, _settings.BaseMap, _settings.ParamsFor(_settings.BaseMap).TileCacheLimitMB);
         Closed += (_, _) =>
         {
@@ -1942,6 +1944,84 @@ public partial class MainWindow : Window
             pts.Add(new TrackPoint { Lat = a.Lat + (b.Lat - a.Lat) * t, Lon = a.Lon + (b.Lon - a.Lon) * t });
         }
         return pts;
+    }
+
+    // ======================= server track management =======================
+
+    private void ServerMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        bool auth = _serverSvc.IsAuthenticated;
+        MenuServerLogin.Visibility = auth ? Visibility.Collapsed : Visibility.Visible;
+        MenuServerLogout.Header = auth ? $"Log_out ({_serverSvc.Email})" : "Logout";
+        MenuServerLogout.Visibility = auth ? Visibility.Visible : Visibility.Collapsed;
+        MenuServerTracks.IsEnabled = auth;
+    }
+
+    private async void ServerLogin_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new ServerLoginWindow(_serverSvc, _settings.ServerUrl, _settings.ServerEmail) { Owner = this };
+        if (dlg.ShowDialog() == true)
+            StatusInfo.Text = $"Signed in to server as {_serverSvc.Email}";
+    }
+
+    private void ServerLogout_Click(object sender, RoutedEventArgs e)
+    {
+        _serverSvc.Logout();
+        StatusInfo.Text = "Signed out from server.";
+    }
+
+    private void ServerTracks_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new ServerTracksWindow(_serverSvc, _active) { Owner = this };
+        dlg.ShowDialog();
+        if (dlg.LoadedTrack is { } track)
+            AddLoadedTracks(new[] { track });
+    }
+
+    private async void OpenSharedTrack_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrEmpty(_settings.ServerUrl))
+        {
+            MessageBox.Show(this, "Set the server URL by logging in first (Server › Login…).",
+                "Open Shared Track", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        string? input = InputDialog.Ask(this, "Open Shared Track", "Shared track ID (GUID):", "");
+        if (input is null) return;
+        if (!Guid.TryParse(input, out var id))
+        {
+            MessageBox.Show(this, "Invalid ID format.", "Open Shared Track",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        StatusInfo.Text = "Loading shared track…";
+        try
+        {
+            var dto = await _serverSvc.GetSharedAsync(id);
+            if (dto is null)
+            {
+                StatusInfo.Text = "";
+                MessageBox.Show(this, "Track not found or not shared.", "Open Shared Track",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            var track = _serverSvc.JsonToTrack(dto.TrackJson);
+            if (track is null)
+            {
+                StatusInfo.Text = "";
+                MessageBox.Show(this, "Could not parse track data.", "Open Shared Track",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            track.ServerId = dto.Id;
+            AddLoadedTracks(new[] { track });
+        }
+        catch (Exception ex)
+        {
+            StatusInfo.Text = "";
+            MessageBox.Show(this, ex.Message, "Open Shared Track",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 }
 

@@ -44,6 +44,9 @@ public class Track
     /// <summary>Path this track was loaded from / last saved to; null for a drawn (never-saved) track.</summary>
     public string? SourceFile { get; set; }
 
+    /// <summary>Server track ID when linked to a server-stored copy. Null for local-only tracks.</summary>
+    public Guid? ServerId { get; set; }
+
     /// <summary>Content hash captured at load/save; used to detect user modifications. Null = never baselined.</summary>
     public string? BaselineHash { get; set; }
 

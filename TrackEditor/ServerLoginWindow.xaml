@@ -1,0 +1,29 @@
+<Window x:Class="TrackEditor.ServerLoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Server Login" Height="310" Width="440"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize" ShowInTaskbar="False"
+        Loaded="Window_Loaded">
+    <DockPanel Margin="14">
+
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button x:Name="BtnOk" Content="Login" Width="90" IsDefault="True" Click="Ok_Click"/>
+            <Button Content="Cancel" Width="80" Margin="8,0,0,0" IsCancel="True"/>
+        </StackPanel>
+
+        <StackPanel>
+            <TextBlock Text="Server URL:" Margin="0,0,0,3"/>
+            <TextBox x:Name="TxtUrl" Margin="0,0,0,10"
+                     ToolTip="Base address of the TrackEditor server, e.g. https://myserver.example.com"/>
+            <TextBlock Text="Email:" Margin="0,0,0,3"/>
+            <TextBox x:Name="TxtEmail" Margin="0,0,0,10"/>
+            <TextBlock Text="Password:" Margin="0,0,0,3"/>
+            <PasswordBox x:Name="TxtPassword" Margin="0,0,0,10"/>
+            <CheckBox x:Name="ChkRegister" Content="Create a new account (register)"
+                      Margin="0,0,0,10" Checked="Register_Changed" Unchecked="Register_Changed"/>
+            <TextBlock x:Name="TxtError" Foreground="#CC0000" TextWrapping="Wrap" FontSize="11"/>
+        </StackPanel>
+
+    </DockPanel>
+</Window>

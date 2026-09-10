@@ -118,6 +118,13 @@ public class AppSettings
     /// recent race). All fields optional; predictions degrade gracefully to whatever is supplied.</summary>
     public AthleteProfile Profile { get; set; } = new();
 
+    // Server storage account (access/refresh tokens persisted locally; cleared on logout)
+    public string? ServerUrl { get; set; }
+    public string? ServerEmail { get; set; }
+    public string? ServerAccessToken { get; set; }
+    public string? ServerRefreshToken { get; set; }
+    public long ServerTokenExpires { get; set; }
+
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         WriteIndented = true,
