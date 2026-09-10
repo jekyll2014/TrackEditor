@@ -81,6 +81,7 @@ public partial class MainWindow : Window
 
         RefreshPlots();
         UpdateCommandStates(); // start with the right things greyed out (no track loaded yet)
+        RefreshServerTab();
 
         // Restore the last session, then open anything passed on the command line — local paths and
         // http(s) URLs alike, so a track can be opened straight from a link.
@@ -1964,28 +1965,159 @@ public partial class MainWindow : Window
         MenuServerLogin.Visibility = auth ? Visibility.Collapsed : Visibility.Visible;
         MenuServerLogout.Header = auth ? $"Log_out ({_serverSvc.Email})" : "Logout";
         MenuServerLogout.Visibility = auth ? Visibility.Visible : Visibility.Collapsed;
-        MenuServerTracks.IsEnabled = auth;
     }
 
     private async void ServerLogin_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new ServerLoginWindow(_serverSvc, _settings.ServerUrl, _settings.ServerEmail) { Owner = this };
         if (dlg.ShowDialog() == true)
+        {
             StatusInfo.Text = $"Signed in to server as {_serverSvc.Email}";
+            RefreshServerTab();
+            await LoadServerTracksAsync();
+        }
     }
 
     private void ServerLogout_Click(object sender, RoutedEventArgs e)
     {
         _serverSvc.Logout();
+        RefreshServerTab();
         StatusInfo.Text = "Signed out from server.";
     }
 
-    private void ServerTracks_Click(object sender, RoutedEventArgs e)
+    // ── server tab ───────────────────────────────────────────────────────────
+
+    private List<ServerTrackRow> _serverTracks = new();
+    private bool _serverLoading;
+
+    /// <summary>Updates static UI state (status text, button enables) from current auth state.</summary>
+    private void RefreshServerTab()
     {
-        var dlg = new ServerTracksWindow(_serverSvc, _active) { Owner = this };
-        dlg.ShowDialog();
-        if (dlg.LoadedTrack is { } track)
+        bool auth = _serverSvc.IsAuthenticated;
+        ServerStatusTxt.Text = auth ? $"Signed in as {_serverSvc.Email}" : "Not signed in — Server › Login…";
+        ServerRefreshBtn.IsEnabled = auth;
+        ServerSaveNewBtn.IsEnabled = auth && _active is not null;
+        if (!auth)
+        {
+            _serverTracks.Clear();
+            ServerTracksList.ItemsSource = null;
+            ServerActionsPanel.Visibility = Visibility.Collapsed;
+            ServerTabItem.Header = "Server";
+        }
+    }
+
+    private async Task LoadServerTracksAsync()
+    {
+        if (!_serverSvc.IsAuthenticated || _serverLoading) return;
+        _serverLoading = true;
+        ServerRefreshBtn.IsEnabled = false;
+        ServerStatusTxt.Text = "Loading…";
+        try
+        {
+            var list = await _serverSvc.ListAsync();
+            _serverTracks = list.Select(t => new ServerTrackRow
+            {
+                Id = t.Id, Name = t.Name, IsShared = t.IsShared, UpdatedUtc = t.UpdatedUtc,
+            }).ToList();
+            ServerTracksList.ItemsSource = _serverTracks;
+            ServerTabItem.Header = _serverTracks.Count > 0 ? $"Server ({_serverTracks.Count})" : "Server";
+            ServerStatusTxt.Text = $"Signed in as {_serverSvc.Email}";
+        }
+        catch (Exception ex) { ServerStatusTxt.Text = $"Error: {ex.Message}"; }
+        finally { _serverLoading = false; ServerRefreshBtn.IsEnabled = _serverSvc.IsAuthenticated; }
+    }
+
+    private void LeftTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (LeftTabs.SelectedItem == ServerTabItem && _serverSvc.IsAuthenticated && _serverTracks.Count == 0)
+            _ = LoadServerTracksAsync();
+    }
+
+    private async void ServerRefresh_Click(object sender, RoutedEventArgs e) =>
+        await LoadServerTracksAsync();
+
+    private void ServerTracksList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        bool sel = ServerTracksList.SelectedItem is ServerTrackRow;
+        ServerActionsPanel.Visibility = sel ? Visibility.Visible : Visibility.Collapsed;
+        ServerSaveNewBtn.IsEnabled = _serverSvc.IsAuthenticated && _active is not null;
+    }
+
+    private void ServerTracksList_DoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (ServerTracksList.SelectedItem is ServerTrackRow) ServerOpen_Click(sender, e);
+    }
+
+    private async void ServerOpen_Click(object sender, RoutedEventArgs e)
+    {
+        if (ServerTracksList.SelectedItem is not ServerTrackRow row) return;
+        ServerStatusTxt.Text = "Opening…";
+        try
+        {
+            var dto = await _serverSvc.GetAsync(row.Id);
+            if (dto is null) { ServerStatusTxt.Text = "Track not found."; return; }
+            var track = _serverSvc.JsonToTrack(dto.TrackJson);
+            if (track is null) { ServerStatusTxt.Text = "Could not parse track data."; return; }
+            track.ServerId = dto.Id;
             AddLoadedTracks(new[] { track });
+            ServerStatusTxt.Text = $"Signed in as {_serverSvc.Email}";
+        }
+        catch (Exception ex) { ServerStatusTxt.Text = $"Error: {ex.Message}"; }
+    }
+
+    private async void ServerSaveNew_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is null) return;
+        ServerStatusTxt.Text = "Saving…";
+        try
+        {
+            var dto = await _serverSvc.CreateAsync(_active.Name, _serverSvc.TrackToJson(_active));
+            if (dto is null) { ServerStatusTxt.Text = "Save failed."; return; }
+            _active.ServerId = dto.Id;
+            await LoadServerTracksAsync();
+        }
+        catch (Exception ex) { ServerStatusTxt.Text = $"Error: {ex.Message}"; }
+    }
+
+    private async void ServerUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        if (ServerTracksList.SelectedItem is not ServerTrackRow row || _active is null) return;
+        var confirm = MessageBox.Show(this,
+            $"Overwrite server track \"{row.Name}\" with \"{_active.Name}\"?",
+            "Update Track", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (confirm != MessageBoxResult.Yes) return;
+        ServerStatusTxt.Text = "Updating…";
+        try
+        {
+            await _serverSvc.UpdateAsync(row.Id, _active.Name, _serverSvc.TrackToJson(_active));
+            _active.ServerId = row.Id;
+            await LoadServerTracksAsync();
+        }
+        catch (Exception ex) { ServerStatusTxt.Text = $"Error: {ex.Message}"; }
+    }
+
+    private async void ServerDelete_Click(object sender, RoutedEventArgs e)
+    {
+        if (ServerTracksList.SelectedItem is not ServerTrackRow row) return;
+        if (MessageBox.Show(this, $"Delete \"{row.Name}\" from the server?",
+                "Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+        ServerStatusTxt.Text = "Deleting…";
+        try { await _serverSvc.DeleteAsync(row.Id); await LoadServerTracksAsync(); }
+        catch (Exception ex) { ServerStatusTxt.Text = $"Error: {ex.Message}"; }
+    }
+
+    private async void ServerShare_Click(object sender, RoutedEventArgs e)
+    {
+        if (ServerTracksList.SelectedItem is not ServerTrackRow row) return;
+        try { await _serverSvc.ShareAsync(row.Id); await LoadServerTracksAsync(); }
+        catch (Exception ex) { ServerStatusTxt.Text = $"Error: {ex.Message}"; }
+    }
+
+    private async void ServerUnshare_Click(object sender, RoutedEventArgs e)
+    {
+        if (ServerTracksList.SelectedItem is not ServerTrackRow row) return;
+        try { await _serverSvc.UnshareAsync(row.Id); await LoadServerTracksAsync(); }
+        catch (Exception ex) { ServerStatusTxt.Text = $"Error: {ex.Message}"; }
     }
 
     private async void OpenSharedTrack_Click(object sender, RoutedEventArgs e)
@@ -2033,6 +2165,17 @@ public partial class MainWindow : Window
                 MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
+}
+
+// ======================= server tab row =======================
+
+public class ServerTrackRow
+{
+    public Guid Id { get; init; }
+    public string Name { get; init; } = "";
+    public bool IsShared { get; init; }
+    public DateTime UpdatedUtc { get; init; }
+    public Visibility SharedBadgeVisibility => IsShared ? Visibility.Visible : Visibility.Collapsed;
 }
 
 // ======================= binding rows =======================

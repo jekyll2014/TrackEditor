@@ -140,7 +140,6 @@
                 <MenuItem x:Name="MenuServerLogin" Header="_Login…" Click="ServerLogin_Click"/>
                 <MenuItem x:Name="MenuServerLogout" Header="Log_out" Click="ServerLogout_Click" Visibility="Collapsed"/>
                 <Separator/>
-                <MenuItem x:Name="MenuServerTracks" Header="Manage _Tracks…" Click="ServerTracks_Click" IsEnabled="False"/>
                 <Separator/>
                 <MenuItem Header="Open _Shared Track by ID…" Click="OpenSharedTrack_Click"
                           ToolTip="Load a track someone shared with you using its public GUID"/>
@@ -307,7 +306,8 @@
                     <RowDefinition x:Name="StatsRow" Height="Auto" MinHeight="40"/>
                 </Grid.RowDefinitions>
 
-                <TabControl x:Name="LeftTabs" Grid.Row="0" Margin="6,4,6,0">
+                <TabControl x:Name="LeftTabs" Grid.Row="0" Margin="6,4,6,0"
+                            SelectionChanged="LeftTabs_SelectionChanged">
                 <TabItem Header="Tracks">
                 <DockPanel>
                 <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,4,0,0">
@@ -435,6 +435,64 @@
                     </DataGrid.CellStyle>
                 </DataGrid>
                 </TabItem>
+
+                <TabItem x:Name="ServerTabItem" Header="Server">
+                <DockPanel Margin="0,4,0,0">
+                    <!-- Top: status line + Refresh -->
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                        <Button x:Name="ServerRefreshBtn" DockPanel.Dock="Right" Content="Refresh"
+                                Padding="6,2" IsEnabled="False" Click="ServerRefresh_Click"/>
+                        <TextBlock x:Name="ServerStatusTxt" VerticalAlignment="Center" FontSize="11"
+                                   Foreground="#666" Text="Not signed in — Server › Login…"/>
+                    </DockPanel>
+                    <!-- Bottom: save + selection actions -->
+                    <StackPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                        <Button x:Name="ServerSaveNewBtn" Content="Save active track to server"
+                                IsEnabled="False" Click="ServerSaveNew_Click"
+                                ToolTip="Upload the active editor track as a new server entry"/>
+                        <StackPanel x:Name="ServerActionsPanel" Orientation="Horizontal"
+                                    Margin="0,4,0,0" Visibility="Collapsed">
+                            <Button x:Name="ServerOpenBtn" Content="Open" Padding="6,2" Margin="0,0,4,0"
+                                    Click="ServerOpen_Click" ToolTip="Load selected track into the editor"/>
+                            <Button x:Name="ServerUpdateBtn" Content="Update" Padding="6,2" Margin="0,0,4,0"
+                                    Click="ServerUpdate_Click"
+                                    ToolTip="Overwrite selected server track with the active editor track"/>
+                            <Button x:Name="ServerShareBtn" Content="Share" Padding="6,2" Margin="0,0,4,0"
+                                    Click="ServerShare_Click"/>
+                            <Button x:Name="ServerUnshareBtn" Content="Unshare" Padding="6,2" Margin="0,0,4,0"
+                                    Click="ServerUnshare_Click"/>
+                            <Button x:Name="ServerDeleteBtn" Content="Delete" Padding="6,2"
+                                    Click="ServerDelete_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <!-- Track list -->
+                    <ListBox x:Name="ServerTracksList" Margin="0,0,0,0"
+                             SelectionChanged="ServerTracksList_SelectionChanged"
+                             MouseDoubleClick="ServerTracksList_DoubleClick">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding Name}"
+                                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text=" shared" Foreground="#388E3C"
+                                               FontSize="10" VerticalAlignment="Center"
+                                               Visibility="{Binding SharedBadgeVisibility}"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+                </TabItem>
+
                 </TabControl>
 
                 <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
