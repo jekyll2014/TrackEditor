@@ -14,9 +14,21 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 
+using ShimSkiaSharp;
+
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
 using TrackEditor.Core.Skia;
+
+using SKCanvas = SkiaSharp.SKCanvas;
+using SKColor = SkiaSharp.SKColor;
+using SKImage = SkiaSharp.SKImage;
+using SKPaint = SkiaSharp.SKPaint;
+using SKPaintStyle = SkiaSharp.SKPaintStyle;
+using SKPath = SkiaSharp.SKPath;
+using SKRect = SkiaSharp.SKRect;
+using SKStrokeCap = SkiaSharp.SKStrokeCap;
+using SKStrokeJoin = SkiaSharp.SKStrokeJoin;
 
 namespace TrackEditor;
 
@@ -119,7 +131,7 @@ public partial class Map3DWindow : Window
         PopulateDetailLevels();
 
         _sunTimer = new System.Windows.Threading.DispatcherTimer
-            { Interval = TimeSpan.FromMilliseconds(ShadowRebakeDelayMs) };
+        { Interval = TimeSpan.FromMilliseconds(ShadowRebakeDelayMs) };
         _sunTimer.Tick += async (_, _) => { _sunTimer!.Stop(); await StartShadowRebakeAsync(); };
         InitSun();
 
@@ -276,8 +288,10 @@ public partial class Map3DWindow : Window
             {
                 var (x, y) = SphericalMercator.FromLonLat(t.Points[i].Lon, t.Points[i].Lat);
                 pts[i] = (x, y);
-                if (x < minX) minX = x; if (x > maxX) maxX = x;
-                if (y < minY) minY = y; if (y > maxY) maxY = y;
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
             }
 
             // The gradient track bakes as red→blue runs (matching the 2D map); others stay solid.
@@ -294,7 +308,10 @@ public partial class Map3DWindow : Window
                 Pts = pts,
                 Color = ParseHex(t.ColorHex),
                 Width = (float)Math.Max(2, t.Width),
-                MinX = minX, MaxX = maxX, MinY = minY, MaxY = maxY,
+                MinX = minX,
+                MaxX = maxX,
+                MinY = minY,
+                MaxY = maxY,
                 Runs = runs,
             });
         }
@@ -348,7 +365,16 @@ public partial class Map3DWindow : Window
                 progress?.Report($"Rendering tiles… {done}/{total}");
 
                 byte[]? bytes;
-                try { bytes = await _tiles.GetTileAsync(new TileInfo { Index = new TileIndex(wx, ty, zoom) }); }
+                try
+                {
+                    var info = new TileInfo { Index = new TileIndex(wx, ty, zoom) };
+                    if (_tiles is BruTile.IHttpTileSource httpTiles)
+                        bytes = await httpTiles.GetTileAsync(MapExporter.HttpClient, info, ct);
+                    else if (_tiles is BruTile.ILocalTileSource localTiles)
+                        bytes = await localTiles.GetTileAsync(info);
+                    else
+                        bytes = null;
+                }
                 catch { bytes = null; }
                 if (bytes is null) { blocked++; continue; }
 
@@ -436,12 +462,13 @@ public partial class Map3DWindow : Window
                         StrokeCap = SKStrokeCap.Round,
                         StrokeJoin = SKStrokeJoin.Round,
                     })
-                    using (var casePath = new SKPath())
                     {
+                        using var caseBuilder = new SKPathBuilder();
                         for (int i = 0; i < tr.Pts.Length; i++)
                         {
-                            if (i == 0) casePath.MoveTo(TX(i), TY(i)); else casePath.LineTo(TX(i), TY(i));
+                            if (i == 0) caseBuilder.MoveTo(TX(i), TY(i)); else caseBuilder.LineTo(TX(i), TY(i));
                         }
+                        using var casePath = caseBuilder.Snapshot();
                         canvas.DrawPath(casePath, casePaint);
                     }
 
@@ -456,11 +483,12 @@ public partial class Map3DWindow : Window
                             StrokeCap = SKStrokeCap.Round,
                             StrokeJoin = SKStrokeJoin.Round,
                         };
-                        using var runPath = new SKPath();
+                        using var runBuilder = new SKPathBuilder();
                         for (int i = start; i <= end; i++)
                         {
-                            if (i == start) runPath.MoveTo(TX(i), TY(i)); else runPath.LineTo(TX(i), TY(i));
+                            if (i == start) runBuilder.MoveTo(TX(i), TY(i)); else runBuilder.LineTo(TX(i), TY(i));
                         }
+                        using var runPath = runBuilder.Snapshot();
                         canvas.DrawPath(runPath, runPaint);
                     }
                     continue;
@@ -475,11 +503,12 @@ public partial class Map3DWindow : Window
                     StrokeCap = SKStrokeCap.Round,
                     StrokeJoin = SKStrokeJoin.Round,
                 };
-                using var path = new SKPath();
+                using var pathBuilder = new SKPathBuilder();
                 for (int i = 0; i < tr.Pts.Length; i++)
                 {
-                    if (i == 0) path.MoveTo(TX(i), TY(i)); else path.LineTo(TX(i), TY(i));
+                    if (i == 0) pathBuilder.MoveTo(TX(i), TY(i)); else pathBuilder.LineTo(TX(i), TY(i));
                 }
+                using var path = pathBuilder.Snapshot();
                 canvas.DrawPath(path, paint);
             }
 
@@ -1094,7 +1123,7 @@ public partial class Map3DWindow : Window
 
         SetDefaultSun(false); // the computed sun replaces the flat daylight
 
-        DateTime utc = DateTime.SpecifyKind(_sunDate + TimeSpan.FromHours(SunSlider.Value), DateTimeKind.Utc);
+        DateTime utc = DateTime.SpecifyKind(_sunDate + TimeSpan.FromHours(SunSlider!.Value), DateTimeKind.Utc);
         var (azDeg, altDeg) = SolarPosition.AltAz(utc, _latC, _lonC);
 
         double az = azDeg * Math.PI / 180.0, alt = altDeg * Math.PI / 180.0;
@@ -1142,7 +1171,7 @@ public partial class Map3DWindow : Window
         double[,]? grid = null;
         if (ChkSun.IsChecked == true && ChkSun.IsEnabled)
         {
-            DateTime utc = DateTime.SpecifyKind(_sunDate + TimeSpan.FromHours(SunSlider.Value), DateTimeKind.Utc);
+            DateTime utc = DateTime.SpecifyKind(_sunDate + TimeSpan.FromHours(SunSlider!.Value), DateTimeKind.Utc);
             var (azDeg, altDeg) = SolarPosition.AltAz(utc, _latC, _lonC);
             if (altDeg > 0)
             {
@@ -1271,7 +1300,8 @@ public partial class Map3DWindow : Window
                 layer.SetPixel(sx, sy, new SKColor(0, 0, 0, a));
             }
         }
-        using var paint = new SKPaint { FilterQuality = SKFilterQuality.High, IsAntialias = true };
-        canvas.DrawBitmap(layer, new SKRect(0, 0, px, py), paint);
+        //using var paint = new SKPaint { FilterQuality = SKFilterQuality.High, IsAntialias = true };
+        var sampling = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
+        canvas.DrawBitmap(layer, new SKRect(0, 0, px, py), sampling);
     }
 }

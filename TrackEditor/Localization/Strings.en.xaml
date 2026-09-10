@@ -1,0 +1,462 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- App -->
+    <sys:String x:Key="AppTitle">Track Editor</sys:String>
+
+    <!-- Common buttons -->
+    <sys:String x:Key="BtnOk">OK</sys:String>
+    <sys:String x:Key="BtnCancel">Cancel</sys:String>
+    <sys:String x:Key="BtnClose">Close</sys:String>
+    <sys:String x:Key="BtnBrowse">Browse…</sys:String>
+    <sys:String x:Key="BtnRefresh">Refresh</sys:String>
+    <sys:String x:Key="BtnDelete">Delete</sys:String>
+    <sys:String x:Key="BtnUpdate">Update</sys:String>
+    <sys:String x:Key="BtnShare">Share</sys:String>
+    <sys:String x:Key="BtnUnshare">Unshare</sys:String>
+
+    <!-- File menu -->
+    <sys:String x:Key="MenuFile">_File</sys:String>
+    <sys:String x:Key="MenuOpenFile">_Open GPX/KML/KMZ…</sys:String>
+    <sys:String x:Key="MenuOpenUrl">Open from _URL…</sys:String>
+    <sys:String x:Key="MenuSaveActive">_Save Active Track as GPX…</sys:String>
+    <sys:String x:Key="MenuSaveAll">Save A_ll Tracks as GPX…</sys:String>
+    <sys:String x:Key="Menu3DView">_3D View of Current Map…</sys:String>
+    <sys:String x:Key="MenuExportMap">_Export Map Image…</sys:String>
+    <sys:String x:Key="MenuExit">E_xit</sys:String>
+
+    <!-- Edit menu -->
+    <sys:String x:Key="MenuEdit">_Edit</sys:String>
+    <sys:String x:Key="MenuUndo">_Undo</sys:String>
+    <sys:String x:Key="MenuRedo">_Redo</sys:String>
+    <sys:String x:Key="MenuCopyPoints">_Copy Points</sys:String>
+    <sys:String x:Key="MenuPastePoints">_Paste Points After Selected</sys:String>
+    <sys:String x:Key="MenuDeletePoints">_Delete Selected Points</sys:String>
+
+    <!-- Track menu -->
+    <sys:String x:Key="MenuTrackTop">_Track</sys:String>
+    <sys:String x:Key="MenuNewTrack">_New Empty Track (draw mode)</sys:String>
+    <sys:String x:Key="MenuDeleteLast">Delete _Last Point</sys:String>
+    <sys:String x:Key="MenuSplit">_Split at Selected Point</sys:String>
+    <sys:String x:Key="MenuCrop">_Crop to Selected Range</sys:String>
+    <sys:String x:Key="MenuDeleteRange">_Delete Selected Range</sys:String>
+    <sys:String x:Key="MenuSimplify">Si_mplify…</sys:String>
+    <sys:String x:Key="MenuReverse">_Reverse Track</sys:String>
+    <sys:String x:Key="MenuJoin">_Join Tracks…</sys:String>
+    <sys:String x:Key="MenuMerge">_Merge Tracks…</sys:String>
+    <sys:String x:Key="MenuApplyEle">Apply _Elevation to Track (SRTM / Online)</sys:String>
+    <sys:String x:Key="MenuResetEle">Reset Elevation _Data</sys:String>
+    <sys:String x:Key="MenuZoomTrack">_Zoom to Track</sys:String>
+    <sys:String x:Key="MenuRemoveTrack">Delete _track</sys:String>
+
+    <!-- Mode menu -->
+    <sys:String x:Key="MenuMode">_Mode</sys:String>
+    <sys:String x:Key="MenuModeView">_View</sys:String>
+    <sys:String x:Key="MenuModeEdit">_Edit (draw / move / insert)</sys:String>
+    <sys:String x:Key="MenuModeMeasure">Meas_ure</sys:String>
+
+    <!-- View menu -->
+    <sys:String x:Key="MenuView">_View</sys:String>
+    <sys:String x:Key="MenuShowFlags">Show _Mileage Flags</sys:String>
+    <sys:String x:Key="MenuFlagContent">Mileage Flag _Content</sys:String>
+    <sys:String x:Key="MenuFlagDist">_Distance</sys:String>
+    <sys:String x:Key="MenuFlagTime">_Time</sys:String>
+    <sys:String x:Key="MenuFlagEle">_Elevation (altitude)</sys:String>
+    <sys:String x:Key="MenuFlagGain">Height _gain (ascent)</sys:String>
+    <sys:String x:Key="MenuAltProfile">_Altitude on Profile</sys:String>
+    <sys:String x:Key="MenuSpeedProfile">_Speed on Profile</sys:String>
+    <sys:String x:Key="MenuPointsColumns">Points List _Columns</sys:String>
+    <sys:String x:Key="MenuColWaypoint">⚑ Waypoint</sys:String>
+    <sys:String x:Key="MenuColLat">Lat</sys:String>
+    <sys:String x:Key="MenuColLon">Lon</sys:String>
+    <sys:String x:Key="MenuColEle">Ele, m</sys:String>
+    <sys:String x:Key="MenuColTime">Time</sys:String>
+    <sys:String x:Key="MenuColDist">Km</sys:String>
+    <sys:String x:Key="MenuColHr">HR</sys:String>
+    <sys:String x:Key="MenuColCad">Cadence</sys:String>
+    <sys:String x:Key="MenuColTemp">Temperature (°C)</sys:String>
+    <sys:String x:Key="MenuColSurface">Surface</sys:String>
+
+    <!-- Race menu -->
+    <sys:String x:Key="MenuRace">_Race</sys:String>
+    <sys:String x:Key="MenuAnalyzeRace">_Analyze Race Ability…</sys:String>
+    <sys:String x:Key="MenuApplyRaceModel">A_pply Race Model…</sys:String>
+    <sys:String x:Key="MenuEvalSurface">_Evaluate Surface (routing)…</sys:String>
+    <sys:String x:Key="MenuExportPacing">Export Pacing _Strategy (CSV)…</sys:String>
+
+    <!-- Tools / Server / Help menus -->
+    <sys:String x:Key="MenuTools">T_ools</sys:String>
+    <sys:String x:Key="MenuSettings">_Settings…</sys:String>
+    <sys:String x:Key="MenuServer">S_erver</sys:String>
+    <sys:String x:Key="MenuServerLogin">_Login…</sys:String>
+    <sys:String x:Key="MenuServerLogout">Log_out</sys:String>
+    <sys:String x:Key="MenuOpenShared">Open _Shared Track by ID…</sys:String>
+    <sys:String x:Key="MenuHelp">_Help</sys:String>
+    <sys:String x:Key="MenuUserGuide">_User Guide</sys:String>
+    <sys:String x:Key="MenuAbout">_About TrackEditor…</sys:String>
+
+    <!-- Toolbar -->
+    <sys:String x:Key="BtnOpen">Open</sys:String>
+    <sys:String x:Key="BtnSave">Save</sys:String>
+    <sys:String x:Key="BtnNewTrack">New track</sys:String>
+    <sys:String x:Key="BtnUndo">Undo</sys:String>
+    <sys:String x:Key="BtnRedo">Redo</sys:String>
+    <sys:String x:Key="BtnModeView">View</sys:String>
+    <sys:String x:Key="BtnModeEdit">Edit</sys:String>
+    <sys:String x:Key="BtnModeMeasure">Measure</sys:String>
+    <sys:String x:Key="Btn3DView">3D View</sys:String>
+    <sys:String x:Key="BtnMyLocation">My Location</sys:String>
+    <sys:String x:Key="BtnFlags">Flags</sys:String>
+    <sys:String x:Key="LblMap">Map:</sys:String>
+    <sys:String x:Key="LblRoute">Route:</sys:String>
+    <sys:String x:Key="LblGradient">Gradient:</sys:String>
+
+    <!-- Gradient combo -->
+    <sys:String x:Key="GradOff">Off</sys:String>
+    <sys:String x:Key="GradSpeed">Speed</sys:String>
+    <sys:String x:Key="GradInclination">Inclination</sys:String>
+    <sys:String x:Key="GradPavement">Pavement</sys:String>
+
+    <!-- Flag dropdown -->
+    <sys:String x:Key="FlagDist">Distance</sys:String>
+    <sys:String x:Key="FlagTime">Time</sys:String>
+    <sys:String x:Key="FlagEle">Elevation (altitude)</sys:String>
+    <sys:String x:Key="FlagGain">Height gain (ascent)</sys:String>
+
+    <!-- Status bar -->
+    <sys:String x:Key="StatusInitial">Open a GPX/KML/KMZ file to start</sys:String>
+
+    <!-- Left panel tabs -->
+    <sys:String x:Key="TabTracks">Tracks</sys:String>
+    <sys:String x:Key="TabPoints">Points</sys:String>
+    <sys:String x:Key="TabServer">Server</sys:String>
+
+    <!-- Tracks tab -->
+    <sys:String x:Key="LblColor">Color:</sys:String>
+    <sys:String x:Key="LblWidth">Width:</sys:String>
+
+    <!-- Track context menu -->
+    <sys:String x:Key="CtxRename">Rename…</sys:String>
+    <sys:String x:Key="CtxTrackInfo">Track Information…</sys:String>
+    <sys:String x:Key="CtxSaveTrack">Save Track as GPX…</sys:String>
+    <sys:String x:Key="CtxExportPacing">Export Pacing Strategy (CSV)…</sys:String>
+    <sys:String x:Key="CtxReverse">Reverse Track</sys:String>
+    <sys:String x:Key="CtxJoin">Join Tracks…</sys:String>
+    <sys:String x:Key="CtxMerge">Merge Tracks…</sys:String>
+    <sys:String x:Key="CtxSimplify">Simplify…</sys:String>
+    <sys:String x:Key="CtxReevalEle">Re-evaluate Elevation (SRTM / Online)</sys:String>
+    <sys:String x:Key="CtxResetEle">Reset Elevation Data</sys:String>
+    <sys:String x:Key="CtxEvalSurface">Evaluate Surface (routing)…</sys:String>
+    <sys:String x:Key="CtxApplyRaceModel">Apply Race Model…</sys:String>
+    <sys:String x:Key="CtxZoomTrack">Zoom to Track</sys:String>
+    <sys:String x:Key="CtxDeleteTrack">Delete track</sys:String>
+
+    <!-- Points context menu -->
+    <sys:String x:Key="CtxCopyPoints">Copy Points</sys:String>
+    <sys:String x:Key="CtxPastePoints">Paste Points After Selected</sys:String>
+    <sys:String x:Key="CtxDeletePts">Delete Selected Points</sys:String>
+    <sys:String x:Key="CtxSplitPoint">Split at Selected Point</sys:String>
+    <sys:String x:Key="CtxCropRange">Crop to Selected Range</sys:String>
+    <sys:String x:Key="CtxSetWaypoint">Set Waypoint Name…</sys:String>
+    <sys:String x:Key="CtxRemoveWaypoint">Remove Waypoint</sys:String>
+    <sys:String x:Key="CtxCenterPoint">Center Point in Map</sys:String>
+
+    <!-- DataGrid column headers -->
+    <sys:String x:Key="ColHdrWaypoint">⚑ Waypoint</sys:String>
+    <sys:String x:Key="ColHdrLat">Lat</sys:String>
+    <sys:String x:Key="ColHdrLon">Lon</sys:String>
+    <sys:String x:Key="ColHdrEle">Ele, m</sys:String>
+    <sys:String x:Key="ColHdrTime">Time</sys:String>
+    <sys:String x:Key="ColHdrDist">Km</sys:String>
+    <sys:String x:Key="ColHdrHr">HR</sys:String>
+    <sys:String x:Key="ColHdrCad">Cad</sys:String>
+    <sys:String x:Key="ColHdrTemp">°C</sys:String>
+    <sys:String x:Key="ColHdrSurface">Surface</sys:String>
+
+    <!-- Server tab -->
+    <sys:String x:Key="SrvNotSignedIn">Not signed in — Server › Login…</sys:String>
+    <sys:String x:Key="SrvSaveNew">Save active track to server</sys:String>
+    <sys:String x:Key="SrvSharedBadge"> shared</sys:String>
+
+    <!-- Map context menu -->
+    <sys:String x:Key="MapFitAll">Fit All Tracks</sys:String>
+    <sys:String x:Key="MapZoomActive">Zoom to Active Track</sys:String>
+    <sys:String x:Key="MapModeMenu">Mode</sys:String>
+    <sys:String x:Key="MapModeView">View</sys:String>
+    <sys:String x:Key="MapModeEdit">Edit (draw / move / insert)</sys:String>
+    <sys:String x:Key="MapModeMeasure">Measure</sys:String>
+    <sys:String x:Key="MapNewTrack">New Track</sys:String>
+    <sys:String x:Key="MapDeletePts">Delete Selected Points</sys:String>
+    <sys:String x:Key="MapResetMeasure">Reset Measurement</sys:String>
+    <sys:String x:Key="Map3DView">3D View of Current Map…</sys:String>
+    <sys:String x:Key="MapExportMap">Export Map Image…</sys:String>
+
+    <!-- Statistics panels -->
+    <sys:String x:Key="PnlStatistics">Statistics</sys:String>
+    <sys:String x:Key="PnlSelStats">Selection statistics</sys:String>
+    <sys:String x:Key="PnlMeasurement">Measurement</sys:String>
+    <sys:String x:Key="LblSelect2Plus">Select 2+ points</sys:String>
+    <sys:String x:Key="LblClickMeasure">Click points on the map to measure</sys:String>
+
+    <!-- Profile checkboxes -->
+    <sys:String x:Key="LblProfile">Profile:</sys:String>
+    <sys:String x:Key="ChkAltitude">Altitude</sys:String>
+    <sys:String x:Key="ChkSpeed">Speed</sys:String>
+    <sys:String x:Key="ChkHr">HR</sys:String>
+    <sys:String x:Key="ChkCadence">Cadence</sys:String>
+    <sys:String x:Key="ChkTemp">Temp</sys:String>
+
+    <!-- Settings window -->
+    <sys:String x:Key="SettingsTitle">Settings</sys:String>
+    <sys:String x:Key="GrpBaseMap">Base map parameters</sys:String>
+    <sys:String x:Key="DescBaseMap">The active map is chosen from the Map selector on the toolbar. Here you set parameters for a particular map — pick the map, then adjust its values.</sys:String>
+    <sys:String x:Key="LblConfigureMap">Configure map:</sys:String>
+    <sys:String x:Key="LblTileCacheLimit">Tile cache limit:</sys:String>
+    <sys:String x:Key="LblTileCacheSuffix">MB for this map  (0 = no limit)</sys:String>
+    <sys:String x:Key="BtnClearCache">Clear tile cache…</sys:String>
+    <sys:String x:Key="GrpWaypointLabels">Waypoint labels (map &amp; profile)</sys:String>
+    <sys:String x:Key="LblBackground">Background:</sys:String>
+    <sys:String x:Key="LblText">Text:</sys:String>
+    <sys:String x:Key="LblColorExample">e.g. #6A1B9A</sys:String>
+    <sys:String x:Key="WpPreviewLabel">Waypoint</sys:String>
+    <sys:String x:Key="GrpPointsColumns">Points list columns</sys:String>
+    <sys:String x:Key="DescPointsColumns">Choose which columns the points list shows (the index column is always shown).</sys:String>
+    <sys:String x:Key="ChkColWaypoint">⚑ Waypoint</sys:String>
+    <sys:String x:Key="ChkColLat">Lat</sys:String>
+    <sys:String x:Key="ChkColLon">Lon</sys:String>
+    <sys:String x:Key="ChkColEle">Ele, m</sys:String>
+    <sys:String x:Key="ChkColTime">Time</sys:String>
+    <sys:String x:Key="ChkColDist">Km</sys:String>
+    <sys:String x:Key="ChkColHr">HR</sys:String>
+    <sys:String x:Key="ChkColCad">Cadence</sys:String>
+    <sys:String x:Key="ChkColTemp">Temperature (°C)</sys:String>
+    <sys:String x:Key="ChkColSurface">Surface</sys:String>
+    <sys:String x:Key="GrpStatistics">Statistics</sys:String>
+    <sys:String x:Key="ChkPaceMode">Show speed as pace (min/km) instead of km/h</sys:String>
+    <sys:String x:Key="GrpGradient">Gradient colouring (active track)</sys:String>
+    <sys:String x:Key="DescGradient">The gradient metric is chosen from the Gradient dropdown on the toolbar. It draws the selected track with a red (fast / easy / descending) → blue (slow / hard / climbing) gradient along its segments; other tracks keep their own colour. Segments with no pavement information are treated as unpaved.</sys:String>
+    <sys:String x:Key="LblGradeUnit">Grade unit:</sys:String>
+    <sys:String x:Key="GradePercent">Percent (%)</sys:String>
+    <sys:String x:Key="GradeDegree">Degrees (°)</sys:String>
+    <sys:String x:Key="DescGradeUnit">Unit for the inclination legend labels (the slope shown at the red and blue ends). Percent is rise/run; degrees is the equivalent slope angle.</sys:String>
+    <sys:String x:Key="GrpAutoRoute">Auto-route (drawing)</sys:String>
+    <sys:String x:Key="ChkRouteSimplify">Simplify routed legs</sys:String>
+    <sys:String x:Key="LblTolerance">Tolerance:</sys:String>
+    <sys:String x:Key="LblToleranceSuffix">metres  (larger = fewer points)</sys:String>
+    <sys:String x:Key="DescAutoRoute">Auto-route on/off and the routing profile are chosen from the Route dropdown on the toolbar. Routing uses the public BRouter service (brouter.de) — no API key. When a route can't be found the new point is joined with a straight segment.</sys:String>
+    <sys:String x:Key="LblElevationSources">Elevation sources</sys:String>
+    <sys:String x:Key="ChkSrtm">SRTM .hgt tiles (local, offline)</sys:String>
+    <sys:String x:Key="LblSrtmFolder">Folder containing .hgt tiles (e.g. N54E025.hgt):</sys:String>
+    <sys:String x:Key="ChkSrtmAuto">Download missing tiles automatically</sys:String>
+    <sys:String x:Key="ChkOnline">Online elevation service (fallback for missing points)</sys:String>
+    <sys:String x:Key="LblProvider">Provider:</sys:String>
+    <sys:String x:Key="LblDataset">OpenTopoData dataset:</sys:String>
+    <sys:String x:Key="DescOnline">Requires network access. Public services are rate-limited (OpenTopoData: 100 points/request, ~1 request/second, 1000/day). Used only to fill points SRTM could not provide.</sys:String>
+    <sys:String x:Key="GrpServer">Server storage</sys:String>
+    <sys:String x:Key="DescServer">Base URL of the TrackEditor server (e.g. https://myserver.example.com). Leave blank to disable server features. Log in via Server › Login….</sys:String>
+    <sys:String x:Key="LblServerUrl">Server URL:</sys:String>
+    <sys:String x:Key="GrpLanguage">Language</sys:String>
+    <sys:String x:Key="LblAppLanguage">App language:</sys:String>
+
+    <!-- Status bar mode label -->
+    <sys:String x:Key="StatusModePrefix">Mode</sys:String>
+    <!-- Server tab open button (distinct from file-open toolbar BtnOpen) -->
+    <sys:String x:Key="BtnServerOpen">Open</sys:String>
+    <!-- Apply race model: infer surface hint -->
+    <sys:String x:Key="DescInferSurface">Optional: adopt OSM surface where the route hugs the track.</sys:String>
+
+    <!-- Input dialog -->
+    <sys:String x:Key="InputDialogTitle">Input</sys:String>
+    <sys:String x:Key="LblEnterValue">Enter a value:</sys:String>
+
+    <!-- Help window -->
+    <sys:String x:Key="HelpTitle">TrackEditor — User Guide</sys:String>
+
+    <!-- Server login window -->
+    <sys:String x:Key="ServerLoginTitle">Server Login</sys:String>
+    <sys:String x:Key="BtnLogin">Login</sys:String>
+    <sys:String x:Key="LblEmail">Email:</sys:String>
+    <sys:String x:Key="LblPassword">Password:</sys:String>
+    <sys:String x:Key="ChkRegister">Create a new account (register)</sys:String>
+
+    <!-- Track info window -->
+    <sys:String x:Key="TrackInfoTitle">Track Information</sys:String>
+
+    <!-- Export map window -->
+    <sys:String x:Key="ExportMapTitle">Export Map Image</sys:String>
+    <sys:String x:Key="DescExportMap">Save the current map view as a PNG image.</sys:String>
+    <sys:String x:Key="LblDetail">Detail (map scale):</sys:String>
+    <sys:String x:Key="BtnExport">Export…</sys:String>
+
+    <!-- Merge tracks window -->
+    <sys:String x:Key="MergeTracksTitle">Merge Tracks</sys:String>
+    <sys:String x:Key="DescMergeTracks">Fuse a second recording of the same route into the base track.</sys:String>
+    <sys:String x:Key="LblMergeWith">Merge with:</sys:String>
+    <sys:String x:Key="LblAlignBy">Align points by:</sys:String>
+    <sys:String x:Key="MergeAlignAuto">Auto (timestamp if both share a clock, else distance)</sys:String>
+    <sys:String x:Key="MergeAlignTimestamp">Timestamp</sys:String>
+    <sys:String x:Key="MergeAlignDistance">Distance (nearest point on the other line)</sys:String>
+    <sys:String x:Key="LblGeometry">Geometry:</sys:String>
+    <sys:String x:Key="MergeGeoKeep">Keep base line (only pull in extra fields)</sys:String>
+    <sys:String x:Key="MergeGeoAvg">Average both lines where they overlap (de-noise)</sys:String>
+    <sys:String x:Key="LblMatchGate">Match gate (m):</sys:String>
+    <sys:String x:Key="ChkPreferBase">Keep base value when both have a field</sys:String>
+    <sys:String x:Key="BtnMerge">Merge</sys:String>
+    <sys:String x:Key="LblResult">Result</sys:String>
+    <sys:String x:Key="MergeInitialText">Pick a track and press Merge.</sys:String>
+    <sys:String x:Key="BtnAddMerged">Add Merged Track</sys:String>
+
+    <!-- 3D view window -->
+    <sys:String x:Key="Map3DTitle">3D View</sys:String>
+    <sys:String x:Key="Lbl3DRotate">Rotate</sys:String>
+    <sys:String x:Key="Lbl3DTilt">Tilt</sys:String>
+    <sys:String x:Key="Lbl3DZoom">Zoom</sys:String>
+    <sys:String x:Key="Lbl3DVertExag">Vertical exaggeration</sys:String>
+    <sys:String x:Key="Btn3DSave">💾 Save</sys:String>
+    <sys:String x:Key="Lbl3DDetail">Detail</sys:String>
+    <sys:String x:Key="Lbl3DFlags">Flags</sys:String>
+    <sys:String x:Key="Lbl3DWaypoints">Waypoints</sys:String>
+    <sys:String x:Key="Lbl3DTrackPts">Track pts:</sys:String>
+    <sys:String x:Key="Lbl3DSun">☀ Sun</sys:String>
+    <sys:String x:Key="Map3DBuilding">Building terrain…</sys:String>
+    <sys:String x:Key="Map3DNavHint">Left-drag: pan   Right-drag: rotate / tilt   Wheel: zoom</sys:String>
+
+    <!-- Analyze race window -->
+    <sys:String x:Key="AnalyzeRaceTitle">Analyze Race Ability</sys:String>
+    <sys:String x:Key="DescAnalyzeRace">Learn the athlete's speed-vs-terrain behaviour from one or more recorded tracks. Only timestamped tracks can be used; tick the ones to include.</sys:String>
+    <sys:String x:Key="LblRunnerName">Runner name:</sys:String>
+    <sys:String x:Key="ChkUseHr">Use heart rate to calibrate fatigue (when present)</sys:String>
+    <sys:String x:Key="LblFatigueDriver">Fatigue driven by:</sys:String>
+    <sys:String x:Key="FatigueAscent">Cumulative ascent</sys:String>
+    <sys:String x:Key="FatigueElapsed">Elapsed time</sys:String>
+    <sys:String x:Key="FatigueDistance">Distance</sys:String>
+    <sys:String x:Key="ChkNormalize">Normalize each track to its own pace before pooling</sys:String>
+    <sys:String x:Key="BtnAnalyze">Analyze</sys:String>
+    <sys:String x:Key="AnalyzeInitialText">Report appears here after analysis.</sys:String>
+    <sys:String x:Key="BtnExportModel">Export Model…</sys:String>
+
+    <!-- Apply race model window -->
+    <sys:String x:Key="ApplyRaceModelTitle">Apply Race Model</sys:String>
+    <sys:String x:Key="DescApplyRaceModel">Predict the race flow on the selected track by applying a saved race model.</sys:String>
+    <sys:String x:Key="BtnImportModel">Import Model…</sys:String>
+    <sys:String x:Key="BtnCreateProfile">Create Profile…</sys:String>
+    <sys:String x:Key="LblNoModel">No model loaded.</sys:String>
+    <sys:String x:Key="LblStartTime">Start time (HH:mm):</sys:String>
+    <sys:String x:Key="LblSurface">Surface / conditions:</sys:String>
+    <sys:String x:Key="SurfaceModelled">As modelled (1.00×)</sys:String>
+    <sys:String x:Key="SurfaceFast">Fast / dry (1.05×)</sys:String>
+    <sys:String x:Key="SurfaceSoft">Soft / muddy (0.90×)</sys:String>
+    <sys:String x:Key="SurfaceTech">Technical / rocky (0.80×)</sys:String>
+    <sys:String x:Key="BtnInferSurface">Infer surface from routing…</sys:String>
+    <sys:String x:Key="LblEffort">Effort:</sys:String>
+    <sys:String x:Key="EffortEasy">Easy (×0.88)</sys:String>
+    <sys:String x:Key="EffortSteady">Steady (×0.94)</sys:String>
+    <sys:String x:Key="EffortRace">Race (×1.00)</sys:String>
+    <sys:String x:Key="EffortAllOut">All-out (×1.04)</sys:String>
+    <sys:String x:Key="ChkAltitudeDerate">Apply altitude derate above reference elevation</sys:String>
+    <sys:String x:Key="ChkCalibrate">Calibrate pace to my recent race (Riegel)</sys:String>
+    <sys:String x:Key="ChkCap">Cap pace to my sustainable ceiling</sys:String>
+    <sys:String x:Key="ChkLoad">Apply pack / poles climb-cost</sys:String>
+    <sys:String x:Key="ProfileExpander">Athlete profile (saved for next time)</sys:String>
+    <sys:String x:Key="LblMassKg">Mass (kg)</sys:String>
+    <sys:String x:Key="LblAge">Age</sys:String>
+    <sys:String x:Key="LblHrMax">HRmax</sys:String>
+    <sys:String x:Key="LblRestHr">Resting HR</sys:String>
+    <sys:String x:Key="LblLthr">LTHR</sys:String>
+    <sys:String x:Key="LblPackKg">Pack (kg)</sys:String>
+    <sys:String x:Key="LblSex">Sex</sys:String>
+    <sys:String x:Key="SexFemale">Female</sys:String>
+    <sys:String x:Key="SexMale">Male</sys:String>
+    <sys:String x:Key="ChkPoles">Trekking poles</sys:String>
+    <sys:String x:Key="LblRecentRaceKm">Recent race (km)</sys:String>
+    <sys:String x:Key="LblInHms">in (h:mm:ss)</sys:String>
+    <sys:String x:Key="BtnPredict">Predict</sys:String>
+    <sys:String x:Key="LblPrediction">Prediction</sys:String>
+    <sys:String x:Key="ApplyInitialText">Import a model and press Predict.</sys:String>
+    <sys:String x:Key="BtnAddPredicted">Add Predicted Track</sys:String>
+
+    <!-- Statistics formatter labels -->
+    <sys:String x:Key="StatsPoints">Points:</sys:String>
+    <sys:String x:Key="StatsDistance">Distance:</sys:String>
+    <sys:String x:Key="StatsAscent">Ascent:</sys:String>
+    <sys:String x:Key="StatsDescent">Descent:</sys:String>
+    <sys:String x:Key="StatsElevation">Elevation:</sys:String>
+    <sys:String x:Key="StatsAvgIncline">Avg incline:</sys:String>
+    <sys:String x:Key="StatsClimbPerKm">Climb per km:</sys:String>
+    <sys:String x:Key="StatsMaxGrade">Max grade/100m:</sys:String>
+    <sys:String x:Key="StatsSteep">Steep (&gt;15%):</sys:String>
+    <sys:String x:Key="StatsStart">Start:</sys:String>
+    <sys:String x:Key="StatsDuration">Duration:</sys:String>
+    <sys:String x:Key="StatsMovingTime">Moving time:</sys:String>
+    <sys:String x:Key="StatsAvgSpeed">Avg speed:</sys:String>
+    <sys:String x:Key="StatsAvgPace">Avg pace:</sys:String>
+    <sys:String x:Key="StatsMovingAvg">Moving avg:</sys:String>
+    <sys:String x:Key="StatsMovingPace">Moving pace:</sys:String>
+    <sys:String x:Key="StatsMaxSpeed">Max speed:</sys:String>
+    <sys:String x:Key="StatsBestPace">Best pace:</sys:String>
+
+    <!-- Gradient legend labels -->
+    <sys:String x:Key="GradPace">Pace</sys:String>
+    <sys:String x:Key="GradGrade">Grade</sys:String>
+    <sys:String x:Key="GradSurface">Surface</sys:String>
+    <sys:String x:Key="GradEasy">easy</sys:String>
+    <sys:String x:Key="GradHard">hard</sys:String>
+
+    <!-- Measurement panel text -->
+    <sys:String x:Key="MeasPtLegs">{0} points, {1} leg(s)</sys:String>
+    <sys:String x:Key="MeasPathLength">Path length:</sys:String>
+    <sys:String x:Key="MeasStraightLine">Straight line:</sys:String>
+    <sys:String x:Key="MeasBearing">Bearing:</sys:String>
+    <sys:String x:Key="MeasElevRange">Elevation:</sys:String>
+    <sys:String x:Key="MeasAscent">Ascent:</sys:String>
+    <sys:String x:Key="MeasDescent">Descent:</sys:String>
+    <sys:String x:Key="MeasAvgIncline">Avg incline:</sys:String>
+    <sys:String x:Key="MeasNoElevation">(no elevation data)</sys:String>
+
+    <!-- Profile plot labels -->
+    <sys:String x:Key="PlotAltitude">Altitude</sys:String>
+    <sys:String x:Key="PlotAltitudeM">Altitude, m</sys:String>
+    <sys:String x:Key="PlotAltitudeMEst">Altitude, m (est.)</sys:String>
+    <sys:String x:Key="PlotSpeed">Speed</sys:String>
+    <sys:String x:Key="PlotPace">Pace</sys:String>
+    <sys:String x:Key="PlotSpeedKmh">Speed, km/h</sys:String>
+    <sys:String x:Key="PlotPaceMinKm">Pace, min/km</sys:String>
+    <sys:String x:Key="PlotHrBpm">HR, bpm</sys:String>
+    <sys:String x:Key="PlotCadence">Cadence</sys:String>
+    <sys:String x:Key="PlotTempC">Temp, °C</sys:String>
+    <sys:String x:Key="PlotKm">km</sys:String>
+
+    <!-- Analyze race report -->
+    <sys:String x:Key="RaNoSegments">No usable timed, moving segments found in the selected track(s).</sys:String>
+    <sys:String x:Key="RaTracksFitted">Tracks fitted:</sys:String>
+    <sys:String x:Key="RaSegmentsUsed">Segments used:</sys:String>
+    <sys:String x:Key="RaSignals">Signals:</sys:String>
+    <sys:String x:Key="RaFlatSpeed">Flat speed:</sys:String>
+    <sys:String x:Key="RaSpeedByGrade">Speed by grade:</sys:String>
+    <sys:String x:Key="RaFatigue">Fatigue:</sys:String>
+    <sys:String x:Key="RaEndEffortSpeed">end-of-effort speed</sys:String>
+    <sys:String x:Key="RaHrDrift">HR drift:</sys:String>
+    <sys:String x:Key="RaTurnPenalty">Turn penalty:</sys:String>
+    <sys:String x:Key="RaTwistySection">twisty section</sys:String>
+    <sys:String x:Key="RaHintFitted">Fitted from {0} track(s), {1} segments.</sys:String>
+    <sys:String x:Key="RaAnalysisFailed">Analysis failed: </sys:String>
+
+    <!-- Prediction report -->
+    <sys:String x:Key="RpStart">Start:</sys:String>
+    <sys:String x:Key="RpPredictedFinish">Predicted finish:</sys:String>
+    <sys:String x:Key="RpDistance">Distance:</sys:String>
+    <sys:String x:Key="RpAvgMoving">Avg moving:</sys:String>
+    <sys:String x:Key="RpEffort">Effort:</sys:String>
+    <sys:String x:Key="RpCalibrated">Calibrated:</sys:String>
+    <sys:String x:Key="RpToYourRace">to your</sys:String>
+    <sys:String x:Key="RpSustainableCap">Sustainable cap:</sys:String>
+    <sys:String x:Key="RpCeilingFromRace">ceiling from your recent race</sys:String>
+    <sys:String x:Key="RpRiegel">Riegel (flat) ⇒</sys:String>
+    <sys:String x:Key="RpLoad">Load:</sys:String>
+    <sys:String x:Key="RpPolesOnClimbs">poles on climbs</sys:String>
+    <sys:String x:Key="RpAltitudeDerate">Altitude: derate applied above reference elevation</sys:String>
+    <sys:String x:Key="RpWaypointETAs">Waypoint ETAs:</sys:String>
+    <sys:String x:Key="RpHintPredicted">Predicted {0:F1} km in {1}.</sys:String>
+
+</ResourceDictionary>

@@ -10,11 +10,11 @@
 
   <ItemGroup>
     <PackageReference Include="HelixToolkit.Wpf" Version="3.1.2" />
-    <PackageReference Include="Mapsui.Nts" Version="4.1.9" />
-    <PackageReference Include="Mapsui.Wpf" Version="4.1.9" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10" />
-    <PackageReference Include="ScottPlot.WPF" Version="5.0.47" />
-    <PackageReference Include="SkiaSharp" Version="2.88.9" />
+    <PackageReference Include="Mapsui.Nts" Version="5.1.0" />
+    <PackageReference Include="Mapsui.Wpf" Version="5.1.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+    <PackageReference Include="ScottPlot.WPF" Version="5.1.59" />
+    <PackageReference Include="SkiaSharp" Version="4.152.0" />
   </ItemGroup>
 
   <ItemGroup>

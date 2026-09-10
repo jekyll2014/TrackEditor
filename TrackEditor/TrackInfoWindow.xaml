@@ -1,7 +1,7 @@
 <Window x:Class="TrackEditor.TrackInfoWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Track Information" Height="480" Width="460"
+        Title="{DynamicResource TrackInfoTitle}" Height="480" Width="460"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
     <Grid Margin="14">
         <Grid.RowDefinitions>
@@ -14,7 +14,7 @@
                          FontFamily="Consolas" FontSize="12" TextWrapping="NoWrap"/>
             </ScrollViewer>
         </Border>
-        <Button Grid.Row="1" Content="Close" Width="80" HorizontalAlignment="Right" Margin="0,12,0,0"
+        <Button Grid.Row="1" Content="{DynamicResource BtnClose}" Width="80" HorizontalAlignment="Right" Margin="0,12,0,0"
                 IsDefault="True" IsCancel="True" Click="Close_Click"/>
     </Grid>
 </Window>

@@ -4,7 +4,7 @@
         xmlns:mapsui="clr-namespace:Mapsui.UI.Wpf;assembly=Mapsui.UI.Wpf"
         xmlns:sp="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
         xmlns:local="clr-namespace:TrackEditor"
-        Title="Track Editor" Height="900" Width="1500"
+        Title="{DynamicResource AppTitle}" Height="900" Width="1500"
         WindowStartupLocation="CenterScreen"
         PreviewKeyDown="Window_PreviewKeyDown">
     <Window.Resources>
@@ -36,119 +36,119 @@
     </Window.Resources>
     <DockPanel>
         <Menu x:Name="MainMenu" DockPanel.Dock="Top">
-            <MenuItem Header="_File" SubmenuOpened="FileMenu_Opened">
-                <MenuItem Header="_Open GPX/KML/KMZ…" Click="OpenFile_Click" InputGestureText="Ctrl+O"/>
-                <MenuItem Header="Open from _URL…" Click="OpenUrl_Click"
+            <MenuItem Header="{DynamicResource MenuFile}" SubmenuOpened="FileMenu_Opened">
+                <MenuItem Header="{DynamicResource MenuOpenFile}" Click="OpenFile_Click" InputGestureText="Ctrl+O"/>
+                <MenuItem Header="{DynamicResource MenuOpenUrl}" Click="OpenUrl_Click"
                           ToolTip="Download a GPX, KML or KMZ file from a web address"/>
-                <MenuItem x:Name="MenuSaveActive" Header="_Save Active Track as GPX…" Click="SaveActive_Click" InputGestureText="Ctrl+S"/>
-                <MenuItem x:Name="MenuSaveAll" Header="Save A_ll Tracks as GPX…" Click="SaveAll_Click"/>
+                <MenuItem x:Name="MenuSaveActive" Header="{DynamicResource MenuSaveActive}" Click="SaveActive_Click" InputGestureText="Ctrl+S"/>
+                <MenuItem x:Name="MenuSaveAll" Header="{DynamicResource MenuSaveAll}" Click="SaveAll_Click"/>
                 <Separator/>
-                <MenuItem Header="_3D View of Current Map…" Click="Open3D_Click"/>
+                <MenuItem Header="{DynamicResource Menu3DView}" Click="Open3D_Click"/>
                 <Separator/>
-                <MenuItem Header="_Export Map Image…" Click="ExportMap_Click"/>
+                <MenuItem Header="{DynamicResource MenuExportMap}" Click="ExportMap_Click"/>
                 <Separator/>
-                <MenuItem Header="E_xit" Click="Exit_Click"/>
+                <MenuItem Header="{DynamicResource MenuExit}" Click="Exit_Click"/>
             </MenuItem>
-            <MenuItem Header="_Edit" SubmenuOpened="EditMenu_Opened">
-                <MenuItem x:Name="MenuUndo" Header="_Undo" Click="Undo_Click" InputGestureText="Ctrl+Z"/>
-                <MenuItem x:Name="MenuRedo" Header="_Redo" Click="Redo_Click" InputGestureText="Ctrl+Y"/>
+            <MenuItem Header="{DynamicResource MenuEdit}" SubmenuOpened="EditMenu_Opened">
+                <MenuItem x:Name="MenuUndo" Header="{DynamicResource MenuUndo}" Click="Undo_Click" InputGestureText="Ctrl+Z"/>
+                <MenuItem x:Name="MenuRedo" Header="{DynamicResource MenuRedo}" Click="Redo_Click" InputGestureText="Ctrl+Y"/>
                 <Separator/>
-                <MenuItem x:Name="MenuCopy" Header="_Copy Points" Click="CopyPoints_Click" InputGestureText="Ctrl+C"/>
-                <MenuItem x:Name="MenuPaste" Header="_Paste Points After Selected" Click="PastePoints_Click" InputGestureText="Ctrl+V"/>
-                <MenuItem x:Name="MenuDelete" Header="_Delete Selected Points" Click="DeletePoints_Click" InputGestureText="Del"/>
+                <MenuItem x:Name="MenuCopy" Header="{DynamicResource MenuCopyPoints}" Click="CopyPoints_Click" InputGestureText="Ctrl+C"/>
+                <MenuItem x:Name="MenuPaste" Header="{DynamicResource MenuPastePoints}" Click="PastePoints_Click" InputGestureText="Ctrl+V"/>
+                <MenuItem x:Name="MenuDelete" Header="{DynamicResource MenuDeletePoints}" Click="DeletePoints_Click" InputGestureText="Del"/>
             </MenuItem>
-            <MenuItem x:Name="MenuTrackTop" Header="_Track" SubmenuOpened="TrackMenu_Opened">
-                <MenuItem Header="_New Empty Track (draw mode)" Click="NewTrack_Click"/>
-                <MenuItem x:Name="MenuDeleteLast" Header="Delete _Last Point" Click="DeleteLast_Click"/>
+            <MenuItem x:Name="MenuTrackTop" Header="{DynamicResource MenuTrackTop}" SubmenuOpened="TrackMenu_Opened">
+                <MenuItem Header="{DynamicResource MenuNewTrack}" Click="NewTrack_Click"/>
+                <MenuItem x:Name="MenuDeleteLast" Header="{DynamicResource MenuDeleteLast}" Click="DeleteLast_Click"/>
                 <Separator/>
-                <MenuItem x:Name="MenuSplit" Header="_Split at Selected Point" Click="Split_Click"/>
-                <MenuItem x:Name="MenuCrop" Header="_Crop to Selected Range" Click="Crop_Click"/>
-                <MenuItem x:Name="MenuDeleteRange" Header="_Delete Selected Range" Click="DeletePoints_Click"/>
-                <MenuItem x:Name="MenuSimplify" Header="Si_mplify…" Click="Simplify_Click"/>
+                <MenuItem x:Name="MenuSplit" Header="{DynamicResource MenuSplit}" Click="Split_Click"/>
+                <MenuItem x:Name="MenuCrop" Header="{DynamicResource MenuCrop}" Click="Crop_Click"/>
+                <MenuItem x:Name="MenuDeleteRange" Header="{DynamicResource MenuDeleteRange}" Click="DeletePoints_Click"/>
+                <MenuItem x:Name="MenuSimplify" Header="{DynamicResource MenuSimplify}" Click="Simplify_Click"/>
                 <Separator/>
-                <MenuItem x:Name="MenuReverse" Header="_Reverse Track" Click="Reverse_Click"/>
-                <MenuItem x:Name="MenuJoin" Header="_Join Tracks…" Click="Join_Click"
+                <MenuItem x:Name="MenuReverse" Header="{DynamicResource MenuReverse}" Click="Reverse_Click"/>
+                <MenuItem x:Name="MenuJoin" Header="{DynamicResource MenuJoin}" Click="Join_Click"
                           ToolTip="Pick a second track in the list to combine both into a new track"/>
-                <MenuItem x:Name="MenuMerge" Header="_Merge Tracks…" Click="Merge_Click"
+                <MenuItem x:Name="MenuMerge" Header="{DynamicResource MenuMerge}" Click="Merge_Click"
                           ToolTip="Fuse a second recording of the same route into the active track (combine sensor fields, optionally average the line)"/>
-                <MenuItem x:Name="MenuApplyEle" Header="Apply _Elevation to Track (SRTM / Online)" Click="ApplyElevation_Click"/>
-                <MenuItem x:Name="MenuResetEle" Header="Reset Elevation _Data" Click="ResetElevation_Click"
+                <MenuItem x:Name="MenuApplyEle" Header="{DynamicResource MenuApplyEle}" Click="ApplyElevation_Click"/>
+                <MenuItem x:Name="MenuResetEle" Header="{DynamicResource MenuResetEle}" Click="ResetElevation_Click"
                           ToolTip="Clear all elevation values so they can be re-fetched from a different source"/>
                 <Separator/>
-                <MenuItem x:Name="MenuZoomTrack" Header="_Zoom to Track" Click="ZoomToTrack_Click"/>
-                <MenuItem x:Name="MenuRemoveTrack" Header="Delete _track" Click="RemoveTrack_Click"/>
+                <MenuItem x:Name="MenuZoomTrack" Header="{DynamicResource MenuZoomTrack}" Click="ZoomToTrack_Click"/>
+                <MenuItem x:Name="MenuRemoveTrack" Header="{DynamicResource MenuRemoveTrack}" Click="RemoveTrack_Click"/>
             </MenuItem>
-            <MenuItem Header="_Mode">
-                <MenuItem Header="_View" IsCheckable="True"
+            <MenuItem Header="{DynamicResource MenuMode}">
+                <MenuItem Header="{DynamicResource MenuModeView}" IsCheckable="True"
                           IsChecked="{Binding IsChecked, ElementName=ModeView, Mode=TwoWay}"/>
-                <MenuItem Header="_Edit (draw / move / insert)" IsCheckable="True"
+                <MenuItem Header="{DynamicResource MenuModeEdit}" IsCheckable="True"
                           IsChecked="{Binding IsChecked, ElementName=ModeEdit, Mode=TwoWay}"/>
-                <MenuItem Header="Meas_ure" IsCheckable="True"
+                <MenuItem Header="{DynamicResource MenuModeMeasure}" IsCheckable="True"
                           IsChecked="{Binding IsChecked, ElementName=ModeMeasure, Mode=TwoWay}"/>
             </MenuItem>
-            <MenuItem Header="_View">
-                <MenuItem x:Name="MenuFlags" Header="Show _Mileage Flags" IsCheckable="True" Click="FlagsToggle_Click"
+            <MenuItem Header="{DynamicResource MenuView}">
+                <MenuItem x:Name="MenuFlags" Header="{DynamicResource MenuShowFlags}" IsCheckable="True" Click="FlagsToggle_Click"
                           IsEnabled="{Binding IsEnabled, ElementName=FlagsCheck}"/>
-                <MenuItem Header="Mileage Flag _Content"
+                <MenuItem Header="{DynamicResource MenuFlagContent}"
                           ToolTip="Each enabled value appears on its own line in the flag">
-                    <MenuItem x:Name="FlagContentDist" Header="_Distance" IsCheckable="True"
+                    <MenuItem x:Name="FlagContentDist" Header="{DynamicResource MenuFlagDist}" IsCheckable="True"
                               Tag="dist" Click="FlagContentToggle_Click"/>
-                    <MenuItem x:Name="FlagContentTime" Header="_Time" IsCheckable="True"
+                    <MenuItem x:Name="FlagContentTime" Header="{DynamicResource MenuFlagTime}" IsCheckable="True"
                               Tag="time" Click="FlagContentToggle_Click"/>
-                    <MenuItem x:Name="FlagContentEle" Header="_Elevation (altitude)" IsCheckable="True"
+                    <MenuItem x:Name="FlagContentEle" Header="{DynamicResource MenuFlagEle}" IsCheckable="True"
                               Tag="ele" Click="FlagContentToggle_Click"/>
-                    <MenuItem x:Name="FlagContentGain" Header="Height _gain (ascent)" IsCheckable="True"
+                    <MenuItem x:Name="FlagContentGain" Header="{DynamicResource MenuFlagGain}" IsCheckable="True"
                               Tag="gain" Click="FlagContentToggle_Click"/>
                 </MenuItem>
                 <Separator/>
-                <MenuItem Header="_Altitude on Profile" IsCheckable="True"
+                <MenuItem Header="{DynamicResource MenuAltProfile}" IsCheckable="True"
                           IsChecked="{Binding IsChecked, ElementName=ChkAlt, Mode=TwoWay}"
                           IsEnabled="{Binding IsEnabled, ElementName=ChkAlt}"/>
-                <MenuItem Header="_Speed on Profile" IsCheckable="True"
+                <MenuItem Header="{DynamicResource MenuSpeedProfile}" IsCheckable="True"
                           IsChecked="{Binding IsChecked, ElementName=ChkSpeed, Mode=TwoWay}"
                           IsEnabled="{Binding IsEnabled, ElementName=ChkSpeed}"/>
                 <Separator/>
-                <MenuItem Header="Points List _Columns" SubmenuOpened="ColumnsMenu_Opened"
+                <MenuItem Header="{DynamicResource MenuPointsColumns}" SubmenuOpened="ColumnsMenu_Opened"
                           ToolTip="Show or hide columns in the points list (columns with no data are hidden automatically)">
-                    <MenuItem x:Name="ColMnuWaypoint" Header="⚑ Waypoint" IsCheckable="True" Tag="Waypoint" Click="ColumnToggle_Click"/>
-                    <MenuItem x:Name="ColMnuLat" Header="Lat" IsCheckable="True" Tag="Lat" Click="ColumnToggle_Click"/>
-                    <MenuItem x:Name="ColMnuLon" Header="Lon" IsCheckable="True" Tag="Lon" Click="ColumnToggle_Click"/>
-                    <MenuItem x:Name="ColMnuEle" Header="Ele, m" IsCheckable="True" Tag="Ele" Click="ColumnToggle_Click"/>
-                    <MenuItem x:Name="ColMnuTime" Header="Time" IsCheckable="True" Tag="Time" Click="ColumnToggle_Click"/>
-                    <MenuItem x:Name="ColMnuDist" Header="Km" IsCheckable="True" Tag="Dist" Click="ColumnToggle_Click"/>
-                    <MenuItem x:Name="ColMnuHr" Header="HR" IsCheckable="True" Tag="Hr" Click="ColumnToggle_Click"/>
-                    <MenuItem x:Name="ColMnuCad" Header="Cadence" IsCheckable="True" Tag="Cad" Click="ColumnToggle_Click"/>
-                    <MenuItem x:Name="ColMnuTemp" Header="Temperature (°C)" IsCheckable="True" Tag="Temp" Click="ColumnToggle_Click"/>
-                    <MenuItem x:Name="ColMnuSurface" Header="Surface" IsCheckable="True" Tag="Surface" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuWaypoint" Header="{DynamicResource MenuColWaypoint}" IsCheckable="True" Tag="Waypoint" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuLat" Header="{DynamicResource MenuColLat}" IsCheckable="True" Tag="Lat" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuLon" Header="{DynamicResource MenuColLon}" IsCheckable="True" Tag="Lon" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuEle" Header="{DynamicResource MenuColEle}" IsCheckable="True" Tag="Ele" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuTime" Header="{DynamicResource MenuColTime}" IsCheckable="True" Tag="Time" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuDist" Header="{DynamicResource MenuColDist}" IsCheckable="True" Tag="Dist" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuHr" Header="{DynamicResource MenuColHr}" IsCheckable="True" Tag="Hr" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuCad" Header="{DynamicResource MenuColCad}" IsCheckable="True" Tag="Cad" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuTemp" Header="{DynamicResource MenuColTemp}" IsCheckable="True" Tag="Temp" Click="ColumnToggle_Click"/>
+                    <MenuItem x:Name="ColMnuSurface" Header="{DynamicResource MenuColSurface}" IsCheckable="True" Tag="Surface" Click="ColumnToggle_Click"/>
                 </MenuItem>
             </MenuItem>
-            <MenuItem Header="_Race" SubmenuOpened="RaceMenu_Opened">
-                <MenuItem x:Name="MenuAnalyzeRace" Header="_Analyze Race Ability…" Click="AnalyzeRace_Click"
+            <MenuItem Header="{DynamicResource MenuRace}" SubmenuOpened="RaceMenu_Opened">
+                <MenuItem x:Name="MenuAnalyzeRace" Header="{DynamicResource MenuAnalyzeRace}" Click="AnalyzeRace_Click"
                           ToolTip="Learn speed vs terrain from recorded tracks and save a race model"/>
-                <MenuItem x:Name="MenuApplyRaceModel" Header="A_pply Race Model…" Click="ApplyRaceModel_Click"
+                <MenuItem x:Name="MenuApplyRaceModel" Header="{DynamicResource MenuApplyRaceModel}" Click="ApplyRaceModel_Click"
                           ToolTip="Predict pace on the active track using a saved race model"/>
                 <Separator/>
-                <MenuItem x:Name="MenuEvalSurface" Header="_Evaluate Surface (routing)…" Click="EvalSurface_Click"
+                <MenuItem x:Name="MenuEvalSurface" Header="{DynamicResource MenuEvalSurface}" Click="EvalSurface_Click"
                           ToolTip="Fill each point's surface type from OSM via routing, where the route hugs the track"/>
                 <Separator/>
-                <MenuItem x:Name="MenuExportPacing" Header="Export Pacing _Strategy (CSV)…" Click="ExportPacing_Click"
+                <MenuItem x:Name="MenuExportPacing" Header="{DynamicResource MenuExportPacing}" Click="ExportPacing_Click"
                           ToolTip="Export the active track's per-kilometre pace as a CSV (needs recorded times)"/>
             </MenuItem>
-            <MenuItem Header="T_ools">
-                <MenuItem Header="_Settings…" Click="Settings_Click"/>
+            <MenuItem Header="{DynamicResource MenuTools}">
+                <MenuItem Header="{DynamicResource MenuSettings}" Click="Settings_Click"/>
             </MenuItem>
-            <MenuItem Header="S_erver" SubmenuOpened="ServerMenu_Opened">
-                <MenuItem x:Name="MenuServerLogin" Header="_Login…" Click="ServerLogin_Click"/>
-                <MenuItem x:Name="MenuServerLogout" Header="Log_out" Click="ServerLogout_Click" Visibility="Collapsed"/>
+            <MenuItem Header="{DynamicResource MenuServer}" SubmenuOpened="ServerMenu_Opened">
+                <MenuItem x:Name="MenuServerLogin" Header="{DynamicResource MenuServerLogin}" Click="ServerLogin_Click"/>
+                <MenuItem x:Name="MenuServerLogout" Header="{DynamicResource MenuServerLogout}" Click="ServerLogout_Click" Visibility="Collapsed"/>
                 <Separator/>
                 <Separator/>
-                <MenuItem Header="Open _Shared Track by ID…" Click="OpenSharedTrack_Click"
+                <MenuItem Header="{DynamicResource MenuOpenShared}" Click="OpenSharedTrack_Click"
                           ToolTip="Load a track someone shared with you using its public GUID"/>
             </MenuItem>
-            <MenuItem Header="_Help">
-                <MenuItem Header="_User Guide" Click="Help_Click" InputGestureText="F1"/>
+            <MenuItem Header="{DynamicResource MenuHelp}">
+                <MenuItem Header="{DynamicResource MenuUserGuide}" Click="Help_Click" InputGestureText="F1"/>
                 <Separator/>
-                <MenuItem Header="_About TrackEditor…" Click="About_Click"/>
+                <MenuItem Header="{DynamicResource MenuAbout}" Click="About_Click"/>
             </MenuItem>
         </Menu>
 
@@ -158,32 +158,32 @@
                 <Button Click="OpenFile_Click" ToolTip="Open GPX / KML / KMZ (Ctrl+O)">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IcoOpen}" Style="{StaticResource ToolIcon}"/>
-                        <TextBlock Text="Open" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource BtnOpen}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
                 <Button x:Name="BtnSave" Click="SaveActive_Click" ToolTip="Save the active track as GPX (Ctrl+S)">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IcoSave}" Style="{StaticResource ToolIcon}"/>
-                        <TextBlock Text="Save" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource BtnSave}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
                 <Button Click="NewTrack_Click" ToolTip="Create an empty track and switch to Edit mode">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IcoNewTrack}" Style="{StaticResource ToolIcon}"/>
-                        <TextBlock Text="New track" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource BtnNewTrack}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
                 <Separator/>
                 <Button x:Name="BtnUndo" Click="Undo_Click" ToolTip="Ctrl+Z">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IcoUndo}" Style="{StaticResource ToolIcon}"/>
-                        <TextBlock Text="Undo" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource BtnUndo}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
                 <Button x:Name="BtnRedo" Click="Redo_Click" ToolTip="Ctrl+Y">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IcoRedo}" Style="{StaticResource ToolIcon}"/>
-                        <TextBlock Text="Redo" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource BtnRedo}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
                 <Separator/>
@@ -191,32 +191,32 @@
                              ToolTip="Click a point to select it; Ctrl/Shift extend selection">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IcoView}" Style="{StaticResource ToolIcon}"/>
-                        <TextBlock Text="View" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource BtnModeView}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </RadioButton>
                 <RadioButton x:Name="ModeEdit" GroupName="Mode" Checked="Mode_Checked"
                              ToolTip="Draw &amp; edit: click adds a point at the end (when the last point is selected), drag a point to move it, double-click inserts after the selected point; right-click removes the last point">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IcoDraw}" Style="{StaticResource ToolIcon}"/>
-                        <TextBlock Text="Edit" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource BtnModeEdit}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </RadioButton>
                 <RadioButton x:Name="ModeMeasure" GroupName="Mode" Checked="Mode_Checked" Click="ModeMeasure_Click"
                              ToolTip="Click points on the map to measure a path; click this button again to reset">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IcoMeasure}" Style="{StaticResource ToolIcon}"/>
-                        <TextBlock Text="Measure" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource BtnModeMeasure}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </RadioButton>
                 <Separator/>
                 <Button Click="Open3D_Click" ToolTip="3D view of the current map region">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource Ico3D}" Style="{StaticResource ToolIcon}"/>
-                        <TextBlock Text="3D View" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource Btn3DView}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
                 <Separator/>
-                <TextBlock Text="Map:" VerticalAlignment="Center" Margin="2,0,4,0"/>
+                <TextBlock Text="{DynamicResource LblMap}" VerticalAlignment="Center" Margin="2,0,4,0"/>
                 <ComboBox x:Name="BaseMapCombo" Width="150" VerticalAlignment="Center"
                           SelectionChanged="BaseMapCombo_Changed"
                           ToolTip="Base map shown on the map. Per-map parameters are in Tools ▸ Settings.">
@@ -227,26 +227,26 @@
                     <ComboBoxItem Content="Carto Light"/>
                 </ComboBox>
                 <Separator/>
-                <TextBlock Text="Route:" VerticalAlignment="Center" Margin="2,0,4,0"/>
+                <TextBlock Text="{DynamicResource LblRoute}" VerticalAlignment="Center" Margin="2,0,4,0"/>
                 <ComboBox x:Name="AutoRouteCombo" Width="108" VerticalAlignment="Center"
                           SelectionChanged="AutoRouteCombo_Changed"
                           ToolTip="Auto-route new points along real paths (BRouter). 'Off' draws straight segments."/>
                 <Separator/>
-                <TextBlock Text="Gradient:" VerticalAlignment="Center" Margin="2,0,4,0"/>
+                <TextBlock Text="{DynamicResource LblGradient}" VerticalAlignment="Center" Margin="2,0,4,0"/>
                 <ComboBox x:Name="GradientCombo" Width="108" VerticalAlignment="Center"
                           SelectionChanged="GradientCombo_Changed"
                           ToolTip="Colour the active track red (fast/easy) → blue (slow/hard) by a per-segment metric. 'Off' keeps the track's own colour.">
-                    <ComboBoxItem Content="Off"/>
-                    <ComboBoxItem Content="Speed"/>
-                    <ComboBoxItem Content="Inclination"/>
-                    <ComboBoxItem Content="Pavement"/>
+                    <ComboBoxItem Content="{DynamicResource GradOff}"/>
+                    <ComboBoxItem Content="{DynamicResource GradSpeed}"/>
+                    <ComboBoxItem Content="{DynamicResource GradInclination}"/>
+                    <ComboBoxItem Content="{DynamicResource GradPavement}"/>
                 </ComboBox>
                 <Separator/>
                 <CheckBox x:Name="FlagsCheck" Click="FlagsToggle_Click" VerticalAlignment="Center"
                           ToolTip="Show mileage/time flags along the track">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IcoFlag}" Style="{StaticResource ToolIcon}"/>
-                        <TextBlock Text="Flags" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource BtnFlags}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </CheckBox>
                 <!-- Split-button style dropdown: quickly pick what the flags show without diving into the View menu. -->
@@ -255,13 +255,13 @@
                     <TextBlock Text="▾" FontSize="10" VerticalAlignment="Center"/>
                     <Button.ContextMenu>
                         <ContextMenu x:Name="FlagContentCtx" Placement="Bottom">
-                            <MenuItem x:Name="DropFlagDist" Header="Distance" IsCheckable="True"
+                            <MenuItem x:Name="DropFlagDist" Header="{DynamicResource FlagDist}" IsCheckable="True"
                                       Tag="dist" Click="FlagContentToggle_Click"/>
-                            <MenuItem x:Name="DropFlagTime" Header="Time" IsCheckable="True"
+                            <MenuItem x:Name="DropFlagTime" Header="{DynamicResource FlagTime}" IsCheckable="True"
                                       Tag="time" Click="FlagContentToggle_Click"/>
-                            <MenuItem x:Name="DropFlagEle" Header="Elevation (altitude)" IsCheckable="True"
+                            <MenuItem x:Name="DropFlagEle" Header="{DynamicResource FlagEle}" IsCheckable="True"
                                       Tag="ele" Click="FlagContentToggle_Click"/>
-                            <MenuItem x:Name="DropFlagGain" Header="Height gain (ascent)" IsCheckable="True"
+                            <MenuItem x:Name="DropFlagGain" Header="{DynamicResource FlagGain}" IsCheckable="True"
                                       Tag="gain" Click="FlagContentToggle_Click"/>
                         </ContextMenu>
                     </Button.ContextMenu>
@@ -271,7 +271,7 @@
                         ToolTip="Center map on current GPS position">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IcoMyLocation}" Style="{StaticResource ToolIcon}"/>
-                        <TextBlock Text="My Location" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource BtnMyLocation}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
             </ToolBar>
@@ -283,7 +283,7 @@
                     <DockPanel HorizontalAlignment="Stretch"/>
                 </ItemsPanelTemplate>
             </StatusBar.ItemsPanel>
-            <StatusBarItem><TextBlock x:Name="StatusMode" Text="Mode: View"/></StatusBarItem>
+            <StatusBarItem><TextBlock x:Name="StatusMode"/></StatusBarItem>
             <Separator/>
             <StatusBarItem><TextBlock x:Name="StatusCoords" Text=""/></StatusBarItem>
             <Separator/>
@@ -294,7 +294,7 @@
                     <TextBlock x:Name="StatusBusy" FontWeight="Bold" Foreground="#E67E22" VerticalAlignment="Center"/>
                 </StackPanel>
             </StatusBarItem>
-            <StatusBarItem><TextBlock x:Name="StatusInfo" Text="Open a GPX/KML/KMZ file to start"/></StatusBarItem>
+            <StatusBarItem><TextBlock x:Name="StatusInfo" Text="{DynamicResource StatusInitial}"/></StatusBarItem>
         </StatusBar>
 
         <Grid>
@@ -317,12 +317,12 @@
 
                 <TabControl x:Name="LeftTabs" Grid.Row="0" Margin="6,4,6,0"
                             SelectionChanged="LeftTabs_SelectionChanged">
-                <TabItem Header="Tracks">
+                <TabItem Header="{DynamicResource TabTracks}">
                 <DockPanel>
                 <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,4,0,0">
-                    <TextBlock Text="Color:" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource LblColor}" VerticalAlignment="Center"/>
                     <ComboBox x:Name="ColorCombo" Width="90" Margin="4,0" SelectionChanged="ColorCombo_Changed"/>
-                    <TextBlock Text="Width:" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    <TextBlock Text="{DynamicResource LblWidth}" VerticalAlignment="Center" Margin="8,0,0,0"/>
                     <Slider x:Name="WidthSlider" Width="90" Minimum="1" Maximum="10" Value="3" Margin="4,0"
                             VerticalAlignment="Center" ValueChanged="WidthSlider_Changed"/>
                     <TextBlock x:Name="WidthLabel" Text="3" VerticalAlignment="Center" Width="18"/>
@@ -347,26 +347,26 @@
                                         ToolTip="{Binding ClassTip}" ToolTipService.ShowDuration="20000">
                                 <StackPanel.ContextMenu>
                                     <ContextMenu Opened="TrackCtxMenu_Opened">
-                                        <MenuItem Header="Rename…" Click="CtxRenameTrack_Click"/>
-                                        <MenuItem Header="Track Information…" Click="CtxTrackInfo_Click"/>
+                                        <MenuItem Header="{DynamicResource CtxRename}" Click="CtxRenameTrack_Click"/>
+                                        <MenuItem Header="{DynamicResource CtxTrackInfo}" Click="CtxTrackInfo_Click"/>
                                         <Separator/>
-                                        <MenuItem Header="Save Track as GPX…" Click="CtxSaveTrack_Click"/>
-                                        <MenuItem Header="Export Pacing Strategy (CSV)…" Click="CtxExportPacing_Click" Tag="pacing"/>
-                                        <MenuItem Header="Reverse Track" Click="CtxReverse_Click"/>
-                                        <MenuItem Header="Join Tracks…" Click="CtxJoin_Click" Tag="join"
+                                        <MenuItem Header="{DynamicResource CtxSaveTrack}" Click="CtxSaveTrack_Click"/>
+                                        <MenuItem Header="{DynamicResource CtxExportPacing}" Click="CtxExportPacing_Click" Tag="pacing"/>
+                                        <MenuItem Header="{DynamicResource CtxReverse}" Click="CtxReverse_Click"/>
+                                        <MenuItem Header="{DynamicResource CtxJoin}" Click="CtxJoin_Click" Tag="join"
                                                   ToolTip="Pick this track, then a second one, to combine both into a new track"/>
-                                        <MenuItem Header="Merge Tracks…" Click="CtxMerge_Click"
+                                        <MenuItem Header="{DynamicResource CtxMerge}" Click="CtxMerge_Click"
                                                   ToolTip="Fuse a second recording of the same route into this track (combine sensor fields, optionally average the line)"/>
-                                        <MenuItem Header="Simplify…" Click="CtxSimplify_Click"/>
-                                        <MenuItem Header="Re-evaluate Elevation (SRTM / Online)" Click="CtxReevalElevation_Click"/>
-                                        <MenuItem Header="Reset Elevation Data" Click="CtxResetElevation_Click"
+                                        <MenuItem Header="{DynamicResource CtxSimplify}" Click="CtxSimplify_Click"/>
+                                        <MenuItem Header="{DynamicResource CtxReevalEle}" Click="CtxReevalElevation_Click"/>
+                                        <MenuItem Header="{DynamicResource CtxResetEle}" Click="CtxResetElevation_Click"
                                                   ToolTip="Clear all elevation values so they can be re-fetched from a different source"/>
-                                        <MenuItem Header="Evaluate Surface (routing)…" Click="CtxEvalSurface_Click"/>
-                                        <MenuItem Header="Apply Race Model…" Click="CtxApplyRaceModel_Click"
+                                        <MenuItem Header="{DynamicResource CtxEvalSurface}" Click="CtxEvalSurface_Click"/>
+                                        <MenuItem Header="{DynamicResource CtxApplyRaceModel}" Click="CtxApplyRaceModel_Click"
                                                   ToolTip="Predict this track's pace from a saved or freshly created race model"/>
                                         <Separator/>
-                                        <MenuItem Header="Zoom to Track" Click="CtxZoomTrack_Click"/>
-                                        <MenuItem Header="Delete track" Click="CtxRemoveTrack_Click"/>
+                                        <MenuItem Header="{DynamicResource CtxZoomTrack}" Click="CtxZoomTrack_Click"/>
+                                        <MenuItem Header="{DynamicResource CtxDeleteTrack}" Click="CtxRemoveTrack_Click"/>
                                     </ContextMenu>
                                 </StackPanel.ContextMenu>
                                 <CheckBox IsChecked="{Binding Visible, Mode=TwoWay}" Click="TrackVisible_Click" VerticalAlignment="Center"/>
@@ -379,7 +379,7 @@
                 </DockPanel>
                 </TabItem>
 
-                <TabItem Header="Points">
+                <TabItem Header="{DynamicResource TabPoints}">
                 <DataGrid x:Name="PointsGrid" Margin="0,4,0,4"
                           AutoGenerateColumns="False" IsReadOnly="True"
                           SelectionMode="Extended" SelectionUnit="FullRow"
@@ -391,31 +391,31 @@
                           PreviewMouseRightButtonDown="PointsGrid_PreviewMouseRightButtonDown">
                     <DataGrid.ContextMenu>
                         <ContextMenu Opened="PointsCtx_Opened">
-                            <MenuItem x:Name="CtxCopy" Header="Copy Points" Click="CopyPoints_Click" InputGestureText="Ctrl+C"/>
-                            <MenuItem x:Name="CtxPaste" Header="Paste Points After Selected" Click="PastePoints_Click" InputGestureText="Ctrl+V"/>
-                            <MenuItem x:Name="CtxDeletePts" Header="Delete Selected Points" Click="DeletePoints_Click" InputGestureText="Del"/>
+                            <MenuItem x:Name="CtxCopy" Header="{DynamicResource CtxCopyPoints}" Click="CopyPoints_Click" InputGestureText="Ctrl+C"/>
+                            <MenuItem x:Name="CtxPaste" Header="{DynamicResource CtxPastePoints}" Click="PastePoints_Click" InputGestureText="Ctrl+V"/>
+                            <MenuItem x:Name="CtxDeletePts" Header="{DynamicResource CtxDeletePts}" Click="DeletePoints_Click" InputGestureText="Del"/>
                             <Separator/>
-                            <MenuItem x:Name="CtxSplit" Header="Split at Selected Point" Click="Split_Click"/>
-                            <MenuItem x:Name="CtxCrop" Header="Crop to Selected Range" Click="Crop_Click"/>
+                            <MenuItem x:Name="CtxSplit" Header="{DynamicResource CtxSplitPoint}" Click="Split_Click"/>
+                            <MenuItem x:Name="CtxCrop" Header="{DynamicResource CtxCropRange}" Click="Crop_Click"/>
                             <Separator/>
-                            <MenuItem x:Name="CtxSetWp" Header="Set Waypoint Name…" Click="CtxSetWaypoint_Click"/>
-                            <MenuItem x:Name="CtxRemoveWp" Header="Remove Waypoint" Click="CtxRemoveWaypoint_Click"/>
+                            <MenuItem x:Name="CtxSetWp" Header="{DynamicResource CtxSetWaypoint}" Click="CtxSetWaypoint_Click"/>
+                            <MenuItem x:Name="CtxRemoveWp" Header="{DynamicResource CtxRemoveWaypoint}" Click="CtxRemoveWaypoint_Click"/>
                             <Separator/>
-                            <MenuItem x:Name="CtxCenter" Header="Center Point in Map" Click="CtxCenterPoint_Click"/>
+                            <MenuItem x:Name="CtxCenter" Header="{DynamicResource CtxCenterPoint}" Click="CtxCenterPoint_Click"/>
                         </ContextMenu>
                     </DataGrid.ContextMenu>
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="#" Binding="{Binding Index}" Width="40"/>
-                        <DataGridTextColumn x:Name="ColWaypoint" Header="⚑ Waypoint" Binding="{Binding NameStr}" Width="Auto" MinWidth="70"/>
-                        <DataGridTextColumn x:Name="ColLat" Header="Lat" Binding="{Binding LatStr}" Width="72"/>
-                        <DataGridTextColumn x:Name="ColLon" Header="Lon" Binding="{Binding LonStr}" Width="72"/>
-                        <DataGridTextColumn x:Name="ColEle" Header="Ele, m" Binding="{Binding EleStr}" Width="50"/>
-                        <DataGridTextColumn x:Name="ColTime" Header="Time" Binding="{Binding TimeStr}" Width="62"/>
-                        <DataGridTextColumn x:Name="ColDist" Header="Km" Binding="{Binding DistStr}" Width="50"/>
-                        <DataGridTextColumn x:Name="ColHr" Header="HR" Binding="{Binding HrStr}" Width="42"/>
-                        <DataGridTextColumn x:Name="ColCad" Header="Cad" Binding="{Binding CadStr}" Width="42"/>
-                        <DataGridTextColumn x:Name="ColTemp" Header="°C" Binding="{Binding TempStr}" Width="42"/>
-                        <DataGridTextColumn x:Name="ColSurface" Header="Surface" Binding="{Binding SurfaceStr}" Width="Auto" MinWidth="60"/>
+                        <DataGridTextColumn x:Name="ColWaypoint" Header="{DynamicResource ColHdrWaypoint}" Binding="{Binding NameStr}" Width="Auto" MinWidth="70"/>
+                        <DataGridTextColumn x:Name="ColLat" Header="{DynamicResource ColHdrLat}" Binding="{Binding LatStr}" Width="72"/>
+                        <DataGridTextColumn x:Name="ColLon" Header="{DynamicResource ColHdrLon}" Binding="{Binding LonStr}" Width="72"/>
+                        <DataGridTextColumn x:Name="ColEle" Header="{DynamicResource ColHdrEle}" Binding="{Binding EleStr}" Width="50"/>
+                        <DataGridTextColumn x:Name="ColTime" Header="{DynamicResource ColHdrTime}" Binding="{Binding TimeStr}" Width="62"/>
+                        <DataGridTextColumn x:Name="ColDist" Header="{DynamicResource ColHdrDist}" Binding="{Binding DistStr}" Width="50"/>
+                        <DataGridTextColumn x:Name="ColHr" Header="{DynamicResource ColHdrHr}" Binding="{Binding HrStr}" Width="42"/>
+                        <DataGridTextColumn x:Name="ColCad" Header="{DynamicResource ColHdrCad}" Binding="{Binding CadStr}" Width="42"/>
+                        <DataGridTextColumn x:Name="ColTemp" Header="{DynamicResource ColHdrTemp}" Binding="{Binding TempStr}" Width="42"/>
+                        <DataGridTextColumn x:Name="ColSurface" Header="{DynamicResource ColHdrSurface}" Binding="{Binding SurfaceStr}" Width="Auto" MinWidth="60"/>
                     </DataGrid.Columns>
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow">
@@ -445,32 +445,32 @@
                 </DataGrid>
                 </TabItem>
 
-                <TabItem x:Name="ServerTabItem" Header="Server">
+                <TabItem x:Name="ServerTabItem" Header="{DynamicResource TabServer}">
                 <DockPanel Margin="0,4,0,0">
                     <!-- Top: status line + Refresh -->
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-                        <Button x:Name="ServerRefreshBtn" DockPanel.Dock="Right" Content="Refresh"
+                        <Button x:Name="ServerRefreshBtn" DockPanel.Dock="Right" Content="{DynamicResource BtnRefresh}"
                                 Padding="6,2" IsEnabled="False" Click="ServerRefresh_Click"/>
                         <TextBlock x:Name="ServerStatusTxt" VerticalAlignment="Center" FontSize="11"
-                                   Foreground="#666" Text="Not signed in — Server › Login…"/>
+                                   Foreground="#666" Text="{DynamicResource SrvNotSignedIn}"/>
                     </DockPanel>
                     <!-- Bottom: save + selection actions -->
                     <StackPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
-                        <Button x:Name="ServerSaveNewBtn" Content="Save active track to server"
+                        <Button x:Name="ServerSaveNewBtn" Content="{DynamicResource SrvSaveNew}"
                                 IsEnabled="False" Click="ServerSaveNew_Click"
                                 ToolTip="Upload the active editor track as a new server entry"/>
                         <StackPanel x:Name="ServerActionsPanel" Orientation="Horizontal"
                                     Margin="0,4,0,0" Visibility="Collapsed">
-                            <Button x:Name="ServerOpenBtn" Content="Open" Padding="6,2" Margin="0,0,4,0"
+                            <Button x:Name="ServerOpenBtn" Content="{DynamicResource BtnServerOpen}" Padding="6,2" Margin="0,0,4,0"
                                     Click="ServerOpen_Click" ToolTip="Load selected track into the editor"/>
-                            <Button x:Name="ServerUpdateBtn" Content="Update" Padding="6,2" Margin="0,0,4,0"
+                            <Button x:Name="ServerUpdateBtn" Content="{DynamicResource BtnUpdate}" Padding="6,2" Margin="0,0,4,0"
                                     Click="ServerUpdate_Click"
                                     ToolTip="Overwrite selected server track with the active editor track"/>
-                            <Button x:Name="ServerShareBtn" Content="Share" Padding="6,2" Margin="0,0,4,0"
+                            <Button x:Name="ServerShareBtn" Content="{DynamicResource BtnShare}" Padding="6,2" Margin="0,0,4,0"
                                     Click="ServerShare_Click"/>
-                            <Button x:Name="ServerUnshareBtn" Content="Unshare" Padding="6,2" Margin="0,0,4,0"
+                            <Button x:Name="ServerUnshareBtn" Content="{DynamicResource BtnUnshare}" Padding="6,2" Margin="0,0,4,0"
                                     Click="ServerUnshare_Click"/>
-                            <Button x:Name="ServerDeleteBtn" Content="Delete" Padding="6,2"
+                            <Button x:Name="ServerDeleteBtn" Content="{DynamicResource BtnDelete}" Padding="6,2"
                                     Click="ServerDelete_Click"/>
                         </StackPanel>
                     </StackPanel>
@@ -492,7 +492,7 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{Binding Name}"
                                                TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text=" shared" Foreground="#388E3C"
+                                    <TextBlock Grid.Column="1" Text="{DynamicResource SrvSharedBadge}" Foreground="#388E3C"
                                                FontSize="10" VerticalAlignment="Center"
                                                Visibility="{Binding SharedBadgeVisibility}"/>
                                 </Grid>
@@ -511,20 +511,20 @@
                 <!-- Scrolls when the user drags the boundary down past the content height. -->
                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="6,4,6,6">
-                        <Expander Header="Statistics" IsExpanded="True">
+                        <Expander Header="{DynamicResource PnlStatistics}" IsExpanded="True">
                             <TextBlock x:Name="StatsText" FontFamily="Consolas" FontSize="12" Margin="4" Text="—"/>
                         </Expander>
                         <!-- Shown only while 2+ points are selected. -->
-                        <Expander x:Name="SelStatsPanel" Header="Selection statistics" IsExpanded="True"
+                        <Expander x:Name="SelStatsPanel" Header="{DynamicResource PnlSelStats}" IsExpanded="True"
                                   Margin="0,4,0,0" Visibility="Collapsed">
                             <TextBlock x:Name="SelStatsText" FontFamily="Consolas" FontSize="12" Margin="4"
-                                       Text="Select 2+ points"/>
+                                       Text="{DynamicResource LblSelect2Plus}"/>
                         </Expander>
                         <!-- Shown only in Measure mode. -->
-                        <Expander x:Name="MeasurePanel" Header="Measurement" IsExpanded="True"
+                        <Expander x:Name="MeasurePanel" Header="{DynamicResource PnlMeasurement}" IsExpanded="True"
                                   Margin="0,4,0,0" Visibility="Collapsed">
                             <TextBlock x:Name="MeasureText" FontFamily="Consolas" FontSize="12" Margin="4"
-                                       Text="Click points on the map to measure"/>
+                                       Text="{DynamicResource LblClickMeasure}"/>
                         </Expander>
                     </StackPanel>
                 </ScrollViewer>
@@ -548,21 +548,21 @@
                                    PreviewMouseRightButtonUp="MapCtrl_PreviewMouseRightButtonUp">
                     <mapsui:MapControl.ContextMenu>
                         <ContextMenu Opened="MapCtx_Opened">
-                            <MenuItem x:Name="MapFitAll" Header="Fit All Tracks" Click="MapFitAll_Click"/>
-                            <MenuItem x:Name="MapZoomActive" Header="Zoom to Active Track" Click="ZoomToTrack_Click"/>
+                            <MenuItem x:Name="MapFitAll" Header="{DynamicResource MapFitAll}" Click="MapFitAll_Click"/>
+                            <MenuItem x:Name="MapZoomActive" Header="{DynamicResource MapZoomActive}" Click="ZoomToTrack_Click"/>
                             <Separator/>
-                            <MenuItem Header="Mode">
-                                <MenuItem Header="View" Click="MapModeView_Click"/>
-                                <MenuItem Header="Edit (draw / move / insert)" Click="MapModeEdit_Click"/>
-                                <MenuItem Header="Measure" Click="MapModeMeasure_Click"/>
+                            <MenuItem Header="{DynamicResource MapModeMenu}">
+                                <MenuItem Header="{DynamicResource MapModeView}" Click="MapModeView_Click"/>
+                                <MenuItem Header="{DynamicResource MapModeEdit}" Click="MapModeEdit_Click"/>
+                                <MenuItem Header="{DynamicResource MapModeMeasure}" Click="MapModeMeasure_Click"/>
                             </MenuItem>
-                            <MenuItem Header="New Track" Click="NewTrack_Click"/>
+                            <MenuItem Header="{DynamicResource MapNewTrack}" Click="NewTrack_Click"/>
                             <Separator/>
-                            <MenuItem x:Name="MapDeletePts" Header="Delete Selected Points" Click="DeletePoints_Click" InputGestureText="Del"/>
-                            <MenuItem x:Name="MapResetMeasure" Header="Reset Measurement" Click="MapClearMeasure_Click"/>
+                            <MenuItem x:Name="MapDeletePts" Header="{DynamicResource MapDeletePts}" Click="DeletePoints_Click" InputGestureText="Del"/>
+                            <MenuItem x:Name="MapResetMeasure" Header="{DynamicResource MapResetMeasure}" Click="MapClearMeasure_Click"/>
                             <Separator/>
-                            <MenuItem Header="3D View of Current Map…" Click="Open3D_Click"/>
-                            <MenuItem Header="Export Map Image…" Click="ExportMap_Click"/>
+                            <MenuItem Header="{DynamicResource Map3DView}" Click="Open3D_Click"/>
+                            <MenuItem Header="{DynamicResource MapExportMap}" Click="ExportMap_Click"/>
                         </ContextMenu>
                     </mapsui:MapControl.ContextMenu>
                 </mapsui:MapControl>
@@ -593,16 +593,16 @@
 
                 <DockPanel Grid.Row="2">
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="8,2,8,0">
-                        <TextBlock Text="Profile:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <CheckBox x:Name="ChkAlt" Content="Altitude" IsChecked="True" VerticalAlignment="Center"
+                        <TextBlock Text="{DynamicResource LblProfile}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <CheckBox x:Name="ChkAlt" Content="{DynamicResource ChkAltitude}" IsChecked="True" VerticalAlignment="Center"
                                   Margin="0,0,12,0" Checked="PlotSeriesToggle" Unchecked="PlotSeriesToggle"/>
-                        <CheckBox x:Name="ChkSpeed" Content="Speed" IsChecked="True" VerticalAlignment="Center"
+                        <CheckBox x:Name="ChkSpeed" Content="{DynamicResource ChkSpeed}" IsChecked="True" VerticalAlignment="Center"
                                   Margin="0,0,12,0" Checked="PlotSeriesToggle" Unchecked="PlotSeriesToggle"/>
-                        <CheckBox x:Name="ChkHr" Content="HR" IsChecked="True" VerticalAlignment="Center"
+                        <CheckBox x:Name="ChkHr" Content="{DynamicResource ChkHr}" IsChecked="True" VerticalAlignment="Center"
                                   Margin="0,0,12,0" Checked="PlotSeriesToggle" Unchecked="PlotSeriesToggle"/>
-                        <CheckBox x:Name="ChkCad" Content="Cadence" IsChecked="False" VerticalAlignment="Center"
+                        <CheckBox x:Name="ChkCad" Content="{DynamicResource ChkCadence}" IsChecked="False" VerticalAlignment="Center"
                                   Margin="0,0,12,0" Checked="PlotSeriesToggle" Unchecked="PlotSeriesToggle"/>
-                        <CheckBox x:Name="ChkTemp" Content="Temp" IsChecked="False" VerticalAlignment="Center"
+                        <CheckBox x:Name="ChkTemp" Content="{DynamicResource ChkTemp}" IsChecked="False" VerticalAlignment="Center"
                                   Checked="PlotSeriesToggle" Unchecked="PlotSeriesToggle"/>
                     </StackPanel>
                     <sp:WpfPlot x:Name="ProfilePlot" MouseLeftButtonDown="ProfilePlot_MouseLeftButtonDown"

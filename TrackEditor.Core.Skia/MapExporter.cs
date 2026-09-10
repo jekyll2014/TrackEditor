@@ -2,11 +2,22 @@ using BruTile;
 
 using Mapsui.Projections;
 
+using ShimSkiaSharp;
+
 using SkiaSharp;
 
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
 
+using SKCanvas = SkiaSharp.SKCanvas;
+using SKColor = SkiaSharp.SKColor;
+using SKImage = SkiaSharp.SKImage;
+using SKPaint = SkiaSharp.SKPaint;
+using SKPaintStyle = SkiaSharp.SKPaintStyle;
+using SKPath = SkiaSharp.SKPath;
+using SKRect = SkiaSharp.SKRect;
+using SKStrokeCap = SkiaSharp.SKStrokeCap;
+using SKStrokeJoin = SkiaSharp.SKStrokeJoin;
 namespace TrackEditor.Core.Skia;
 
 /// <summary>
@@ -17,6 +28,7 @@ namespace TrackEditor.Core.Skia;
 public static class MapExporter
 {
     private const double Origin = 20037508.342789244; // Web Mercator half-extent (m)
+    public static readonly HttpClient HttpClient = new();
 
     public static double ResolutionAtZoom(int zoom) => 2 * Origin / (256.0 * Math.Pow(2, zoom));
 
@@ -96,7 +108,8 @@ public static class MapExporter
         using var canvas = new SKCanvas(bmp);
         canvas.Clear(new SKColor(0xEE, 0xEE, 0xEE));
 
-        using var tilePaint = new SKPaint { FilterQuality = SKFilterQuality.High, IsAntialias = true };
+        //using var tilePaint = new SKPaint { FilterQuality = SKFilterQuality.High, IsAntialias = true };
+        var sampling = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
         float tileSize = (float)(span / res * scale); // = 256 * scale
         long total = (long)(tx1 - tx0 + 1) * (ty1 - ty0 + 1), done = 0;
 
@@ -110,14 +123,23 @@ public static class MapExporter
                 progress?.Report($"Rendering tiles… {done}/{total}");
 
                 byte[]? bytes;
-                try { bytes = await source.GetTileAsync(new TileInfo { Index = new TileIndex(wx, ty, zoom) }); }
+                try
+                {
+                    var info = new TileInfo { Index = new TileIndex(wx, ty, zoom) };
+                    if (source is IHttpTileSource httpSource)
+                        bytes = await httpSource.GetTileAsync(HttpClient, info, ct);
+                    else if (source is ILocalTileSource localSource)
+                        bytes = await localSource.GetTileAsync(info);
+                    else
+                        bytes = null;
+                }
                 catch { bytes = null; }
                 if (bytes is null) continue;
                 using var tile = SKBitmap.Decode(bytes);
                 if (tile is null) continue;
 
                 float dx = PX(tx * span - Origin), dy = PY(Origin - ty * span);
-                canvas.DrawBitmap(tile, new SKRect(dx, dy, dx + tileSize, dy + tileSize), tilePaint);
+                canvas.DrawBitmap(tile, new SKRect(dx, dy, dx + tileSize, dy + tileSize), sampling);
             }
 
         foreach (var t in tracks)
@@ -143,13 +165,14 @@ public static class MapExporter
                     StrokeCap = SKStrokeCap.Round,
                     StrokeJoin = SKStrokeJoin.Round,
                 })
-                using (var casePath = new SKPath())
                 {
+                    using var caseBuilder = new SKPathBuilder();
                     for (int i = 0; i < t.Points.Count; i++)
                     {
                         var (x, y) = SphericalMercator.FromLonLat(t.Points[i].Lon, t.Points[i].Lat);
-                        if (i == 0) casePath.MoveTo(PX(x), PY(y)); else casePath.LineTo(PX(x), PY(y));
+                        if (i == 0) caseBuilder.MoveTo(PX(x), PY(y)); else caseBuilder.LineTo(PX(x), PY(y));
                     }
+                    using var casePath = caseBuilder.Snapshot();
                     canvas.DrawPath(casePath, casePaint);
                 }
 
@@ -164,12 +187,13 @@ public static class MapExporter
                         StrokeCap = SKStrokeCap.Round,
                         StrokeJoin = SKStrokeJoin.Round,
                     };
-                    using var runPath = new SKPath();
+                    using var runBuilder = new SKPathBuilder();
                     for (int i = start; i <= end; i++)
                     {
                         var (x, y) = SphericalMercator.FromLonLat(t.Points[i].Lon, t.Points[i].Lat);
-                        if (i == start) runPath.MoveTo(PX(x), PY(y)); else runPath.LineTo(PX(x), PY(y));
+                        if (i == start) runBuilder.MoveTo(PX(x), PY(y)); else runBuilder.LineTo(PX(x), PY(y));
                     }
+                    using var runPath = runBuilder.Snapshot();
                     canvas.DrawPath(runPath, runPaint);
                 }
                 continue;
@@ -184,12 +208,13 @@ public static class MapExporter
                 StrokeCap = SKStrokeCap.Round,
                 StrokeJoin = SKStrokeJoin.Round,
             };
-            using var sk = new SKPath();
+            using var skBuilder = new SKPathBuilder();
             for (int i = 0; i < t.Points.Count; i++)
             {
                 var (x, y) = SphericalMercator.FromLonLat(t.Points[i].Lon, t.Points[i].Lat);
-                if (i == 0) sk.MoveTo(PX(x), PY(y)); else sk.LineTo(PX(x), PY(y));
+                if (i == 0) skBuilder.MoveTo(PX(x), PY(y)); else skBuilder.LineTo(PX(x), PY(y));
             }
+            using var sk = skBuilder.Snapshot();
             canvas.DrawPath(sk, paint);
         }
 
@@ -219,8 +244,8 @@ public static class MapExporter
         string label = nice >= 1000 ? $"{nice / 1000:0.#} km" : $"{nice:0} m";
 
         float textSize = 12 * s, tick = 5 * s, pad = 4 * s;
-        using var textPaint = new SKPaint
-        { Color = SKColors.Black, TextSize = textSize, IsAntialias = true, TextAlign = SKTextAlign.Center };
+        using var textFont = new SKFont { Size = textSize };
+        using var textPaint = new SKPaint { Color = SKColors.Black, IsAntialias = true };
         using var barPaint = new SKPaint
         { Color = SKColors.Black, StrokeWidth = Math.Max(1, 2 * s), IsAntialias = true, Style = SKPaintStyle.Stroke };
         using var bgPaint = new SKPaint
@@ -229,7 +254,7 @@ public static class MapExporter
         float right = outW - margin, left = right - barPx, barY = outH - margin;
         float cx = (left + right) / 2f;
         float labelBaseline = barY - tick - 4 * s;
-        float textW = textPaint.MeasureText(label);
+        float textW = textFont.MeasureText(label);
 
         float boxLeft = Math.Min(left, cx - textW / 2) - pad;
         float boxRight = Math.Max(right, cx + textW / 2) + pad;
@@ -239,7 +264,7 @@ public static class MapExporter
         canvas.DrawLine(left, barY, right, barY, barPaint);       // bar
         canvas.DrawLine(left, barY, left, barY - tick, barPaint); // end ticks
         canvas.DrawLine(right, barY, right, barY - tick, barPaint);
-        canvas.DrawText(label, cx, labelBaseline, textPaint);
+        canvas.DrawText(label, cx - textW / 2, labelBaseline, SkiaSharp.SKTextAlign.Left, textFont, textPaint);
     }
 
     /// <summary>Largest of {1,2,5}×10ⁿ metres not exceeding <paramref name="max"/>.</summary>

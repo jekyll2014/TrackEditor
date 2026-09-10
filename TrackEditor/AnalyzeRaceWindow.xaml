@@ -1,7 +1,7 @@
 <Window x:Class="TrackEditor.AnalyzeRaceWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Analyze Race Ability" Height="620" Width="560"
+        Title="{DynamicResource AnalyzeRaceTitle}" Height="620" Width="560"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" MinHeight="480" MinWidth="480">
     <Grid Margin="14">
         <Grid.RowDefinitions>
@@ -13,7 +13,7 @@
         </Grid.RowDefinitions>
 
         <TextBlock x:Name="IntroText" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
-                   Text="Learn the athlete's speed-vs-terrain behaviour from one or more recorded tracks. Only timestamped tracks can be used; tick the ones to include."/>
+                   Text="{DynamicResource DescAnalyzeRace}"/>
 
         <ListBox x:Name="TracksList" Grid.Row="1" Margin="0,0,0,8">
             <ListBox.ItemContainerStyle>
@@ -24,7 +24,6 @@
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal">
-                        <!-- Traffic-light dot: green/yellow/red by similarity to the target; transparent with no target. -->
                         <Ellipse Width="9" Height="9" Margin="0,0,6,0" VerticalAlignment="Center"
                                  Fill="{Binding SimBrush}"/>
                         <CheckBox IsChecked="{Binding Include, Mode=TwoWay}" IsEnabled="{Binding CanUse}"
@@ -36,35 +35,34 @@
 
         <StackPanel Grid.Row="2" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                <TextBlock Text="Runner name:" VerticalAlignment="Center" Width="130"/>
+                <TextBlock Text="{DynamicResource LblRunnerName}" VerticalAlignment="Center" Width="130"/>
                 <TextBox x:Name="TxtRunnerName" Width="200"
                          ToolTip="Optional — saved into the model to identify whose ability it describes"/>
             </StackPanel>
-            <CheckBox x:Name="ChkUseHr" Content="Use heart rate to calibrate fatigue (when present)"
+            <CheckBox x:Name="ChkUseHr" Content="{DynamicResource ChkUseHr}"
                       IsChecked="True" Margin="0,0,0,6"/>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                <TextBlock Text="Fatigue driven by:" VerticalAlignment="Center" Width="130"/>
+                <TextBlock Text="{DynamicResource LblFatigueDriver}" VerticalAlignment="Center" Width="130"/>
                 <ComboBox x:Name="CmbDriver" Width="200">
-                    <ComboBoxItem Content="Cumulative ascent" Tag="CumAscent" IsSelected="True"/>
-                    <ComboBoxItem Content="Elapsed time" Tag="Elapsed"/>
-                    <ComboBoxItem Content="Distance" Tag="Distance"/>
+                    <ComboBoxItem Content="{DynamicResource FatigueAscent}" Tag="CumAscent" IsSelected="True"/>
+                    <ComboBoxItem Content="{DynamicResource FatigueElapsed}" Tag="Elapsed"/>
+                    <ComboBoxItem Content="{DynamicResource FatigueDistance}" Tag="Distance"/>
                 </ComboBox>
             </StackPanel>
-            <CheckBox x:Name="ChkNormalize" Content="Normalize each track to its own pace before pooling"
-                      IsChecked="True"/>
+            <CheckBox x:Name="ChkNormalize" Content="{DynamicResource ChkNormalize}" IsChecked="True"/>
             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                <Button x:Name="RunButton" Content="Analyze" Width="100" Click="Run_Click"/>
+                <Button x:Name="RunButton" Content="{DynamicResource BtnAnalyze}" Width="100" Click="Run_Click"/>
                 <TextBlock x:Name="HintText" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#666"/>
             </StackPanel>
         </StackPanel>
 
         <TextBox x:Name="ReportText" Grid.Row="3" IsReadOnly="True" FontFamily="Consolas" FontSize="12"
                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                 TextWrapping="NoWrap" Background="#FAFAFA" Text="Report appears here after analysis."/>
+                 TextWrapping="NoWrap" Background="#FAFAFA" Text="{DynamicResource AnalyzeInitialText}"/>
 
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button x:Name="ExportButton" Content="Export Model…" Width="120" IsEnabled="False" Click="Export_Click"/>
-            <Button Content="Close" Width="80" Margin="8,0,0,0" IsCancel="True"/>
+            <Button x:Name="ExportButton" Content="{DynamicResource BtnExportModel}" Width="120" IsEnabled="False" Click="Export_Click"/>
+            <Button Content="{DynamicResource BtnClose}" Width="80" Margin="8,0,0,0" IsCancel="True"/>
         </StackPanel>
     </Grid>
 </Window>

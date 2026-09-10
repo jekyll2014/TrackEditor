@@ -1,5 +1,3 @@
-using System.Text;
-
 using TrackEditor.Core.Models;
 
 namespace TrackEditor.Core.Services.RaceAnalysis;
@@ -62,7 +60,6 @@ public class PredictResult
     public Track PredictedTrack { get; set; } = new();
     public TimeSpan TotalTime { get; set; }
     public double DistanceKm { get; set; }
-    public string Report { get; set; } = "";
 }
 
 /// <summary>
@@ -191,7 +188,6 @@ public static class RacePredictor
             PredictedTrack = copy,
             TotalTime = TimeSpan.FromSeconds(totalSec),
             DistanceKm = cumOrig[^1] / 1000.0,
-            Report = BuildReport(copy, model, opt, totalSec, cumOrig[^1]),
         };
     }
 
@@ -228,41 +224,4 @@ public static class RacePredictor
         return m;
     }
 
-    private static string BuildReport(Track copy, RaceModel model, PredictOptions opt, double totalSec, double distM)
-    {
-        var sb = new StringBuilder();
-        var finish = opt.StartTime.AddSeconds(totalSec);
-        sb.AppendLine($"Start:           {opt.StartTime:HH:mm}");
-        sb.AppendLine($"Predicted finish:{finish:HH:mm}  ({TimeSpan.FromSeconds(totalSec):hh\\:mm\\:ss})");
-        sb.AppendLine($"Distance:        {distM / 1000:F1} km");
-        sb.AppendLine($"Avg moving:      {distM / totalSec * 3.6:F1} km/h");
-        if (opt.Effort != RaceEffort.Race)
-            sb.AppendLine($"Effort:          {opt.Effort} (×{opt.EffortScale:F2})");
-        var recent = opt.Profile?.RecentRace;
-        if (recent is { IsValid: true } && (opt.CalibrateToRecentRace || opt.CapToSustainable))
-        {
-            double km = distM / 1000.0;
-            double scale = EnduranceCalibration.CalibrationScale(model, recent, km);
-            if (opt.CalibrateToRecentRace)
-                sb.AppendLine($"Calibrated:      ×{scale:F2} to your {recent.DistanceKm:F0} km / {recent.Time:hh\\:mm\\:ss} race");
-            else
-                sb.AppendLine($"Sustainable cap: ×{scale:F2} ceiling from your recent race");
-            sb.AppendLine($"Riegel (flat) ⇒  {EnduranceCalibration.RiegelTime(recent, km):hh\\:mm\\:ss}  (terrain-blind cross-check)");
-        }
-        if (opt.UseLoadModel && opt.Profile?.TotalMassKg is double tmass && opt.Profile.PackKg is double pack && pack > 0)
-            sb.AppendLine($"Load:            +{pack:F1} kg pack of {tmass:F0} kg{(opt.Profile.UsePoles ? ", poles on climbs" : "")}");
-        else if (opt.UseLoadModel && opt.Profile?.UsePoles == true)
-            sb.AppendLine("Load:            poles on climbs");
-        if (opt.UseAltitude)
-            sb.AppendLine("Altitude:        derate applied above reference elevation");
-        // Waypoint ETAs, if the track carries named points.
-        var wpts = copy.Points.Where(p => p.IsWaypoint && p.Time is not null).ToList();
-        if (wpts.Count > 0)
-        {
-            sb.AppendLine("Waypoint ETAs:");
-            foreach (var w in wpts)
-                sb.AppendLine($"   {w.Time:HH:mm}  {w.Name}");
-        }
-        return sb.ToString().TrimEnd();
-    }
 }

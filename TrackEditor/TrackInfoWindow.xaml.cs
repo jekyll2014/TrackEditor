@@ -4,6 +4,7 @@ using System.Windows;
 
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
+using TrackEditor.Services;
 
 namespace TrackEditor;
 
@@ -50,7 +51,7 @@ public partial class TrackInfoWindow : Window
         sb.AppendLine();
         sb.AppendLine("— Statistics —");
         if (track.Points.Count >= 2)
-            sb.AppendLine(TrackStatistics.Compute(track.Points).ToDisplayString(paceMode: paceMode));
+            sb.AppendLine(TrackFormatter.FormatStats(TrackStatistics.Compute(track.Points), paceMode: paceMode));
         else
             sb.AppendLine("(need at least 2 points)");
 

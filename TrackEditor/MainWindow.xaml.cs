@@ -14,6 +14,7 @@ using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
 using TrackEditor.Core.Services.RaceAnalysis;
 using TrackEditor.Core.Skia;
+using TrackEditor.Localization;
 using TrackEditor.Services;
 
 namespace TrackEditor;
@@ -40,11 +41,11 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _viewportTimer;
 
     private Track? _active;
-    private double[] _cumDist = Array.Empty<double>();
-    private double[] _cumGain = Array.Empty<double>(); // cumulative ascent (m) to each point, for gain flags
-    private double?[] _speeds = Array.Empty<double?>();
+    private double[] _cumDist = [];
+    private double[] _cumGain = []; // cumulative ascent (m) to each point, for gain flags
+    private double?[] _speeds = [];
     private EditMode _mode = EditMode.View;
-    private readonly List<(double Lat, double Lon)> _measurePts = new(); // multi-point map measurement
+    private readonly List<(double Lat, double Lon)> _measurePts = []; // multi-point map measurement
     private readonly RoutingService _router = new();
     private Map3DWindow? _map3D; // non-null while the 3D view is open
     private bool _syncingUi;
@@ -125,6 +126,7 @@ public partial class MainWindow : Window
     /// <summary>Push the current settings into the elevation services and the basemap.</summary>
     private void ApplySettings()
     {
+        LocalizationManager.Apply(_settings.Language);
         _srtm.Folder = _settings.SrtmFolder;
         _srtm.AutoDownload = _settings.SrtmAutoDownload;
         _online.Provider = _settings.OnlineProvider;
@@ -138,6 +140,21 @@ public partial class MainWindow : Window
         SyncGradientCombo();
         ApplyColumnVisibility();
         SyncFlagContentChecks();
+        RefreshColumnHeaders();
+    }
+
+    private void RefreshColumnHeaders()
+    {
+        ColWaypoint.Header = Loc.Get("ColHdrWaypoint");
+        ColLat.Header      = Loc.Get("ColHdrLat");
+        ColLon.Header      = Loc.Get("ColHdrLon");
+        ColEle.Header      = Loc.Get("ColHdrEle");
+        ColTime.Header     = Loc.Get("ColHdrTime");
+        ColDist.Header     = Loc.Get("ColHdrDist");
+        ColHr.Header       = Loc.Get("ColHdrHr");
+        ColCad.Header      = Loc.Get("ColHdrCad");
+        ColTemp.Header     = Loc.Get("ColHdrTemp");
+        ColSurface.Header  = Loc.Get("ColHdrSurface");
     }
 
     /// <summary>The toolbar Route combo is "Off" plus every routing profile.</summary>
@@ -518,7 +535,7 @@ public partial class MainWindow : Window
         _doc.Tracks.Add(predicted);
         _active = predicted;
         RefreshAll();
-        _mapMgr.ZoomToTracks(new[] { predicted });
+        _mapMgr.ZoomToTracks([predicted]);
         StatusInfo.Text = $"Added predicted track “{predicted.Name}”";
     }
 
@@ -567,7 +584,7 @@ public partial class MainWindow : Window
         _doc.Tracks.Add(merged);
         _active = merged;
         RefreshAll();
-        _mapMgr.ZoomToTracks(new[] { merged });
+        _mapMgr.ZoomToTracks([merged]);
         StatusInfo.Text = $"Added merged track “{merged.Name}”";
     }
 
@@ -715,7 +732,7 @@ public partial class MainWindow : Window
     private void SaveActive_Click(object sender, RoutedEventArgs e)
     {
         if (_active is null) return;
-        SaveTracks(new[] { _active }, _active.Name);
+        SaveTracks([_active], _active.Name);
     }
 
     private void SaveAll_Click(object sender, RoutedEventArgs e)
@@ -807,9 +824,9 @@ public partial class MainWindow : Window
     private void SetActive(Track? track)
     {
         _active = track;
-        _cumDist = _active is not null ? GeoMath.CumulativeDistancesM(_active.Points) : Array.Empty<double>();
-        _cumGain = _active is not null ? CumulativeAscentM(_active.Points) : Array.Empty<double>();
-        _speeds = _active is not null ? GeoMath.SpeedsMps(_active.Points) : Array.Empty<double?>();
+        _cumDist = _active is not null ? GeoMath.CumulativeDistancesM(_active.Points) : [];
+        _cumGain = _active is not null ? CumulativeAscentM(_active.Points) : [];
+        _speeds = _active is not null ? GeoMath.SpeedsMps(_active.Points) : [];
     }
 
     /// <summary>
@@ -849,7 +866,7 @@ public partial class MainWindow : Window
         RefreshTracksList();
         RefreshPointsGrid();
         _mapMgr.RebuildTracks(_doc.Tracks, _active);
-        _mapMgr.SetSelection(null, Array.Empty<int>());
+        _mapMgr.SetSelection(null, []);
         UpdateFlags();
         UpdateGradientLegend();
         RefreshPlots();
@@ -870,9 +887,10 @@ public partial class MainWindow : Window
             GradientLegend.Visibility = Visibility.Collapsed;
             return;
         }
-        LegendCaption.Text = g.Caption;
-        LegendLow.Text = g.LowLabel;    // blue end (slow / hard / climbing)
-        LegendHigh.Text = g.HighLabel;  // red end (fast / easy / descending)
+        var (caption, high, low) = TrackFormatter.FormatGradientLegend(g);
+        LegendCaption.Text = caption;
+        LegendLow.Text = low;
+        LegendHigh.Text = high;
         LegendBar.Fill = _legendBrush ??= BuildLegendBrush();
         GradientLegend.Visibility = Visibility.Visible;
     }
@@ -964,7 +982,7 @@ public partial class MainWindow : Window
         SyncActiveTrackUi();   // sync selection/controls without rebuilding the list, so keyboard focus survives
         RefreshPointsGrid();
         _mapMgr.RebuildTracks(_doc.Tracks, _active);
-        _mapMgr.SetSelection(null, Array.Empty<int>());
+        _mapMgr.SetSelection(null, []);
         UpdateFlags();
         UpdateGradientLegend();
         RefreshPlots();
@@ -1166,7 +1184,7 @@ public partial class MainWindow : Window
     {
         _measurePts.Clear();
         _mapMgr?.ClearMeasure();
-        if (MeasureText is not null) MeasureText.Text = "Click points on the map to measure";
+        MeasureText?.Text = "Click points on the map to measure";
     }
 
     // Map context-menu mode switches drive the toolbar radios (Mode_Checked does the real work).
@@ -1276,7 +1294,7 @@ public partial class MainWindow : Window
 
     private void CtxZoomTrack_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is TrackRow row) _mapMgr.ZoomToTracks(new[] { row.T });
+        if ((sender as FrameworkElement)?.DataContext is TrackRow row) _mapMgr.ZoomToTracks([row.T]);
     }
 
     private void CtxRenameTrack_Click(object sender, RoutedEventArgs e)
@@ -1314,7 +1332,7 @@ public partial class MainWindow : Window
 
     private void TracksList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (TracksList.SelectedItem is TrackRow row) _mapMgr.ZoomToTracks(new[] { row.T });
+        if (TracksList.SelectedItem is TrackRow row) _mapMgr.ZoomToTracks([row.T]);
     }
 
     private void DeleteLast_Click(object sender, RoutedEventArgs e)
@@ -1698,7 +1716,7 @@ public partial class MainWindow : Window
 
     private void ZoomToTrack_Click(object sender, RoutedEventArgs e)
     {
-        if (_active is not null) _mapMgr.ZoomToTracks(new[] { _active });
+        if (_active is not null) _mapMgr.ZoomToTracks([_active]);
     }
 
     // ======================= modes / keyboard =======================
@@ -1706,18 +1724,24 @@ public partial class MainWindow : Window
     private void Mode_Checked(object sender, RoutedEventArgs e)
     {
         if (ModeEdit is null || ModeMeasure is null) return; // during InitializeComponent
-        _mode = ModeEdit.IsChecked == true ? EditMode.Edit
-              : ModeMeasure.IsChecked == true ? EditMode.Measure
+        if (ModeMeasure.IsChecked == true)
+        {
+            _mode = ModeEdit.IsChecked == true ? EditMode.Edit
+              : EditMode.Measure;
+        }
+        else
+        {
+            _mode = ModeEdit.IsChecked == true ? EditMode.Edit
               : EditMode.View;
-        if (StatusMode is not null)
-            StatusMode.Text = $"Mode: {_mode}";
+        }
+
+        StatusMode?.Text = $"Mode: {_mode}";
 
         // The measurement panel is only meaningful in Measure mode.
-        if (MeasurePanel is not null)
-            MeasurePanel.Visibility = _mode == EditMode.Measure ? Visibility.Visible : Visibility.Collapsed;
+        MeasurePanel?.Visibility = _mode == EditMode.Measure ? Visibility.Visible : Visibility.Collapsed;
 
         if (_mode != EditMode.Measure) ResetMeasurement();
-        else if (MeasureText is not null) MeasureText.Text = "Click points on the map to measure";
+        else MeasureText?.Text = "Click points on the map to measure";
     }
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -1792,13 +1816,13 @@ public partial class MainWindow : Window
     /// <summary>Enables/disables the always-visible controls (toolbar Save, Flags, profile toggles).</summary>
     private void UpdateCommandStates()
     {
-        if (BtnSave is not null) BtnSave.IsEnabled = HasActive;
-        if (FlagsCheck is not null) FlagsCheck.IsEnabled = CanFlag;
-        if (ChkAlt is not null) ChkAlt.IsEnabled = HasEle;   // no elevation -> nothing to plot
-        if (ChkSpeed is not null) ChkSpeed.IsEnabled = HasTime; // speed needs timestamps
-        if (ChkHr is not null) ChkHr.IsEnabled = HasChannel(p => p.Hr is not null);
-        if (ChkCad is not null) ChkCad.IsEnabled = HasChannel(p => p.Cad is not null);
-        if (ChkTemp is not null) ChkTemp.IsEnabled = HasChannel(p => p.Temp is not null);
+        BtnSave?.IsEnabled = HasActive;
+        FlagsCheck?.IsEnabled = CanFlag;
+        ChkAlt?.IsEnabled = HasEle;   // no elevation -> nothing to plot
+        ChkSpeed?.IsEnabled = HasTime; // speed needs timestamps
+        ChkHr?.IsEnabled = HasChannel(p => p.Hr is not null);
+        ChkCad?.IsEnabled = HasChannel(p => p.Cad is not null);
+        ChkTemp?.IsEnabled = HasChannel(p => p.Temp is not null);
     }
 
     private bool HasChannel(Func<TrackPoint, bool> has) => _active is not null && _active.Points.Any(has);
@@ -1869,7 +1893,7 @@ public partial class MainWindow : Window
         UpdateCommandStates();
         StatsText.Text = _active is null || _active.Points.Count < 2
             ? "—"
-            : TrackStatistics.Compute(_active.Points).ToDisplayString(paceMode: _settings.PaceMode);
+            : TrackFormatter.FormatStats(TrackStatistics.Compute(_active.Points), paceMode: _settings.PaceMode);
         RefreshSelectionStats();
     }
 
@@ -1877,15 +1901,14 @@ public partial class MainWindow : Window
     private void RefreshSelectionStats()
     {
         // The panel only appears once a span of 2+ points is selected.
-        var idx = _active is null ? new List<int>() : SelectedIndices();
-        if (SelStatsPanel is not null)
-            SelStatsPanel.Visibility = idx.Count >= 2 ? Visibility.Visible : Visibility.Collapsed;
+        var idx = _active is null ? [] : SelectedIndices();
+        SelStatsPanel?.Visibility = idx.Count >= 2 ? Visibility.Visible : Visibility.Collapsed;
         if (_active is null || idx.Count < 2) { SelStatsText.Text = "Select 2+ points"; return; }
 
         int lo = idx[0], hi = idx[^1];
         var span = _active.Points.GetRange(lo, hi - lo + 1);
         string header = $"Points {lo}–{hi} ({span.Count})\n";
-        SelStatsText.Text = header + TrackStatistics.Compute(span).ToDisplayString(includeIncline: true, paceMode: _settings.PaceMode);
+        SelStatsText.Text = header + TrackFormatter.FormatStats(TrackStatistics.Compute(span), includeIncline: true, paceMode: _settings.PaceMode);
     }
 
     // ======================= map measurement =======================
@@ -1924,20 +1947,20 @@ public partial class MainWindow : Window
 
         var s = TrackStatistics.Compute(temp.Points);
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"{pts.Count} points, {pts.Count - 1} leg(s)");
-        sb.AppendLine($"Path length:     {dist / 1000:F2} km");
+        sb.AppendLine(Loc.Get("MeasPtLegs", pts.Count, pts.Count - 1));
+        sb.AppendLine($"{Loc.Get("MeasPathLength")} {dist / 1000:F2} km");
         if (pts.Count > 2)
-            sb.AppendLine($"Straight line:   {direct / 1000:F2} km");
-        sb.AppendLine($"Bearing:         {bearing:F0}°");
+            sb.AppendLine($"{Loc.Get("MeasStraightLine")} {direct / 1000:F2} km");
+        sb.AppendLine($"{Loc.Get("MeasBearing")} {bearing:F0}°");
         if (s.MinEleM is not null)
         {
-            sb.AppendLine($"Elevation:       {s.MinEleM:F0} … {s.MaxEleM:F0} m");
-            sb.AppendLine($"Ascent:          {s.AscentM:F0} m");
-            sb.AppendLine($"Descent:         {s.DescentM:F0} m");
+            sb.AppendLine($"{Loc.Get("MeasElevRange")} {s.MinEleM:F0} … {s.MaxEleM:F0} m");
+            sb.AppendLine($"{Loc.Get("MeasAscent")} {s.AscentM:F0} m");
+            sb.AppendLine($"{Loc.Get("MeasDescent")} {s.DescentM:F0} m");
             if (s.NetInclineDeg is not null)
-                sb.AppendLine($"Avg incline:     {s.NetInclineDeg:+0.0;-0.0;0.0}°  ({Math.Tan(s.NetInclineDeg.Value * Math.PI / 180) * 100:+0;-0;0} %)");
+                sb.AppendLine($"{Loc.Get("MeasAvgIncline")} {s.NetInclineDeg:+0.0;-0.0;0.0}°  ({Math.Tan(s.NetInclineDeg.Value * Math.PI / 180) * 100:+0;-0;0} %)");
         }
-        else sb.AppendLine("(no elevation source — distance only)");
+        else sb.AppendLine(Loc.Get("MeasNoElevation"));
 
         MeasureText.Text = sb.ToString().TrimEnd();
         StatusInfo.Text = $"Measured {dist / 1000:F2} km";
@@ -1987,7 +2010,7 @@ public partial class MainWindow : Window
 
     // ── server tab ───────────────────────────────────────────────────────────
 
-    private List<ServerTrackRow> _serverTracks = new();
+    private List<ServerTrackRow> _serverTracks = [];
     private bool _serverLoading;
 
     /// <summary>Updates static UI state (status text, button enables) from current auth state.</summary>
@@ -2017,7 +2040,10 @@ public partial class MainWindow : Window
             var list = await _serverSvc.ListAsync();
             _serverTracks = list.Select(t => new ServerTrackRow
             {
-                Id = t.Id, Name = t.Name, IsShared = t.IsShared, UpdatedUtc = t.UpdatedUtc,
+                Id = t.Id,
+                Name = t.Name,
+                IsShared = t.IsShared,
+                UpdatedUtc = t.UpdatedUtc,
             }).ToList();
             ServerTracksList.ItemsSource = _serverTracks;
             ServerTabItem.Header = _serverTracks.Count > 0 ? $"Server ({_serverTracks.Count})" : "Server";
@@ -2059,7 +2085,7 @@ public partial class MainWindow : Window
             var track = _serverSvc.JsonToTrack(dto.TrackJson);
             if (track is null) { ServerStatusTxt.Text = "Could not parse track data."; return; }
             track.ServerId = dto.Id;
-            AddLoadedTracks(new[] { track });
+            AddLoadedTracks([track]);
             ServerStatusTxt.Text = $"Signed in as {_serverSvc.Email}";
         }
         catch (Exception ex) { ServerStatusTxt.Text = $"Error: {ex.Message}"; }
@@ -2128,21 +2154,18 @@ public partial class MainWindow : Window
                 "Open Shared Track", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
-        string? input = InputDialog.Ask(this, "Open Shared Track", "Shared track ID or URL:", "");
+        string? input = InputDialog.Ask(this, "Open Shared Track", "Shared track ID (GUID):", "");
         if (input is null) return;
-        var id = input.Trim().Split('/', StringSplitOptions.RemoveEmptyEntries)
-                      .Select(s => Guid.TryParse(s, out var g) ? g : (Guid?)null)
-                      .FirstOrDefault(g => g.HasValue);
-        if (id is null)
+        if (!Guid.TryParse(input, out var id))
         {
-            MessageBox.Show(this, "No valid GUID found in input.", "Open Shared Track",
+            MessageBox.Show(this, "Invalid ID format.", "Open Shared Track",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
         StatusInfo.Text = "Loading shared track…";
         try
         {
-            var dto = await _serverSvc.GetSharedAsync(id.Value);
+            var dto = await _serverSvc.GetSharedAsync(id);
             if (dto is null)
             {
                 StatusInfo.Text = "";
@@ -2159,7 +2182,7 @@ public partial class MainWindow : Window
                 return;
             }
             track.ServerId = dto.Id;
-            AddLoadedTracks(new[] { track });
+            AddLoadedTracks([track]);
         }
         catch (Exception ex)
         {

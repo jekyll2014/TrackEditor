@@ -10,6 +10,8 @@ using Microsoft.Win32;
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
 using TrackEditor.Core.Services.RaceAnalysis;
+using TrackEditor.Localization;
+using TrackEditor.Services;
 
 namespace TrackEditor;
 
@@ -114,9 +116,9 @@ public partial class ApplyRaceModelWindow : Window
         {
             var result = RacePredictor.Predict(_target, _model, options);
             PredictedTrack = result.PredictedTrack;   // held; only committed if the user clicks Add
-            ReportText.Text = result.Report;
+            ReportText.Text = RaceFormatter.FormatPredictionReport(result, options, _model);
             AddButton.IsEnabled = true;
-            HintText.Text = $"Predicted {result.DistanceKm:F1} km in {result.TotalTime:hh\\:mm\\:ss}.";
+            HintText.Text = string.Format(Loc.Get("RpHintPredicted"), result.DistanceKm, result.TotalTime);
         }
         catch (Exception ex)
         {

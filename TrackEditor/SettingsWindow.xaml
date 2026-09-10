@@ -1,26 +1,26 @@
 <Window x:Class="TrackEditor.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Settings" Height="760" Width="520"
+        Title="{DynamicResource SettingsTitle}" Height="820" Width="520"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResize" ShowInTaskbar="False">
     <DockPanel Margin="14">
 
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button Content="OK" Width="80" IsDefault="True" Click="Ok_Click"/>
-            <Button Content="Cancel" Width="80" Margin="8,0,0,0" IsCancel="True"/>
+            <Button Content="{DynamicResource BtnOk}" Width="80" IsDefault="True" Click="Ok_Click"/>
+            <Button Content="{DynamicResource BtnCancel}" Width="80" Margin="8,0,0,0" IsCancel="True"/>
         </StackPanel>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel>
 
                 <!-- ===== Base map parameters ===== -->
-                <GroupBox Header="Base map parameters">
+                <GroupBox Header="{DynamicResource GrpBaseMap}">
                     <StackPanel Margin="6">
                         <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11" Margin="0,0,0,6"
-                                   Text="The active map is chosen from the Map selector on the toolbar. Here you set parameters for a particular map — pick the map, then adjust its values."/>
+                                   Text="{DynamicResource DescBaseMap}"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="Configure map:" VerticalAlignment="Center" Width="120"/>
+                            <TextBlock Text="{DynamicResource LblConfigureMap}" VerticalAlignment="Center" Width="120"/>
                             <ComboBox x:Name="CmbBaseMap" Width="220" SelectionChanged="ConfigureMap_Changed">
                                 <ComboBoxItem Content="OpenStreetMap"/>
                                 <ComboBoxItem Content="OpenTopoMap (topographic)"/>
@@ -30,160 +30,172 @@
                             </ComboBox>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="Tile cache limit:" VerticalAlignment="Center" Width="120"/>
+                            <TextBlock Text="{DynamicResource LblTileCacheLimit}" VerticalAlignment="Center" Width="120"/>
                             <TextBox x:Name="TxtCacheLimit" Width="70" VerticalContentAlignment="Center"/>
-                            <TextBlock Text="MB for this map  (0 = no limit)" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="#666"/>
+                            <TextBlock Text="{DynamicResource LblTileCacheSuffix}" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="#666"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Width="120"/>
-                            <Button Content="Clear tile cache…" Width="140" Click="ClearCache_Click"
+                            <Button Content="{DynamicResource BtnClearCache}" Width="140" Click="ClearCache_Click"
                                     ToolTip="Delete cached tiles for every basemap; they re-download as you browse."/>
                         </StackPanel>
                     </StackPanel>
                 </GroupBox>
 
                 <!-- ===== Waypoint labels ===== -->
-                <GroupBox Header="Waypoint labels (map &amp; profile)" Margin="0,10,0,0">
+                <GroupBox Header="{DynamicResource GrpWaypointLabels}" Margin="0,10,0,0">
                     <StackPanel Margin="6">
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="Background:" VerticalAlignment="Center" Width="90"/>
+                            <TextBlock Text="{DynamicResource LblBackground}" VerticalAlignment="Center" Width="90"/>
                             <TextBox x:Name="TxtWpBack" Width="90" VerticalContentAlignment="Center" TextChanged="WpColor_Changed"/>
                             <Border BorderBrush="#888" BorderThickness="1" Margin="8,0,0,0" Width="34" Height="22">
                                 <Rectangle x:Name="RectWpBack"/>
                             </Border>
-                            <TextBlock Text="e.g. #6A1B9A" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#666"/>
+                            <TextBlock Text="{DynamicResource LblColorExample}" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#666"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Text:" VerticalAlignment="Center" Width="90"/>
+                            <TextBlock Text="{DynamicResource LblText}" VerticalAlignment="Center" Width="90"/>
                             <TextBox x:Name="TxtWpText" Width="90" VerticalContentAlignment="Center" TextChanged="WpColor_Changed"/>
                             <Border BorderBrush="#888" BorderThickness="1" Margin="8,0,0,0" Width="34" Height="22">
                                 <Rectangle x:Name="RectWpText"/>
                             </Border>
                             <Border x:Name="WpPreviewBorder" Margin="14,0,0,0" Padding="10,3" CornerRadius="3"
                                     VerticalAlignment="Center">
-                                <TextBlock x:Name="WpPreviewText" Text="Waypoint" FontWeight="Bold"/>
+                                <TextBlock x:Name="WpPreviewText" Text="{DynamicResource WpPreviewLabel}" FontWeight="Bold"/>
                             </Border>
                         </StackPanel>
                     </StackPanel>
                 </GroupBox>
 
                 <!-- ===== Points list columns ===== -->
-                <GroupBox Header="Points list columns" Margin="0,10,0,0">
+                <GroupBox Header="{DynamicResource GrpPointsColumns}" Margin="0,10,0,0">
                     <StackPanel Margin="6">
-                        <TextBlock Text="Choose which columns the points list shows (the index column is always shown)."
+                        <TextBlock Text="{DynamicResource DescPointsColumns}"
                                    Foreground="#666" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"/>
                         <WrapPanel>
-                            <CheckBox x:Name="ChkColWaypoint" Content="⚑ Waypoint" Width="130" Margin="0,2"/>
-                            <CheckBox x:Name="ChkColLat" Content="Lat" Width="130" Margin="0,2"/>
-                            <CheckBox x:Name="ChkColLon" Content="Lon" Width="130" Margin="0,2"/>
-                            <CheckBox x:Name="ChkColEle" Content="Ele, m" Width="130" Margin="0,2"/>
-                            <CheckBox x:Name="ChkColTime" Content="Time" Width="130" Margin="0,2"/>
-                            <CheckBox x:Name="ChkColDist" Content="Km" Width="130" Margin="0,2"/>
-                            <CheckBox x:Name="ChkColHr" Content="HR" Width="130" Margin="0,2"/>
-                            <CheckBox x:Name="ChkColCad" Content="Cadence" Width="130" Margin="0,2"/>
-                            <CheckBox x:Name="ChkColTemp" Content="Temperature (°C)" Width="130" Margin="0,2"/>
-                            <CheckBox x:Name="ChkColSurface" Content="Surface" Width="130" Margin="0,2"/>
+                            <CheckBox x:Name="ChkColWaypoint" Content="{DynamicResource ChkColWaypoint}" Width="130" Margin="0,2"/>
+                            <CheckBox x:Name="ChkColLat" Content="{DynamicResource ChkColLat}" Width="130" Margin="0,2"/>
+                            <CheckBox x:Name="ChkColLon" Content="{DynamicResource ChkColLon}" Width="130" Margin="0,2"/>
+                            <CheckBox x:Name="ChkColEle" Content="{DynamicResource ChkColEle}" Width="130" Margin="0,2"/>
+                            <CheckBox x:Name="ChkColTime" Content="{DynamicResource ChkColTime}" Width="130" Margin="0,2"/>
+                            <CheckBox x:Name="ChkColDist" Content="{DynamicResource ChkColDist}" Width="130" Margin="0,2"/>
+                            <CheckBox x:Name="ChkColHr" Content="{DynamicResource ChkColHr}" Width="130" Margin="0,2"/>
+                            <CheckBox x:Name="ChkColCad" Content="{DynamicResource ChkColCad}" Width="130" Margin="0,2"/>
+                            <CheckBox x:Name="ChkColTemp" Content="{DynamicResource ChkColTemp}" Width="130" Margin="0,2"/>
+                            <CheckBox x:Name="ChkColSurface" Content="{DynamicResource ChkColSurface}" Width="130" Margin="0,2"/>
                         </WrapPanel>
                     </StackPanel>
                 </GroupBox>
 
                 <!-- ===== Statistics ===== -->
-                <GroupBox Header="Statistics" Margin="0,10,0,0">
+                <GroupBox Header="{DynamicResource GrpStatistics}" Margin="0,10,0,0">
                     <StackPanel Margin="6">
-                        <CheckBox x:Name="ChkPaceMode" Content="Show speed as pace (min/km) instead of km/h" Margin="0,2"/>
+                        <CheckBox x:Name="ChkPaceMode" Content="{DynamicResource ChkPaceMode}" Margin="0,2"/>
                     </StackPanel>
                 </GroupBox>
 
                 <!-- ===== Gradient colouring ===== -->
-                <GroupBox Header="Gradient colouring (active track)" Margin="0,10,0,0">
+                <GroupBox Header="{DynamicResource GrpGradient}" Margin="0,10,0,0">
                     <StackPanel Margin="6">
                         <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11"
-                                   Text="The gradient metric is chosen from the Gradient dropdown on the toolbar. It draws the selected track with a red (fast / easy / descending) → blue (slow / hard / climbing) gradient along its segments; other tracks keep their own colour. Segments with no pavement information are treated as unpaved."/>
+                                   Text="{DynamicResource DescGradient}"/>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <TextBlock Text="Grade unit:" VerticalAlignment="Center" Width="120"/>
+                            <TextBlock Text="{DynamicResource LblGradeUnit}" VerticalAlignment="Center" Width="120"/>
                             <ComboBox x:Name="CmbGradeUnit" Width="180">
-                                <ComboBoxItem Content="Percent (%)"/>
-                                <ComboBoxItem Content="Degrees (°)"/>
+                                <ComboBoxItem Content="{DynamicResource GradePercent}"/>
+                                <ComboBoxItem Content="{DynamicResource GradeDegree}"/>
                             </ComboBox>
                         </StackPanel>
                         <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11" Margin="0,4,0,0"
-                                   Text="Unit for the inclination legend labels (the slope shown at the red and blue ends). Percent is rise/run; degrees is the equivalent slope angle."/>
+                                   Text="{DynamicResource DescGradeUnit}"/>
                     </StackPanel>
                 </GroupBox>
 
                 <!-- ===== Auto-route ===== -->
-                <GroupBox Header="Auto-route (drawing)" Margin="0,10,0,0">
+                <GroupBox Header="{DynamicResource GrpAutoRoute}" Margin="0,10,0,0">
                     <StackPanel Margin="6">
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Width="120"/>
                             <CheckBox x:Name="ChkRouteSimplify" VerticalAlignment="Center"
-                                      Content="Simplify routed legs"
+                                      Content="{DynamicResource ChkRouteSimplify}"
                                       Checked="RouteSimplify_Toggled" Unchecked="RouteSimplify_Toggled"
                                       ToolTip="Routers return very dense geometry; thinning it keeps tracks manageable."/>
                         </StackPanel>
                         <StackPanel x:Name="RouteToleranceRow" Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="Tolerance:" VerticalAlignment="Center" Width="120"/>
+                            <TextBlock Text="{DynamicResource LblTolerance}" VerticalAlignment="Center" Width="120"/>
                             <TextBox x:Name="TxtRouteTolerance" Width="70" VerticalContentAlignment="Center"/>
-                            <TextBlock Text="metres  (larger = fewer points)" VerticalAlignment="Center"
+                            <TextBlock Text="{DynamicResource LblToleranceSuffix}" VerticalAlignment="Center"
                                        Margin="6,0,0,0" Foreground="#666"/>
                         </StackPanel>
                         <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11"
-                                   Text="Auto-route on/off and the routing profile are chosen from the Route dropdown on the toolbar. Routing uses the public BRouter service (brouter.de) — no API key. When a route can't be found the new point is joined with a straight segment."/>
+                                   Text="{DynamicResource DescAutoRoute}"/>
                     </StackPanel>
                 </GroupBox>
 
                 <!-- ===== Elevation ===== -->
-                <TextBlock Text="Elevation sources" FontWeight="Bold" Margin="0,14,0,8"/>
+                <TextBlock Text="{DynamicResource LblElevationSources}" FontWeight="Bold" Margin="0,14,0,8"/>
 
                 <GroupBox>
                     <GroupBox.Header>
-                        <CheckBox x:Name="ChkSrtm" Content="SRTM .hgt tiles (local, offline)"
+                        <CheckBox x:Name="ChkSrtm" Content="{DynamicResource ChkSrtm}"
                                   Checked="Srtm_Toggled" Unchecked="Srtm_Toggled"/>
                     </GroupBox.Header>
                     <StackPanel x:Name="SrtmPanel" Margin="6">
-                        <TextBlock Text="Folder containing .hgt tiles (e.g. N54E025.hgt):" Margin="0,0,0,4"/>
+                        <TextBlock Text="{DynamicResource LblSrtmFolder}" Margin="0,0,0,4"/>
                         <DockPanel>
-                            <Button DockPanel.Dock="Right" Content="Browse…" Width="80" Margin="6,0,0,0"
+                            <Button DockPanel.Dock="Right" Content="{DynamicResource BtnBrowse}" Width="80" Margin="6,0,0,0"
                                     Click="BrowseSrtm_Click"/>
                             <TextBox x:Name="TxtSrtmFolder" VerticalContentAlignment="Center"/>
                         </DockPanel>
-                        <CheckBox x:Name="ChkSrtmAuto" Content="Download missing tiles automatically" Margin="0,8,0,0"
+                        <CheckBox x:Name="ChkSrtmAuto" Content="{DynamicResource ChkSrtmAuto}" Margin="0,8,0,0"
                                   ToolTip="Fetches gzipped SRTM tiles from the elevation-tiles-prod open dataset into the folder above."/>
                     </StackPanel>
                 </GroupBox>
 
                 <GroupBox Margin="0,10,0,0">
                     <GroupBox.Header>
-                        <CheckBox x:Name="ChkOnline" Content="Online elevation service (fallback for missing points)"
+                        <CheckBox x:Name="ChkOnline" Content="{DynamicResource ChkOnline}"
                                   Checked="Online_Toggled" Unchecked="Online_Toggled"/>
                     </GroupBox.Header>
                     <StackPanel x:Name="OnlinePanel" Margin="6">
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="Provider:" VerticalAlignment="Center" Width="120"/>
+                            <TextBlock Text="{DynamicResource LblProvider}" VerticalAlignment="Center" Width="120"/>
                             <ComboBox x:Name="CmbProvider" Width="180" SelectionChanged="Provider_Changed">
                                 <ComboBoxItem Content="OpenTopoData"/>
                                 <ComboBoxItem Content="Open-Elevation"/>
                             </ComboBox>
                         </StackPanel>
                         <StackPanel x:Name="DatasetRow" Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="OpenTopoData dataset:" VerticalAlignment="Center" Width="120"/>
+                            <TextBlock Text="{DynamicResource LblDataset}" VerticalAlignment="Center" Width="120"/>
                             <ComboBox x:Name="CmbDataset" Width="180" IsEditable="True"
                                       ToolTip="Pick a public OpenTopoData dataset, or type a custom one (e.g. for a self-hosted server)."/>
                         </StackPanel>
                         <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11"
-                                   Text="Requires network access. Public services are rate-limited (OpenTopoData: 100 points/request, ~1 request/second, 1000/day). Used only to fill points SRTM could not provide."/>
+                                   Text="{DynamicResource DescOnline}"/>
                     </StackPanel>
                 </GroupBox>
 
                 <!-- ===== Server storage ===== -->
-                <GroupBox Header="Server storage" Margin="0,10,0,0">
+                <GroupBox Header="{DynamicResource GrpServer}" Margin="0,10,0,0">
                     <StackPanel Margin="6">
                         <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11" Margin="0,0,0,6"
-                                   Text="Base URL of the TrackEditor server (e.g. https://myserver.example.com). Leave blank to disable server features. Log in via Server › Login…."/>
+                                   Text="{DynamicResource DescServer}"/>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Server URL:" VerticalAlignment="Center" Width="120"/>
+                            <TextBlock Text="{DynamicResource LblServerUrl}" VerticalAlignment="Center" Width="120"/>
                             <TextBox x:Name="TxtServerUrl" Width="260" VerticalContentAlignment="Center"/>
                         </StackPanel>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- ===== Language ===== -->
+                <GroupBox Header="{DynamicResource GrpLanguage}" Margin="0,10,0,0">
+                    <StackPanel Margin="6" Orientation="Horizontal">
+                        <TextBlock Text="{DynamicResource LblAppLanguage}" VerticalAlignment="Center" Width="120"/>
+                        <ComboBox x:Name="CmbLanguage" Width="180">
+                            <ComboBoxItem Content="English"/>
+                            <ComboBoxItem Content="Русский"/>
+                            <ComboBoxItem Content="Lietuvių"/>
+                        </ComboBox>
                     </StackPanel>
                 </GroupBox>
 

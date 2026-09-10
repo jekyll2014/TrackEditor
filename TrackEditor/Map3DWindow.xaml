@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:h="clr-namespace:HelixToolkit.Wpf;assembly=HelixToolkit.Wpf"
-        Title="3D View" Height="760" Width="1080"
+        Title="{DynamicResource Map3DTitle}" Height="760" Width="1080"
         WindowStartupLocation="CenterOwner">
     <Window.Resources>
         <Style x:Key="NavBtn" TargetType="Button">
@@ -121,21 +121,21 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Rotate" FontSize="10" Foreground="#555"
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Lbl3DRotate}" FontSize="10" Foreground="#555"
                                VerticalAlignment="Center" Margin="0,0,4,0"/>
                     <Button Grid.Row="0" Grid.Column="1" Style="{StaticResource NavBtn}" Content="↺"
                             Click="RotateLeft_Click" ToolTip="Rotate view left (horizontal)"/>
                     <Button Grid.Row="0" Grid.Column="2" Style="{StaticResource NavBtn}" Content="↻"
                             Click="RotateRight_Click" ToolTip="Rotate view right (horizontal)"/>
 
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Tilt" FontSize="10" Foreground="#555"
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource Lbl3DTilt}" FontSize="10" Foreground="#555"
                                VerticalAlignment="Center" Margin="0,0,4,0"/>
                     <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource NavBtn}" Content="▲"
                             Click="TiltUp_Click" ToolTip="Tilt up — look from higher (vertical)"/>
                     <Button Grid.Row="1" Grid.Column="2" Style="{StaticResource NavBtn}" Content="▼"
                             Click="TiltDown_Click" ToolTip="Tilt down — look from nearer the ground (vertical)"/>
 
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Zoom" FontSize="10" Foreground="#555"
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Lbl3DZoom}" FontSize="10" Foreground="#555"
                                VerticalAlignment="Center" Margin="0,0,4,0"/>
                     <Button Grid.Row="2" Grid.Column="1" Style="{StaticResource NavBtn}" Content="+"
                             Click="ZoomIn_Click" ToolTip="Zoom in (mouse wheel up)"/>
@@ -144,21 +144,21 @@
                 </Grid>
 
                 <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="Vertical exaggeration" FontSize="10" Foreground="#555"/>
+                    <TextBlock Text="{DynamicResource Lbl3DVertExag}" FontSize="10" Foreground="#555"/>
                     <StackPanel Orientation="Horizontal">
                         <Slider x:Name="ExagSlider" Width="110" Minimum="1" Maximum="4" Value="1"
                                 TickFrequency="0.5" IsSnapToTickEnabled="True"
                                 ValueChanged="Exaggeration_Changed" VerticalAlignment="Center"/>
                         <TextBlock x:Name="ExagLabel" Text="1.0×" Width="34" Margin="4,0,0,0"
                                    VerticalAlignment="Center" FontSize="11"/>
-                        <Button Content="💾 Save" Click="SaveImage_Click" Margin="6,0,0,0"
+                        <Button Content="{DynamicResource Btn3DSave}" Click="SaveImage_Click" Margin="6,0,0,0"
                                 Padding="8,2" FontSize="11" VerticalAlignment="Center"
                                 ToolTip="Save the current 3D view to a PNG file"/>
                     </StackPanel>
 
                     <!-- Basemap detail (tile zoom) for the draped texture — same region, finer/coarser tiles -->
                     <StackPanel Orientation="Horizontal" Margin="0,7,0,0">
-                        <TextBlock Text="Detail" FontSize="10" Foreground="#555"
+                        <TextBlock Text="{DynamicResource Lbl3DDetail}" FontSize="10" Foreground="#555"
                                    VerticalAlignment="Center" Margin="0,0,4,0"/>
                         <ComboBox x:Name="DetailCombo" Width="132" Height="21" FontSize="10"
                                   VerticalContentAlignment="Center" SelectionChanged="Detail_Changed"
@@ -167,12 +167,12 @@
 
                     <!-- Always-on-top flags that face the observer -->
                     <StackPanel Orientation="Horizontal" Margin="0,7,0,0">
-                        <TextBlock Text="Flags" FontSize="10" Foreground="#555"
+                        <TextBlock Text="{DynamicResource Lbl3DFlags}" FontSize="10" Foreground="#555"
                                    VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <CheckBox x:Name="ChkWaypointFlags" Content="Waypoints" IsChecked="True" FontSize="11"
+                        <CheckBox x:Name="ChkWaypointFlags" Content="{DynamicResource Lbl3DWaypoints}" IsChecked="True" FontSize="11"
                                   VerticalAlignment="Center" Checked="Flags_Toggled" Unchecked="Flags_Toggled"
                                   ToolTip="Show a flag at each named waypoint, always facing you and drawn on top"/>
-                        <TextBlock Text="Track pts:" FontSize="10" Foreground="#555"
+                        <TextBlock Text="{DynamicResource Lbl3DTrackPts}" FontSize="10" Foreground="#555"
                                    VerticalAlignment="Center" Margin="12,0,4,0"/>
                         <ComboBox x:Name="CmbPointFlags" Width="66" Height="21" FontSize="10"
                                   VerticalContentAlignment="Center" SelectionChanged="PointFlags_Changed"
@@ -191,7 +191,7 @@
 
                     <!-- Solar lighting: shade the terrain by the sun's real position at the track's time -->
                     <StackPanel Orientation="Horizontal" Margin="0,7,0,0">
-                        <CheckBox x:Name="ChkSun" Content="☀ Sun" FontSize="11" VerticalAlignment="Center"
+                        <CheckBox x:Name="ChkSun" Content="{DynamicResource Lbl3DSun}" FontSize="11" VerticalAlignment="Center"
                                   Checked="Sun_Toggled" Unchecked="Sun_Toggled"
                                   ToolTip="Light the terrain from the sun's real position at the selected time (needs point timestamps)"/>
                         <DatePicker x:Name="SunDate" Width="104" FontSize="10" Height="22" Margin="8,0,0,0"
@@ -213,8 +213,8 @@
         <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12"
                 Background="#C0FFFFFF" BorderBrush="#888" BorderThickness="1" CornerRadius="4" Padding="8,5">
             <StackPanel>
-                <TextBlock x:Name="StatusText" Text="Building terrain…" FontWeight="Bold"/>
-                <TextBlock Text="Left-drag: pan   Right-drag: rotate / tilt   Wheel: zoom"
+                <TextBlock x:Name="StatusText" Text="{DynamicResource Map3DBuilding}" FontWeight="Bold"/>
+                <TextBlock Text="{DynamicResource Map3DNavHint}"
                            FontSize="11" Foreground="#555" Margin="0,3,0,0"/>
             </StackPanel>
         </Border>

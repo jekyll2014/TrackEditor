@@ -1,5 +1,3 @@
-using System.Text;
-
 using TrackEditor.Core.Models;
 
 namespace TrackEditor.Core.Services.RaceAnalysis;
@@ -21,13 +19,14 @@ public class RaceAnalysisOptions
     public double FatigueFloor { get; set; } = 0.5;
 }
 
-/// <summary>Outcome of a fit: the model plus a human-readable report and the raw counts behind it.</summary>
+/// <summary>Outcome of a fit: the model and the raw counts behind it.</summary>
 public class AnalysisResult
 {
     public RaceModel Model { get; set; } = new();
-    public string Report { get; set; } = "";
     public int TracksUsed { get; set; }
     public int SegmentsUsed { get; set; }
+    /// <summary>Maximum accumulated effort value across all fitted segments (used by WPF to format the fatigue line).</summary>
+    public double MaxEffort { get; set; }
 }
 
 /// <summary>
@@ -124,7 +123,7 @@ public static class RaceAnalyzer
         }
 
         if (segs.Count == 0)
-            return new AnalysisResult { Report = "No usable timed, moving segments found in the selected track(s)." };
+            return new AnalysisResult();
 
         double athleteFlat = opt.NormalizePerTrack ? Mean(flatRefs) : Median(segs.Select(s => s.SpeedRel).ToList());
 
@@ -187,7 +186,7 @@ public static class RaceAnalyzer
             Model = model,
             TracksUsed = names.Count,
             SegmentsUsed = segs.Count,
-            Report = BuildReport(model, segs),
+            MaxEffort = segs.Max(s => s.Effort),
         };
     }
 
@@ -288,32 +287,6 @@ public static class RaceAnalyzer
         if (hr) l.Add("hr");
         if (cad) l.Add("cad");
         return l;
-    }
-
-    private static string BuildReport(RaceModel m, List<Seg> segs)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine($"Tracks fitted:   {m.Meta.SourceTracks.Count} ({string.Join(", ", m.Meta.SourceTracks)})");
-        sb.AppendLine($"Segments used:   {m.Meta.SegmentsUsed}");
-        sb.AppendLine($"Signals:         {string.Join(", ", m.Meta.SignalsUsed)}");
-        sb.AppendLine($"Flat speed:      {m.AthleteBaseline.FlatSpeedMps * 3.6:F1} km/h");
-        sb.AppendLine("Speed by grade:");
-        foreach (int g in new[] { -20, -10, -5, 0, 5, 10, 15, 20 })
-            sb.AppendLine($"   {g,4}°: {m.BaseCurve.SpeedAt(g) * 3.6,5:F1} km/h");
-        double maxEffort = segs.Max(s => s.Effort);
-        string unit = m.Fatigue.Driver switch
-        {
-            FatigueDriver.Elapsed => "s", FatigueDriver.Distance => "m", _ => "m climb"
-        };
-        sb.AppendLine($"Fatigue:         k={m.Fatigue.K:G3} /{unit}; end-of-effort speed x{m.Fatigue.Mult(maxEffort):F2}");
-        if (m.Fatigue.HrDriftPerUnit is double d)
-            sb.AppendLine($"HR drift:        {d * 1000:F1} bpm per 1000 {unit}");
-        if (m.Turn.Coeff < 0)
-        {
-            double twisty = m.Turn.RefDegPerM * 3;   // a markedly twistier-than-average section
-            sb.AppendLine($"Turn penalty:    ref {m.Turn.RefDegPerM:F2}°/m; twisty section x{m.Turn.Mult(twisty):F2}");
-        }
-        return sb.ToString().TrimEnd();
     }
 
     // --- small numeric helpers ---

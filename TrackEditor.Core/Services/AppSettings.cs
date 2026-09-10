@@ -118,6 +118,9 @@ public class AppSettings
     /// recent race). All fields optional; predictions degrade gracefully to whatever is supplied.</summary>
     public AthleteProfile Profile { get; set; } = new();
 
+    /// <summary>UI language code: "en" (English), "ru" (Russian), "lt" (Lithuanian).</summary>
+    public string Language { get; set; } = "en";
+
     // Server storage account (access/refresh tokens persisted locally; cleared on logout)
     public string? ServerUrl { get; set; }
     public string? ServerEmail { get; set; }

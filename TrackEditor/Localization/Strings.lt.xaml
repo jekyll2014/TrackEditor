@@ -1,0 +1,462 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- App -->
+    <sys:String x:Key="AppTitle">Trakų redaktorius</sys:String>
+
+    <!-- Common buttons -->
+    <sys:String x:Key="BtnOk">OK</sys:String>
+    <sys:String x:Key="BtnCancel">Atšaukti</sys:String>
+    <sys:String x:Key="BtnClose">Uždaryti</sys:String>
+    <sys:String x:Key="BtnBrowse">Naršyti…</sys:String>
+    <sys:String x:Key="BtnRefresh">Atnaujinti</sys:String>
+    <sys:String x:Key="BtnDelete">Ištrinti</sys:String>
+    <sys:String x:Key="BtnUpdate">Atnaujinti</sys:String>
+    <sys:String x:Key="BtnShare">Bendrinti</sys:String>
+    <sys:String x:Key="BtnUnshare">Atšaukti bendrinimą</sys:String>
+
+    <!-- File menu -->
+    <sys:String x:Key="MenuFile">Failas</sys:String>
+    <sys:String x:Key="MenuOpenFile">Atidaryti GPX/KML/KMZ…</sys:String>
+    <sys:String x:Key="MenuOpenUrl">Atidaryti iš URL…</sys:String>
+    <sys:String x:Key="MenuSaveActive">Išsaugoti aktyvų taką kaip GPX…</sys:String>
+    <sys:String x:Key="MenuSaveAll">Išsaugoti visus takus kaip GPX…</sys:String>
+    <sys:String x:Key="Menu3DView">Dabartinio žemėlapio 3D vaizdas…</sys:String>
+    <sys:String x:Key="MenuExportMap">Eksportuoti žemėlapio vaizdą…</sys:String>
+    <sys:String x:Key="MenuExit">Išeiti</sys:String>
+
+    <!-- Edit menu -->
+    <sys:String x:Key="MenuEdit">Redagavimas</sys:String>
+    <sys:String x:Key="MenuUndo">Atšaukti</sys:String>
+    <sys:String x:Key="MenuRedo">Pakartoti</sys:String>
+    <sys:String x:Key="MenuCopyPoints">Kopijuoti taškus</sys:String>
+    <sys:String x:Key="MenuPastePoints">Įklijuoti taškus po pasirinktų</sys:String>
+    <sys:String x:Key="MenuDeletePoints">Ištrinti pasirinktus taškus</sys:String>
+
+    <!-- Track menu -->
+    <sys:String x:Key="MenuTrackTop">Takas</sys:String>
+    <sys:String x:Key="MenuNewTrack">Naujas tuščias takas (piešimo režimas)</sys:String>
+    <sys:String x:Key="MenuDeleteLast">Ištrinti paskutinį tašką</sys:String>
+    <sys:String x:Key="MenuSplit">Padalinti pažymėtame taške</sys:String>
+    <sys:String x:Key="MenuCrop">Apkarpyti iki pasirinkto diapazono</sys:String>
+    <sys:String x:Key="MenuDeleteRange">Ištrinti pasirinktą diapazoną</sys:String>
+    <sys:String x:Key="MenuSimplify">Supaprastinti…</sys:String>
+    <sys:String x:Key="MenuReverse">Apversti taką</sys:String>
+    <sys:String x:Key="MenuJoin">Sujungti takus…</sys:String>
+    <sys:String x:Key="MenuMerge">Sulieti takus…</sys:String>
+    <sys:String x:Key="MenuApplyEle">Taikyti aukštį (SRTM / internetas)</sys:String>
+    <sys:String x:Key="MenuResetEle">Atstatyti aukščio duomenis</sys:String>
+    <sys:String x:Key="MenuZoomTrack">Priartinti prie tako</sys:String>
+    <sys:String x:Key="MenuRemoveTrack">Ištrinti taką</sys:String>
+
+    <!-- Mode menu -->
+    <sys:String x:Key="MenuMode">Režimas</sys:String>
+    <sys:String x:Key="MenuModeView">Peržiūra</sys:String>
+    <sys:String x:Key="MenuModeEdit">Redagavimas (piešimas / perkėlimas / įterpimas)</sys:String>
+    <sys:String x:Key="MenuModeMeasure">Matavimas</sys:String>
+
+    <!-- View menu -->
+    <sys:String x:Key="MenuView">Vaizdas</sys:String>
+    <sys:String x:Key="MenuShowFlags">Rodyti atstumo vėliavėles</sys:String>
+    <sys:String x:Key="MenuFlagContent">Vėliavėlių turinys</sys:String>
+    <sys:String x:Key="MenuFlagDist">Atstumas</sys:String>
+    <sys:String x:Key="MenuFlagTime">Laikas</sys:String>
+    <sys:String x:Key="MenuFlagEle">Aukštis</sys:String>
+    <sys:String x:Key="MenuFlagGain">Aukščio prieaugis</sys:String>
+    <sys:String x:Key="MenuAltProfile">Aukštis profilyje</sys:String>
+    <sys:String x:Key="MenuSpeedProfile">Greitis profilyje</sys:String>
+    <sys:String x:Key="MenuPointsColumns">Taškų sąrašo stulpeliai</sys:String>
+    <sys:String x:Key="MenuColWaypoint">⚑ Kelrodis</sys:String>
+    <sys:String x:Key="MenuColLat">Plat.</sys:String>
+    <sys:String x:Key="MenuColLon">Ilg.</sys:String>
+    <sys:String x:Key="MenuColEle">Aukštis, m</sys:String>
+    <sys:String x:Key="MenuColTime">Laikas</sys:String>
+    <sys:String x:Key="MenuColDist">Km</sys:String>
+    <sys:String x:Key="MenuColHr">Šs</sys:String>
+    <sys:String x:Key="MenuColCad">Kadencija</sys:String>
+    <sys:String x:Key="MenuColTemp">Temperatūra (°C)</sys:String>
+    <sys:String x:Key="MenuColSurface">Danga</sys:String>
+
+    <!-- Race menu -->
+    <sys:String x:Key="MenuRace">Lenktynės</sys:String>
+    <sys:String x:Key="MenuAnalyzeRace">Analizuoti lenktyninį greitį…</sys:String>
+    <sys:String x:Key="MenuApplyRaceModel">Taikyti lenktyninį modelį…</sys:String>
+    <sys:String x:Key="MenuEvalSurface">Įvertinti dangą (maršruto)…</sys:String>
+    <sys:String x:Key="MenuExportPacing">Eksportuoti tempą (CSV)…</sys:String>
+
+    <!-- Tools / Server / Help menus -->
+    <sys:String x:Key="MenuTools">Įrankiai</sys:String>
+    <sys:String x:Key="MenuSettings">Nustatymai…</sys:String>
+    <sys:String x:Key="MenuServer">Serveris</sys:String>
+    <sys:String x:Key="MenuServerLogin">Prisijungti…</sys:String>
+    <sys:String x:Key="MenuServerLogout">Atsijungti</sys:String>
+    <sys:String x:Key="MenuOpenShared">Atidaryti bendrą taką pagal ID…</sys:String>
+    <sys:String x:Key="MenuHelp">Pagalba</sys:String>
+    <sys:String x:Key="MenuUserGuide">Vartotojo vadovas</sys:String>
+    <sys:String x:Key="MenuAbout">Apie TrackEditor…</sys:String>
+
+    <!-- Toolbar -->
+    <sys:String x:Key="BtnOpen">Atidaryti</sys:String>
+    <sys:String x:Key="BtnSave">Išsaugoti</sys:String>
+    <sys:String x:Key="BtnNewTrack">Naujas takas</sys:String>
+    <sys:String x:Key="BtnUndo">Atšaukti</sys:String>
+    <sys:String x:Key="BtnRedo">Pakartoti</sys:String>
+    <sys:String x:Key="BtnModeView">Peržiūra</sys:String>
+    <sys:String x:Key="BtnModeEdit">Redaguoti</sys:String>
+    <sys:String x:Key="BtnModeMeasure">Matuoti</sys:String>
+    <sys:String x:Key="Btn3DView">3D vaizdas</sys:String>
+    <sys:String x:Key="BtnMyLocation">Mano vieta</sys:String>
+    <sys:String x:Key="BtnFlags">Vėliavėlės</sys:String>
+    <sys:String x:Key="LblMap">Žemėlapis:</sys:String>
+    <sys:String x:Key="LblRoute">Maršrutas:</sys:String>
+    <sys:String x:Key="LblGradient">Gradientas:</sys:String>
+
+    <!-- Gradient combo -->
+    <sys:String x:Key="GradOff">Išj.</sys:String>
+    <sys:String x:Key="GradSpeed">Greitis</sys:String>
+    <sys:String x:Key="GradInclination">Nuolydis</sys:String>
+    <sys:String x:Key="GradPavement">Danga</sys:String>
+
+    <!-- Flag dropdown -->
+    <sys:String x:Key="FlagDist">Atstumas</sys:String>
+    <sys:String x:Key="FlagTime">Laikas</sys:String>
+    <sys:String x:Key="FlagEle">Aukštis</sys:String>
+    <sys:String x:Key="FlagGain">Aukščio prieaugis</sys:String>
+
+    <!-- Status bar -->
+    <sys:String x:Key="StatusInitial">Atidarykite GPX/KML/KMZ failą, kad pradėtumėte</sys:String>
+
+    <!-- Left panel tabs -->
+    <sys:String x:Key="TabTracks">Takai</sys:String>
+    <sys:String x:Key="TabPoints">Taškai</sys:String>
+    <sys:String x:Key="TabServer">Serveris</sys:String>
+
+    <!-- Tracks tab -->
+    <sys:String x:Key="LblColor">Spalva:</sys:String>
+    <sys:String x:Key="LblWidth">Plotis:</sys:String>
+
+    <!-- Track context menu -->
+    <sys:String x:Key="CtxRename">Pervadinti…</sys:String>
+    <sys:String x:Key="CtxTrackInfo">Tako informacija…</sys:String>
+    <sys:String x:Key="CtxSaveTrack">Išsaugoti taką kaip GPX…</sys:String>
+    <sys:String x:Key="CtxExportPacing">Eksportuoti tempą (CSV)…</sys:String>
+    <sys:String x:Key="CtxReverse">Apversti taką</sys:String>
+    <sys:String x:Key="CtxJoin">Sujungti takus…</sys:String>
+    <sys:String x:Key="CtxMerge">Sulieti takus…</sys:String>
+    <sys:String x:Key="CtxSimplify">Supaprastinti…</sys:String>
+    <sys:String x:Key="CtxReevalEle">Perskaičiuoti aukštį (SRTM / internetas)</sys:String>
+    <sys:String x:Key="CtxResetEle">Atstatyti aukščio duomenis</sys:String>
+    <sys:String x:Key="CtxEvalSurface">Įvertinti dangą (maršruto)…</sys:String>
+    <sys:String x:Key="CtxApplyRaceModel">Taikyti lenktyninį modelį…</sys:String>
+    <sys:String x:Key="CtxZoomTrack">Priartinti prie tako</sys:String>
+    <sys:String x:Key="CtxDeleteTrack">Ištrinti taką</sys:String>
+
+    <!-- Points context menu -->
+    <sys:String x:Key="CtxCopyPoints">Kopijuoti taškus</sys:String>
+    <sys:String x:Key="CtxPastePoints">Įklijuoti taškus po pasirinktų</sys:String>
+    <sys:String x:Key="CtxDeletePts">Ištrinti pasirinktus taškus</sys:String>
+    <sys:String x:Key="CtxSplitPoint">Padalinti pažymėtame taške</sys:String>
+    <sys:String x:Key="CtxCropRange">Apkarpyti iki pasirinkto diapazono</sys:String>
+    <sys:String x:Key="CtxSetWaypoint">Nustatyti kelrodžio pavadinimą…</sys:String>
+    <sys:String x:Key="CtxRemoveWaypoint">Pašalinti kelrodį</sys:String>
+    <sys:String x:Key="CtxCenterPoint">Centruoti tašką žemėlapyje</sys:String>
+
+    <!-- DataGrid column headers -->
+    <sys:String x:Key="ColHdrWaypoint">⚑ Kelrodis</sys:String>
+    <sys:String x:Key="ColHdrLat">Plat.</sys:String>
+    <sys:String x:Key="ColHdrLon">Ilg.</sys:String>
+    <sys:String x:Key="ColHdrEle">Aukšt., m</sys:String>
+    <sys:String x:Key="ColHdrTime">Laikas</sys:String>
+    <sys:String x:Key="ColHdrDist">Km</sys:String>
+    <sys:String x:Key="ColHdrHr">Šs</sys:String>
+    <sys:String x:Key="ColHdrCad">Kad.</sys:String>
+    <sys:String x:Key="ColHdrTemp">°C</sys:String>
+    <sys:String x:Key="ColHdrSurface">Danga</sys:String>
+
+    <!-- Server tab -->
+    <sys:String x:Key="SrvNotSignedIn">Neprisijungta — Serveris › Prisijungti…</sys:String>
+    <sys:String x:Key="SrvSaveNew">Išsaugoti aktyvų taką serveryje</sys:String>
+    <sys:String x:Key="SrvSharedBadge"> bendra</sys:String>
+
+    <!-- Map context menu -->
+    <sys:String x:Key="MapFitAll">Rodyti visus takus</sys:String>
+    <sys:String x:Key="MapZoomActive">Priartinti prie aktyvaus tako</sys:String>
+    <sys:String x:Key="MapModeMenu">Režimas</sys:String>
+    <sys:String x:Key="MapModeView">Peržiūra</sys:String>
+    <sys:String x:Key="MapModeEdit">Redagavimas (piešimas / perkėlimas / įterpimas)</sys:String>
+    <sys:String x:Key="MapModeMeasure">Matavimas</sys:String>
+    <sys:String x:Key="MapNewTrack">Naujas takas</sys:String>
+    <sys:String x:Key="MapDeletePts">Ištrinti pasirinktus taškus</sys:String>
+    <sys:String x:Key="MapResetMeasure">Atstatyti matavimą</sys:String>
+    <sys:String x:Key="Map3DView">Dabartinio žemėlapio 3D vaizdas…</sys:String>
+    <sys:String x:Key="MapExportMap">Eksportuoti žemėlapio vaizdą…</sys:String>
+
+    <!-- Statistics panels -->
+    <sys:String x:Key="PnlStatistics">Statistika</sys:String>
+    <sys:String x:Key="PnlSelStats">Pasirinkimo statistika</sys:String>
+    <sys:String x:Key="PnlMeasurement">Matavimas</sys:String>
+    <sys:String x:Key="LblSelect2Plus">Pasirinkite 2+ taškus</sys:String>
+    <sys:String x:Key="LblClickMeasure">Spustelėkite žemėlapyje, kad matuotumėte</sys:String>
+
+    <!-- Profile checkboxes -->
+    <sys:String x:Key="LblProfile">Profilis:</sys:String>
+    <sys:String x:Key="ChkAltitude">Aukštis</sys:String>
+    <sys:String x:Key="ChkSpeed">Greitis</sys:String>
+    <sys:String x:Key="ChkHr">Šs</sys:String>
+    <sys:String x:Key="ChkCadence">Kadencija</sys:String>
+    <sys:String x:Key="ChkTemp">Temp.</sys:String>
+
+    <!-- Settings window -->
+    <sys:String x:Key="SettingsTitle">Nustatymai</sys:String>
+    <sys:String x:Key="GrpBaseMap">Pagrindinio žemėlapio parametrai</sys:String>
+    <sys:String x:Key="DescBaseMap">Aktyvus žemėlapis pasirenkamas iš žemėlapio parinkiklio įrankių juostoje. Čia nustatomi konkrečios žemėlapio parametrai — pasirinkite žemėlapį, tada sureguliuokite jo reikšmes.</sys:String>
+    <sys:String x:Key="LblConfigureMap">Konfigūruoti žemėlapį:</sys:String>
+    <sys:String x:Key="LblTileCacheLimit">Talpyklos limitas:</sys:String>
+    <sys:String x:Key="LblTileCacheSuffix">MB šiam žemėlapiui (0 = be ribų)</sys:String>
+    <sys:String x:Key="BtnClearCache">Išvalyti talpyklą…</sys:String>
+    <sys:String x:Key="GrpWaypointLabels">Kelrodžių etiketės (žemėlapis ir profilis)</sys:String>
+    <sys:String x:Key="LblBackground">Fonas:</sys:String>
+    <sys:String x:Key="LblText">Tekstas:</sys:String>
+    <sys:String x:Key="LblColorExample">pvz. #6A1B9A</sys:String>
+    <sys:String x:Key="WpPreviewLabel">Kelrodis</sys:String>
+    <sys:String x:Key="GrpPointsColumns">Taškų sąrašo stulpeliai</sys:String>
+    <sys:String x:Key="DescPointsColumns">Pasirinkite, kurie stulpeliai rodomi taškų sąraše (indekso stulpelis visada rodomas).</sys:String>
+    <sys:String x:Key="ChkColWaypoint">⚑ Kelrodis</sys:String>
+    <sys:String x:Key="ChkColLat">Plat.</sys:String>
+    <sys:String x:Key="ChkColLon">Ilg.</sys:String>
+    <sys:String x:Key="ChkColEle">Aukšt., m</sys:String>
+    <sys:String x:Key="ChkColTime">Laikas</sys:String>
+    <sys:String x:Key="ChkColDist">Km</sys:String>
+    <sys:String x:Key="ChkColHr">Šs</sys:String>
+    <sys:String x:Key="ChkColCad">Kadencija</sys:String>
+    <sys:String x:Key="ChkColTemp">Temperatūra (°C)</sys:String>
+    <sys:String x:Key="ChkColSurface">Danga</sys:String>
+    <sys:String x:Key="GrpStatistics">Statistika</sys:String>
+    <sys:String x:Key="ChkPaceMode">Rodyti greitį kaip tempą (min/km) vietoj km/val</sys:String>
+    <sys:String x:Key="GrpGradient">Gradientinis spalvinimas (aktyvus takas)</sys:String>
+    <sys:String x:Key="DescGradient">Gradiento metrika pasirenkama iš gradiento išskleidžiamojo sąrašo įrankių juostoje. Pasirinktas takas piešiamas su raudona (greita / lengva / nusileidžiama) → mėlyna (lėta / sunki / kylama) gradientu; kiti takai išlaiko savo spalvas.</sys:String>
+    <sys:String x:Key="LblGradeUnit">Nuolydžio vienetas:</sys:String>
+    <sys:String x:Key="GradePercent">Procentas (%)</sys:String>
+    <sys:String x:Key="GradeDegree">Laipsniai (°)</sys:String>
+    <sys:String x:Key="DescGradeUnit">Vienetas nuolydžio legendos etiketėms. Procentai — pakilimai/atstumas; laipsniai — nuolydžio kampas.</sys:String>
+    <sys:String x:Key="GrpAutoRoute">Automatinis maršrutas (piešimas)</sys:String>
+    <sys:String x:Key="ChkRouteSimplify">Supaprastinti maršruto atkarpas</sys:String>
+    <sys:String x:Key="LblTolerance">Tolerancija:</sys:String>
+    <sys:String x:Key="LblToleranceSuffix">metrų (daugiau = mažiau taškų)</sys:String>
+    <sys:String x:Key="DescAutoRoute">Automatinis maršrutas ir maršruto profilis pasirenkamas iš Route išskleidžiamojo sąrašo. Naudojama viešoji BRouter paslauga (brouter.de) — be API rakto. Jei maršrutas nerastas, naujas taškas sujungiamas tiesia linija.</sys:String>
+    <sys:String x:Key="LblElevationSources">Aukščio šaltiniai</sys:String>
+    <sys:String x:Key="ChkSrtm">SRTM .hgt taiseliai (vietiniai, neprisijungę)</sys:String>
+    <sys:String x:Key="LblSrtmFolder">Aplankas su .hgt taiseliais (pvz. N54E025.hgt):</sys:String>
+    <sys:String x:Key="ChkSrtmAuto">Automatiškai atsisiųsti trūkstamus taiselius</sys:String>
+    <sys:String x:Key="ChkOnline">Internetinė aukščio paslauga (atsarginė trūkstamiems taškams)</sys:String>
+    <sys:String x:Key="LblProvider">Teikėjas:</sys:String>
+    <sys:String x:Key="LblDataset">OpenTopoData duomenų rinkinys:</sys:String>
+    <sys:String x:Key="DescOnline">Reikalinga tinklo prieiga. Viešos paslaugos apribotos (OpenTopoData: 100 taškų/užklausa, ~1 užklausa/sek, 1000/d). Naudojama tik taškams, kurių SRTM negalėjo pateikti.</sys:String>
+    <sys:String x:Key="GrpServer">Serverio saugykla</sys:String>
+    <sys:String x:Key="DescServer">Pagrindinis TrackEditor serverio URL (pvz. https://myserver.example.com). Palikite tuščią, jei norite išjungti serverio funkcijas. Prisijunkite per Serveris › Prisijungti….</sys:String>
+    <sys:String x:Key="LblServerUrl">Serverio URL:</sys:String>
+    <sys:String x:Key="GrpLanguage">Kalba</sys:String>
+    <sys:String x:Key="LblAppLanguage">Programos kalba:</sys:String>
+
+    <!-- Status bar mode label -->
+    <sys:String x:Key="StatusModePrefix">Režimas</sys:String>
+    <!-- Server tab open button -->
+    <sys:String x:Key="BtnServerOpen">Atidaryti</sys:String>
+    <!-- Apply race model: infer surface hint -->
+    <sys:String x:Key="DescInferSurface">Neprivaloma: priskirti OSM dangą ten, kur maršrutas seka taku.</sys:String>
+
+    <!-- Input dialog -->
+    <sys:String x:Key="InputDialogTitle">Įvestis</sys:String>
+    <sys:String x:Key="LblEnterValue">Įveskite reikšmę:</sys:String>
+
+    <!-- Help window -->
+    <sys:String x:Key="HelpTitle">TrackEditor — Vartotojo vadovas</sys:String>
+
+    <!-- Server login window -->
+    <sys:String x:Key="ServerLoginTitle">Prisijungimas prie serverio</sys:String>
+    <sys:String x:Key="BtnLogin">Prisijungti</sys:String>
+    <sys:String x:Key="LblEmail">El. paštas:</sys:String>
+    <sys:String x:Key="LblPassword">Slaptažodis:</sys:String>
+    <sys:String x:Key="ChkRegister">Sukurti naują paskyrą (registracija)</sys:String>
+
+    <!-- Track info window -->
+    <sys:String x:Key="TrackInfoTitle">Tako informacija</sys:String>
+
+    <!-- Export map window -->
+    <sys:String x:Key="ExportMapTitle">Eksportuoti žemėlapio vaizdą</sys:String>
+    <sys:String x:Key="DescExportMap">Išsaugoti dabartinį žemėlapio vaizdą kaip PNG paveikslą.</sys:String>
+    <sys:String x:Key="LblDetail">Detalumas (žemėlapio mastelis):</sys:String>
+    <sys:String x:Key="BtnExport">Eksportuoti…</sys:String>
+
+    <!-- Merge tracks window -->
+    <sys:String x:Key="MergeTracksTitle">Takų suliejimas</sys:String>
+    <sys:String x:Key="DescMergeTracks">Sulieti antrą to paties maršruto įrašą su baziniu taku.</sys:String>
+    <sys:String x:Key="LblMergeWith">Sulieti su:</sys:String>
+    <sys:String x:Key="LblAlignBy">Lygiuoti taškus pagal:</sys:String>
+    <sys:String x:Key="MergeAlignAuto">Automatiškai (laiko žyma, jei abi turi laikrodį, kitaip atstumas)</sys:String>
+    <sys:String x:Key="MergeAlignTimestamp">Laiko žyma</sys:String>
+    <sys:String x:Key="MergeAlignDistance">Atstumas (arčiausias taškas kitoje linijoje)</sys:String>
+    <sys:String x:Key="LblGeometry">Geometrija:</sys:String>
+    <sys:String x:Key="MergeGeoKeep">Išlaikyti bazinę liniją (tik pridėti papildomus laukus)</sys:String>
+    <sys:String x:Key="MergeGeoAvg">Vidurkinti abi linijas kur jos sutampa (triukšmo šalinimas)</sys:String>
+    <sys:String x:Key="LblMatchGate">Atitikimo zona (m):</sys:String>
+    <sys:String x:Key="ChkPreferBase">Išlaikyti bazinę reikšmę, kai abu turi lauką</sys:String>
+    <sys:String x:Key="BtnMerge">Sulieti</sys:String>
+    <sys:String x:Key="LblResult">Rezultatas</sys:String>
+    <sys:String x:Key="MergeInitialText">Pasirinkite taką ir spauskite Sulieti.</sys:String>
+    <sys:String x:Key="BtnAddMerged">Pridėti sulietą taką</sys:String>
+
+    <!-- 3D view window -->
+    <sys:String x:Key="Map3DTitle">3D vaizdas</sys:String>
+    <sys:String x:Key="Lbl3DRotate">Sukti</sys:String>
+    <sys:String x:Key="Lbl3DTilt">Pakreipti</sys:String>
+    <sys:String x:Key="Lbl3DZoom">Mastelis</sys:String>
+    <sys:String x:Key="Lbl3DVertExag">Vertikalus didinimas</sys:String>
+    <sys:String x:Key="Btn3DSave">💾 Išsaugoti</sys:String>
+    <sys:String x:Key="Lbl3DDetail">Detalumas</sys:String>
+    <sys:String x:Key="Lbl3DFlags">Vėliavėlės</sys:String>
+    <sys:String x:Key="Lbl3DWaypoints">Kelrodžiai</sys:String>
+    <sys:String x:Key="Lbl3DTrackPts">Tako taškai:</sys:String>
+    <sys:String x:Key="Lbl3DSun">☀ Saulė</sys:String>
+    <sys:String x:Key="Map3DBuilding">Kuriamas reljefas…</sys:String>
+    <sys:String x:Key="Map3DNavHint">Kairysis mygtukas: perstumti   Dešinysis: sukti / pakreipti   Ratas: mastelis</sys:String>
+
+    <!-- Analyze race window -->
+    <sys:String x:Key="AnalyzeRaceTitle">Lenktyninių gebėjimų analizė</sys:String>
+    <sys:String x:Key="DescAnalyzeRace">Sužinokite sportininko greičio ir reljefo priklausomybę iš vieno ar kelių įrašytų takų. Galima naudoti tik takus su laiko žymomis; pažymėkite norimus įtraukti.</sys:String>
+    <sys:String x:Key="LblRunnerName">Bėgiko vardas:</sys:String>
+    <sys:String x:Key="ChkUseHr">Naudoti širdies ritmą nuovargiui kalibruoti (kai yra)</sys:String>
+    <sys:String x:Key="LblFatigueDriver">Nuovargis nulemtas:</sys:String>
+    <sys:String x:Key="FatigueAscent">Bendras kilimas</sys:String>
+    <sys:String x:Key="FatigueElapsed">Praėjęs laikas</sys:String>
+    <sys:String x:Key="FatigueDistance">Atstumas</sys:String>
+    <sys:String x:Key="ChkNormalize">Normalizuoti kiekvieną taką pagal savo tempą prieš sutelkiant</sys:String>
+    <sys:String x:Key="BtnAnalyze">Analizuoti</sys:String>
+    <sys:String x:Key="AnalyzeInitialText">Ataskaita pasirodys čia po analizės.</sys:String>
+    <sys:String x:Key="BtnExportModel">Eksportuoti modelį…</sys:String>
+
+    <!-- Apply race model window -->
+    <sys:String x:Key="ApplyRaceModelTitle">Lenktyninės modelio taikymas</sys:String>
+    <sys:String x:Key="DescApplyRaceModel">Prognozuoti lenktynes pasirinktu taku taikant išsaugotą lenktyninį modelį.</sys:String>
+    <sys:String x:Key="BtnImportModel">Importuoti modelį…</sys:String>
+    <sys:String x:Key="BtnCreateProfile">Sukurti profilį…</sys:String>
+    <sys:String x:Key="LblNoModel">Modelis nepasirinktas.</sys:String>
+    <sys:String x:Key="LblStartTime">Pradžios laikas (VV:mm):</sys:String>
+    <sys:String x:Key="LblSurface">Danga / sąlygos:</sys:String>
+    <sys:String x:Key="SurfaceModelled">Kaip modeliuota (1.00×)</sys:String>
+    <sys:String x:Key="SurfaceFast">Greita / sausa (1.05×)</sys:String>
+    <sys:String x:Key="SurfaceSoft">Minkšta / purvina (0.90×)</sys:String>
+    <sys:String x:Key="SurfaceTech">Techninė / akmeninga (0.80×)</sys:String>
+    <sys:String x:Key="BtnInferSurface">Nustatyti dangą iš maršruto…</sys:String>
+    <sys:String x:Key="LblEffort">Pastangos:</sys:String>
+    <sys:String x:Key="EffortEasy">Lengva (×0.88)</sys:String>
+    <sys:String x:Key="EffortSteady">Vidutinė (×0.94)</sys:String>
+    <sys:String x:Key="EffortRace">Lenktynės (×1.00)</sys:String>
+    <sys:String x:Key="EffortAllOut">Pilna jėga (×1.04)</sys:String>
+    <sys:String x:Key="ChkAltitudeDerate">Taikyti aukščio korekciją</sys:String>
+    <sys:String x:Key="ChkCalibrate">Kalibruoti tempą pagal nesenią varžybą (Riegel)</sys:String>
+    <sys:String x:Key="ChkCap">Apriboti tempą tvariu maksimumu</sys:String>
+    <sys:String x:Key="ChkLoad">Taikyti kuprinės / lazdų kylimo kaštus</sys:String>
+    <sys:String x:Key="ProfileExpander">Sportininko profilis (išsaugomas kitam kartui)</sys:String>
+    <sys:String x:Key="LblMassKg">Masė (kg)</sys:String>
+    <sys:String x:Key="LblAge">Amžius</sys:String>
+    <sys:String x:Key="LblHrMax">Šs maks.</sys:String>
+    <sys:String x:Key="LblRestHr">Šs ramybėje</sys:String>
+    <sys:String x:Key="LblLthr">LTHR</sys:String>
+    <sys:String x:Key="LblPackKg">Kuprinė (kg)</sys:String>
+    <sys:String x:Key="LblSex">Lytis</sys:String>
+    <sys:String x:Key="SexFemale">Moteris</sys:String>
+    <sys:String x:Key="SexMale">Vyras</sys:String>
+    <sys:String x:Key="ChkPoles">Trekingo lazdos</sys:String>
+    <sys:String x:Key="LblRecentRaceKm">Paskutinė varžyba (km)</sys:String>
+    <sys:String x:Key="LblInHms">per (h:mm:ss)</sys:String>
+    <sys:String x:Key="BtnPredict">Prognozuoti</sys:String>
+    <sys:String x:Key="LblPrediction">Prognozė</sys:String>
+    <sys:String x:Key="ApplyInitialText">Importuokite modelį ir spauskite Prognozuoti.</sys:String>
+    <sys:String x:Key="BtnAddPredicted">Pridėti prognozuojamą taką</sys:String>
+
+    <!-- Statistics formatter labels -->
+    <sys:String x:Key="StatsPoints">Taškai:</sys:String>
+    <sys:String x:Key="StatsDistance">Atstumas:</sys:String>
+    <sys:String x:Key="StatsAscent">Kilimas:</sys:String>
+    <sys:String x:Key="StatsDescent">Nusileidimas:</sys:String>
+    <sys:String x:Key="StatsElevation">Aukštis:</sys:String>
+    <sys:String x:Key="StatsAvgIncline">Vid. nuolydis:</sys:String>
+    <sys:String x:Key="StatsClimbPerKm">Kilimas/km:</sys:String>
+    <sys:String x:Key="StatsMaxGrade">Maks. nuolydis/100m:</sys:String>
+    <sys:String x:Key="StatsSteep">Stačios (&gt;15%):</sys:String>
+    <sys:String x:Key="StatsStart">Pradžia:</sys:String>
+    <sys:String x:Key="StatsDuration">Trukmė:</sys:String>
+    <sys:String x:Key="StatsMovingTime">Judėjimo laikas:</sys:String>
+    <sys:String x:Key="StatsAvgSpeed">Vid. greitis:</sys:String>
+    <sys:String x:Key="StatsAvgPace">Vid. tempas:</sys:String>
+    <sys:String x:Key="StatsMovingAvg">Jud. vid. greitis:</sys:String>
+    <sys:String x:Key="StatsMovingPace">Jud. vid. tempas:</sys:String>
+    <sys:String x:Key="StatsMaxSpeed">Maks. greitis:</sys:String>
+    <sys:String x:Key="StatsBestPace">Geriausias tempas:</sys:String>
+
+    <!-- Gradient legend labels -->
+    <sys:String x:Key="GradPace">Tempas</sys:String>
+    <sys:String x:Key="GradGrade">Nuolydis</sys:String>
+    <sys:String x:Key="GradSurface">Danga</sys:String>
+    <sys:String x:Key="GradEasy">lengva</sys:String>
+    <sys:String x:Key="GradHard">sunku</sys:String>
+
+    <!-- Measurement panel text -->
+    <sys:String x:Key="MeasPtLegs">{0} taškų, {1} atkarpa(-ų)</sys:String>
+    <sys:String x:Key="MeasPathLength">Maršruto ilgis:</sys:String>
+    <sys:String x:Key="MeasStraightLine">Tiesi linija:</sys:String>
+    <sys:String x:Key="MeasBearing">Azimutas:</sys:String>
+    <sys:String x:Key="MeasElevRange">Aukštis:</sys:String>
+    <sys:String x:Key="MeasAscent">Kilimas:</sys:String>
+    <sys:String x:Key="MeasDescent">Nusileidimas:</sys:String>
+    <sys:String x:Key="MeasAvgIncline">Vid. nuolydis:</sys:String>
+    <sys:String x:Key="MeasNoElevation">(nėra aukščio duomenų)</sys:String>
+
+    <!-- Profile plot labels -->
+    <sys:String x:Key="PlotAltitude">Aukštis</sys:String>
+    <sys:String x:Key="PlotAltitudeM">Aukštis, m</sys:String>
+    <sys:String x:Key="PlotAltitudeMEst">Aukštis, m (įvert.)</sys:String>
+    <sys:String x:Key="PlotSpeed">Greitis</sys:String>
+    <sys:String x:Key="PlotPace">Tempas</sys:String>
+    <sys:String x:Key="PlotSpeedKmh">Greitis, km/h</sys:String>
+    <sys:String x:Key="PlotPaceMinKm">Tempas, min/km</sys:String>
+    <sys:String x:Key="PlotHrBpm">ŠSD, d/min</sys:String>
+    <sys:String x:Key="PlotCadence">Kadencija</sys:String>
+    <sys:String x:Key="PlotTempC">Temp., °C</sys:String>
+    <sys:String x:Key="PlotKm">km</sys:String>
+
+    <!-- Analyze race report -->
+    <sys:String x:Key="RaNoSegments">Nerasta tinkamų laiku pažymėtų judėjimo segmentų pasirinktuose takuose.</sys:String>
+    <sys:String x:Key="RaTracksFitted">Takai:</sys:String>
+    <sys:String x:Key="RaSegmentsUsed">Segmentų:</sys:String>
+    <sys:String x:Key="RaSignals">Signalai:</sys:String>
+    <sys:String x:Key="RaFlatSpeed">Greitis lygumoje:</sys:String>
+    <sys:String x:Key="RaSpeedByGrade">Greitis pagal nuolydį:</sys:String>
+    <sys:String x:Key="RaFatigue">Nuovargis:</sys:String>
+    <sys:String x:Key="RaEndEffortSpeed">greitis pabaigoje</sys:String>
+    <sys:String x:Key="RaHrDrift">ŠSD dreifas:</sys:String>
+    <sys:String x:Key="RaTurnPenalty">Posūkių bauda:</sys:String>
+    <sys:String x:Key="RaTwistySection">vingiuotas ruožas</sys:String>
+    <sys:String x:Key="RaHintFitted">Pritaikyta pagal {0} taką(-ų), {1} segmentus.</sys:String>
+    <sys:String x:Key="RaAnalysisFailed">Analizės klaida: </sys:String>
+
+    <!-- Prediction report -->
+    <sys:String x:Key="RpStart">Pradžia:</sys:String>
+    <sys:String x:Key="RpPredictedFinish">Prognozuojama pabaiga:</sys:String>
+    <sys:String x:Key="RpDistance">Atstumas:</sys:String>
+    <sys:String x:Key="RpAvgMoving">Vid. jud. greitis:</sys:String>
+    <sys:String x:Key="RpEffort">Pastangos:</sys:String>
+    <sys:String x:Key="RpCalibrated">Kalibruota:</sys:String>
+    <sys:String x:Key="RpToYourRace">pagal jūsų</sys:String>
+    <sys:String x:Key="RpSustainableCap">Ištvermės riba:</sys:String>
+    <sys:String x:Key="RpCeilingFromRace">lubos iš jūsų varžybų</sys:String>
+    <sys:String x:Key="RpRiegel">Rygelis (lyguma) ⇒</sys:String>
+    <sys:String x:Key="RpLoad">Apkrova:</sys:String>
+    <sys:String x:Key="RpPolesOnClimbs">lazdos į kalnus</sys:String>
+    <sys:String x:Key="RpAltitudeDerate">Aukštis: sulėtinimas virš etaloninio aukščio</sys:String>
+    <sys:String x:Key="RpWaypointETAs">Tarpiniai taškai:</sys:String>
+    <sys:String x:Key="RpHintPredicted">Prognozė: {0:F1} km per {1}.</sys:String>
+
+</ResourceDictionary>

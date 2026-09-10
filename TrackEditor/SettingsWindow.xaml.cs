@@ -74,6 +74,8 @@ public partial class SettingsWindow : Window
 
         TxtServerUrl.Text = Result.ServerUrl ?? "";
 
+        CmbLanguage.SelectedIndex = Result.Language switch { "ru" => 1, "lt" => 2, _ => 0 };
+
         UpdateEnabledState();
     }
 
@@ -189,6 +191,7 @@ public partial class SettingsWindow : Window
         Result.PaceMode = ChkPaceMode.IsChecked == true;
         Result.GradeUnit = CmbGradeUnit.SelectedIndex == 1 ? GradeUnit.Degree : GradeUnit.Percent;
         Result.ServerUrl = string.IsNullOrWhiteSpace(TxtServerUrl.Text) ? null : TxtServerUrl.Text.Trim();
+        Result.Language = CmbLanguage.SelectedIndex switch { 1 => "ru", 2 => "lt", _ => "en" };
         DialogResult = true;
     }
 }

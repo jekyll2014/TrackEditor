@@ -1,0 +1,462 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- App -->
+    <sys:String x:Key="AppTitle">Редактор треков</sys:String>
+
+    <!-- Common buttons -->
+    <sys:String x:Key="BtnOk">OK</sys:String>
+    <sys:String x:Key="BtnCancel">Отмена</sys:String>
+    <sys:String x:Key="BtnClose">Закрыть</sys:String>
+    <sys:String x:Key="BtnBrowse">Обзор…</sys:String>
+    <sys:String x:Key="BtnRefresh">Обновить</sys:String>
+    <sys:String x:Key="BtnDelete">Удалить</sys:String>
+    <sys:String x:Key="BtnUpdate">Обновить</sys:String>
+    <sys:String x:Key="BtnShare">Поделиться</sys:String>
+    <sys:String x:Key="BtnUnshare">Закрыть доступ</sys:String>
+
+    <!-- File menu -->
+    <sys:String x:Key="MenuFile">Файл</sys:String>
+    <sys:String x:Key="MenuOpenFile">Открыть GPX/KML/KMZ…</sys:String>
+    <sys:String x:Key="MenuOpenUrl">Открыть из URL…</sys:String>
+    <sys:String x:Key="MenuSaveActive">Сохранить активный трек как GPX…</sys:String>
+    <sys:String x:Key="MenuSaveAll">Сохранить все треки как GPX…</sys:String>
+    <sys:String x:Key="Menu3DView">3D-вид текущей карты…</sys:String>
+    <sys:String x:Key="MenuExportMap">Экспорт изображения карты…</sys:String>
+    <sys:String x:Key="MenuExit">Выход</sys:String>
+
+    <!-- Edit menu -->
+    <sys:String x:Key="MenuEdit">Правка</sys:String>
+    <sys:String x:Key="MenuUndo">Отменить</sys:String>
+    <sys:String x:Key="MenuRedo">Повторить</sys:String>
+    <sys:String x:Key="MenuCopyPoints">Копировать точки</sys:String>
+    <sys:String x:Key="MenuPastePoints">Вставить точки после выбранных</sys:String>
+    <sys:String x:Key="MenuDeletePoints">Удалить выбранные точки</sys:String>
+
+    <!-- Track menu -->
+    <sys:String x:Key="MenuTrackTop">Трек</sys:String>
+    <sys:String x:Key="MenuNewTrack">Новый пустой трек (режим рисования)</sys:String>
+    <sys:String x:Key="MenuDeleteLast">Удалить последнюю точку</sys:String>
+    <sys:String x:Key="MenuSplit">Разделить у выбранной точки</sys:String>
+    <sys:String x:Key="MenuCrop">Обрезать по выбранному диапазону</sys:String>
+    <sys:String x:Key="MenuDeleteRange">Удалить выбранный диапазон</sys:String>
+    <sys:String x:Key="MenuSimplify">Упростить…</sys:String>
+    <sys:String x:Key="MenuReverse">Инвертировать трек</sys:String>
+    <sys:String x:Key="MenuJoin">Объединить треки…</sys:String>
+    <sys:String x:Key="MenuMerge">Слить треки…</sys:String>
+    <sys:String x:Key="MenuApplyEle">Применить высоты (SRTM / Онлайн)</sys:String>
+    <sys:String x:Key="MenuResetEle">Сбросить данные высот</sys:String>
+    <sys:String x:Key="MenuZoomTrack">Приблизить к треку</sys:String>
+    <sys:String x:Key="MenuRemoveTrack">Удалить трек</sys:String>
+
+    <!-- Mode menu -->
+    <sys:String x:Key="MenuMode">Режим</sys:String>
+    <sys:String x:Key="MenuModeView">Просмотр</sys:String>
+    <sys:String x:Key="MenuModeEdit">Редактирование (рисование / перемещение / вставка)</sys:String>
+    <sys:String x:Key="MenuModeMeasure">Измерение</sys:String>
+
+    <!-- View menu -->
+    <sys:String x:Key="MenuView">Вид</sys:String>
+    <sys:String x:Key="MenuShowFlags">Показать флаги дистанции</sys:String>
+    <sys:String x:Key="MenuFlagContent">Содержимое флагов</sys:String>
+    <sys:String x:Key="MenuFlagDist">Расстояние</sys:String>
+    <sys:String x:Key="MenuFlagTime">Время</sys:String>
+    <sys:String x:Key="MenuFlagEle">Высота</sys:String>
+    <sys:String x:Key="MenuFlagGain">Набор высоты</sys:String>
+    <sys:String x:Key="MenuAltProfile">Высота на профиле</sys:String>
+    <sys:String x:Key="MenuSpeedProfile">Скорость на профиле</sys:String>
+    <sys:String x:Key="MenuPointsColumns">Столбцы списка точек</sys:String>
+    <sys:String x:Key="MenuColWaypoint">⚑ Путевая точка</sys:String>
+    <sys:String x:Key="MenuColLat">Шир.</sys:String>
+    <sys:String x:Key="MenuColLon">Дол.</sys:String>
+    <sys:String x:Key="MenuColEle">Высота, м</sys:String>
+    <sys:String x:Key="MenuColTime">Время</sys:String>
+    <sys:String x:Key="MenuColDist">Км</sys:String>
+    <sys:String x:Key="MenuColHr">ЧСС</sys:String>
+    <sys:String x:Key="MenuColCad">Каданс</sys:String>
+    <sys:String x:Key="MenuColTemp">Температура (°C)</sys:String>
+    <sys:String x:Key="MenuColSurface">Поверхность</sys:String>
+
+    <!-- Race menu -->
+    <sys:String x:Key="MenuRace">Гонка</sys:String>
+    <sys:String x:Key="MenuAnalyzeRace">Анализ скорости гонки…</sys:String>
+    <sys:String x:Key="MenuApplyRaceModel">Применить модель гонки…</sys:String>
+    <sys:String x:Key="MenuEvalSurface">Оценить поверхность (маршрутизация)…</sys:String>
+    <sys:String x:Key="MenuExportPacing">Экспорт темпа (CSV)…</sys:String>
+
+    <!-- Tools / Server / Help menus -->
+    <sys:String x:Key="MenuTools">Инструменты</sys:String>
+    <sys:String x:Key="MenuSettings">Настройки…</sys:String>
+    <sys:String x:Key="MenuServer">Сервер</sys:String>
+    <sys:String x:Key="MenuServerLogin">Войти…</sys:String>
+    <sys:String x:Key="MenuServerLogout">Выйти</sys:String>
+    <sys:String x:Key="MenuOpenShared">Открыть общий трек по ID…</sys:String>
+    <sys:String x:Key="MenuHelp">Справка</sys:String>
+    <sys:String x:Key="MenuUserGuide">Руководство пользователя</sys:String>
+    <sys:String x:Key="MenuAbout">О программе TrackEditor…</sys:String>
+
+    <!-- Toolbar -->
+    <sys:String x:Key="BtnOpen">Открыть</sys:String>
+    <sys:String x:Key="BtnSave">Сохранить</sys:String>
+    <sys:String x:Key="BtnNewTrack">Новый трек</sys:String>
+    <sys:String x:Key="BtnUndo">Отменить</sys:String>
+    <sys:String x:Key="BtnRedo">Повторить</sys:String>
+    <sys:String x:Key="BtnModeView">Просмотр</sys:String>
+    <sys:String x:Key="BtnModeEdit">Редактировать</sys:String>
+    <sys:String x:Key="BtnModeMeasure">Измерить</sys:String>
+    <sys:String x:Key="Btn3DView">3D-вид</sys:String>
+    <sys:String x:Key="BtnMyLocation">Моё место</sys:String>
+    <sys:String x:Key="BtnFlags">Флаги</sys:String>
+    <sys:String x:Key="LblMap">Карта:</sys:String>
+    <sys:String x:Key="LblRoute">Маршрут:</sys:String>
+    <sys:String x:Key="LblGradient">Градиент:</sys:String>
+
+    <!-- Gradient combo -->
+    <sys:String x:Key="GradOff">Выкл.</sys:String>
+    <sys:String x:Key="GradSpeed">Скорость</sys:String>
+    <sys:String x:Key="GradInclination">Уклон</sys:String>
+    <sys:String x:Key="GradPavement">Покрытие</sys:String>
+
+    <!-- Flag dropdown -->
+    <sys:String x:Key="FlagDist">Расстояние</sys:String>
+    <sys:String x:Key="FlagTime">Время</sys:String>
+    <sys:String x:Key="FlagEle">Высота</sys:String>
+    <sys:String x:Key="FlagGain">Набор высоты</sys:String>
+
+    <!-- Status bar -->
+    <sys:String x:Key="StatusInitial">Откройте файл GPX/KML/KMZ для начала</sys:String>
+
+    <!-- Left panel tabs -->
+    <sys:String x:Key="TabTracks">Треки</sys:String>
+    <sys:String x:Key="TabPoints">Точки</sys:String>
+    <sys:String x:Key="TabServer">Сервер</sys:String>
+
+    <!-- Tracks tab -->
+    <sys:String x:Key="LblColor">Цвет:</sys:String>
+    <sys:String x:Key="LblWidth">Ширина:</sys:String>
+
+    <!-- Track context menu -->
+    <sys:String x:Key="CtxRename">Переименовать…</sys:String>
+    <sys:String x:Key="CtxTrackInfo">Информация о треке…</sys:String>
+    <sys:String x:Key="CtxSaveTrack">Сохранить трек как GPX…</sys:String>
+    <sys:String x:Key="CtxExportPacing">Экспорт темпа (CSV)…</sys:String>
+    <sys:String x:Key="CtxReverse">Инвертировать трек</sys:String>
+    <sys:String x:Key="CtxJoin">Объединить треки…</sys:String>
+    <sys:String x:Key="CtxMerge">Слить треки…</sys:String>
+    <sys:String x:Key="CtxSimplify">Упростить…</sys:String>
+    <sys:String x:Key="CtxReevalEle">Пересчитать высоты (SRTM / Онлайн)</sys:String>
+    <sys:String x:Key="CtxResetEle">Сбросить данные высот</sys:String>
+    <sys:String x:Key="CtxEvalSurface">Оценить поверхность (маршрутизация)…</sys:String>
+    <sys:String x:Key="CtxApplyRaceModel">Применить модель гонки…</sys:String>
+    <sys:String x:Key="CtxZoomTrack">Приблизить к треку</sys:String>
+    <sys:String x:Key="CtxDeleteTrack">Удалить трек</sys:String>
+
+    <!-- Points context menu -->
+    <sys:String x:Key="CtxCopyPoints">Копировать точки</sys:String>
+    <sys:String x:Key="CtxPastePoints">Вставить точки после выбранных</sys:String>
+    <sys:String x:Key="CtxDeletePts">Удалить выбранные точки</sys:String>
+    <sys:String x:Key="CtxSplitPoint">Разделить у выбранной точки</sys:String>
+    <sys:String x:Key="CtxCropRange">Обрезать по выбранному диапазону</sys:String>
+    <sys:String x:Key="CtxSetWaypoint">Задать имя путевой точки…</sys:String>
+    <sys:String x:Key="CtxRemoveWaypoint">Удалить путевую точку</sys:String>
+    <sys:String x:Key="CtxCenterPoint">Центрировать точку на карте</sys:String>
+
+    <!-- DataGrid column headers -->
+    <sys:String x:Key="ColHdrWaypoint">⚑ Путевая точка</sys:String>
+    <sys:String x:Key="ColHdrLat">Шир.</sys:String>
+    <sys:String x:Key="ColHdrLon">Дол.</sys:String>
+    <sys:String x:Key="ColHdrEle">Выс., м</sys:String>
+    <sys:String x:Key="ColHdrTime">Время</sys:String>
+    <sys:String x:Key="ColHdrDist">Км</sys:String>
+    <sys:String x:Key="ColHdrHr">ЧСС</sys:String>
+    <sys:String x:Key="ColHdrCad">Кад.</sys:String>
+    <sys:String x:Key="ColHdrTemp">°C</sys:String>
+    <sys:String x:Key="ColHdrSurface">Поверхность</sys:String>
+
+    <!-- Server tab -->
+    <sys:String x:Key="SrvNotSignedIn">Не авторизован — Сервер › Войти…</sys:String>
+    <sys:String x:Key="SrvSaveNew">Сохранить активный трек на сервер</sys:String>
+    <sys:String x:Key="SrvSharedBadge"> общий</sys:String>
+
+    <!-- Map context menu -->
+    <sys:String x:Key="MapFitAll">Показать все треки</sys:String>
+    <sys:String x:Key="MapZoomActive">Приблизить к активному треку</sys:String>
+    <sys:String x:Key="MapModeMenu">Режим</sys:String>
+    <sys:String x:Key="MapModeView">Просмотр</sys:String>
+    <sys:String x:Key="MapModeEdit">Редактирование (рисование / перемещение / вставка)</sys:String>
+    <sys:String x:Key="MapModeMeasure">Измерение</sys:String>
+    <sys:String x:Key="MapNewTrack">Новый трек</sys:String>
+    <sys:String x:Key="MapDeletePts">Удалить выбранные точки</sys:String>
+    <sys:String x:Key="MapResetMeasure">Сбросить измерение</sys:String>
+    <sys:String x:Key="Map3DView">3D-вид текущей карты…</sys:String>
+    <sys:String x:Key="MapExportMap">Экспорт изображения карты…</sys:String>
+
+    <!-- Statistics panels -->
+    <sys:String x:Key="PnlStatistics">Статистика</sys:String>
+    <sys:String x:Key="PnlSelStats">Статистика выборки</sys:String>
+    <sys:String x:Key="PnlMeasurement">Измерение</sys:String>
+    <sys:String x:Key="LblSelect2Plus">Выберите 2+ точки</sys:String>
+    <sys:String x:Key="LblClickMeasure">Нажимайте на карте для измерения</sys:String>
+
+    <!-- Profile checkboxes -->
+    <sys:String x:Key="LblProfile">Профиль:</sys:String>
+    <sys:String x:Key="ChkAltitude">Высота</sys:String>
+    <sys:String x:Key="ChkSpeed">Скорость</sys:String>
+    <sys:String x:Key="ChkHr">ЧСС</sys:String>
+    <sys:String x:Key="ChkCadence">Каданс</sys:String>
+    <sys:String x:Key="ChkTemp">Темп.</sys:String>
+
+    <!-- Settings window -->
+    <sys:String x:Key="SettingsTitle">Настройки</sys:String>
+    <sys:String x:Key="GrpBaseMap">Параметры базовой карты</sys:String>
+    <sys:String x:Key="DescBaseMap">Активная карта выбирается с помощью селектора на панели инструментов. Здесь устанавливаются параметры для каждой карты — выберите карту и настройте её значения.</sys:String>
+    <sys:String x:Key="LblConfigureMap">Настроить карту:</sys:String>
+    <sys:String x:Key="LblTileCacheLimit">Ограничение кэша:</sys:String>
+    <sys:String x:Key="LblTileCacheSuffix">МБ для карты (0 = без ограничений)</sys:String>
+    <sys:String x:Key="BtnClearCache">Очистить кэш тайлов…</sys:String>
+    <sys:String x:Key="GrpWaypointLabels">Метки путевых точек (карта и профиль)</sys:String>
+    <sys:String x:Key="LblBackground">Фон:</sys:String>
+    <sys:String x:Key="LblText">Текст:</sys:String>
+    <sys:String x:Key="LblColorExample">напр. #6A1B9A</sys:String>
+    <sys:String x:Key="WpPreviewLabel">Точка</sys:String>
+    <sys:String x:Key="GrpPointsColumns">Столбцы списка точек</sys:String>
+    <sys:String x:Key="DescPointsColumns">Выберите столбцы для отображения в списке точек (столбец индекса всегда отображается).</sys:String>
+    <sys:String x:Key="ChkColWaypoint">⚑ Путевая точка</sys:String>
+    <sys:String x:Key="ChkColLat">Шир.</sys:String>
+    <sys:String x:Key="ChkColLon">Дол.</sys:String>
+    <sys:String x:Key="ChkColEle">Выс., м</sys:String>
+    <sys:String x:Key="ChkColTime">Время</sys:String>
+    <sys:String x:Key="ChkColDist">Км</sys:String>
+    <sys:String x:Key="ChkColHr">ЧСС</sys:String>
+    <sys:String x:Key="ChkColCad">Каданс</sys:String>
+    <sys:String x:Key="ChkColTemp">Температура (°C)</sys:String>
+    <sys:String x:Key="ChkColSurface">Поверхность</sys:String>
+    <sys:String x:Key="GrpStatistics">Статистика</sys:String>
+    <sys:String x:Key="ChkPaceMode">Показывать скорость как темп (мин/км) вместо км/ч</sys:String>
+    <sys:String x:Key="GrpGradient">Цветовой градиент (активный трек)</sys:String>
+    <sys:String x:Key="DescGradient">Метрика градиента выбирается в выпадающем списке на панели инструментов. Выбранный трек отображается в цветовом градиенте от красного (быстро / легко / спуск) к синему (медленно / тяжело / подъём); остальные треки сохраняют свои цвета. Участки без данных о покрытии считаются грунтовыми.</sys:String>
+    <sys:String x:Key="LblGradeUnit">Единица уклона:</sys:String>
+    <sys:String x:Key="GradePercent">Процент (%)</sys:String>
+    <sys:String x:Key="GradeDegree">Градусы (°)</sys:String>
+    <sys:String x:Key="DescGradeUnit">Единица для легенды уклона. Процент — отношение подъёма к горизонтальному расстоянию; градусы — угол наклона.</sys:String>
+    <sys:String x:Key="GrpAutoRoute">Авто-маршрут (рисование)</sys:String>
+    <sys:String x:Key="ChkRouteSimplify">Упрощать маршруты</sys:String>
+    <sys:String x:Key="LblTolerance">Допуск:</sys:String>
+    <sys:String x:Key="LblToleranceSuffix">метров (больше = меньше точек)</sys:String>
+    <sys:String x:Key="DescAutoRoute">Авто-маршрут и профиль маршрутизации выбираются в выпадающем списке Route на панели инструментов. Используется открытый сервис BRouter (brouter.de) — без ключа API. Если маршрут не найден, новая точка соединяется прямой линией.</sys:String>
+    <sys:String x:Key="LblElevationSources">Источники высот</sys:String>
+    <sys:String x:Key="ChkSrtm">Тайлы SRTM .hgt (локально, офлайн)</sys:String>
+    <sys:String x:Key="LblSrtmFolder">Папка с тайлами .hgt (напр. N54E025.hgt):</sys:String>
+    <sys:String x:Key="ChkSrtmAuto">Автоматически скачивать отсутствующие тайлы</sys:String>
+    <sys:String x:Key="ChkOnline">Онлайн-сервис высот (резервный для пропущенных точек)</sys:String>
+    <sys:String x:Key="LblProvider">Провайдер:</sys:String>
+    <sys:String x:Key="LblDataset">Набор данных OpenTopoData:</sys:String>
+    <sys:String x:Key="DescOnline">Требует доступа к сети. Публичные сервисы имеют ограничения (OpenTopoData: 100 точек/запрос, ~1 запрос/сек, 1000/день). Используется только для заполнения точек, которые SRTM не смог предоставить.</sys:String>
+    <sys:String x:Key="GrpServer">Серверное хранилище</sys:String>
+    <sys:String x:Key="DescServer">Базовый URL сервера TrackEditor (напр. https://myserver.example.com). Оставьте пустым для отключения серверных функций. Войдите через Сервер › Войти….</sys:String>
+    <sys:String x:Key="LblServerUrl">URL сервера:</sys:String>
+    <sys:String x:Key="GrpLanguage">Язык</sys:String>
+    <sys:String x:Key="LblAppLanguage">Язык приложения:</sys:String>
+
+    <!-- Status bar mode label -->
+    <sys:String x:Key="StatusModePrefix">Режим</sys:String>
+    <!-- Server tab open button -->
+    <sys:String x:Key="BtnServerOpen">Открыть</sys:String>
+    <!-- Apply race model: infer surface hint -->
+    <sys:String x:Key="DescInferSurface">Необязательно: принять покрытие OSM там, где маршрут следует по треку.</sys:String>
+
+    <!-- Input dialog -->
+    <sys:String x:Key="InputDialogTitle">Ввод</sys:String>
+    <sys:String x:Key="LblEnterValue">Введите значение:</sys:String>
+
+    <!-- Help window -->
+    <sys:String x:Key="HelpTitle">TrackEditor — Руководство пользователя</sys:String>
+
+    <!-- Server login window -->
+    <sys:String x:Key="ServerLoginTitle">Вход на сервер</sys:String>
+    <sys:String x:Key="BtnLogin">Войти</sys:String>
+    <sys:String x:Key="LblEmail">Email:</sys:String>
+    <sys:String x:Key="LblPassword">Пароль:</sys:String>
+    <sys:String x:Key="ChkRegister">Создать новую учётную запись (регистрация)</sys:String>
+
+    <!-- Track info window -->
+    <sys:String x:Key="TrackInfoTitle">Информация о треке</sys:String>
+
+    <!-- Export map window -->
+    <sys:String x:Key="ExportMapTitle">Экспорт изображения карты</sys:String>
+    <sys:String x:Key="DescExportMap">Сохранить текущий вид карты как изображение PNG.</sys:String>
+    <sys:String x:Key="LblDetail">Детализация (масштаб карты):</sys:String>
+    <sys:String x:Key="BtnExport">Экспорт…</sys:String>
+
+    <!-- Merge tracks window -->
+    <sys:String x:Key="MergeTracksTitle">Слияние треков</sys:String>
+    <sys:String x:Key="DescMergeTracks">Объединить второе записанное прохождение того же маршрута с базовым треком.</sys:String>
+    <sys:String x:Key="LblMergeWith">Слить с:</sys:String>
+    <sys:String x:Key="LblAlignBy">Выравнивать по:</sys:String>
+    <sys:String x:Key="MergeAlignAuto">Авто (временная метка, если обе имеют часы, иначе расстояние)</sys:String>
+    <sys:String x:Key="MergeAlignTimestamp">Временная метка</sys:String>
+    <sys:String x:Key="MergeAlignDistance">Расстояние (ближайшая точка на другой линии)</sys:String>
+    <sys:String x:Key="LblGeometry">Геометрия:</sys:String>
+    <sys:String x:Key="MergeGeoKeep">Сохранить базовую линию (только добавить дополнительные поля)</sys:String>
+    <sys:String x:Key="MergeGeoAvg">Усреднить обе линии там, где они перекрываются (шумоподавление)</sys:String>
+    <sys:String x:Key="LblMatchGate">Зона совпадения (м):</sys:String>
+    <sys:String x:Key="ChkPreferBase">Предпочитать базовое значение, если оба поля заполнены</sys:String>
+    <sys:String x:Key="BtnMerge">Слить</sys:String>
+    <sys:String x:Key="LblResult">Результат</sys:String>
+    <sys:String x:Key="MergeInitialText">Выберите трек и нажмите Слить.</sys:String>
+    <sys:String x:Key="BtnAddMerged">Добавить слитый трек</sys:String>
+
+    <!-- 3D view window -->
+    <sys:String x:Key="Map3DTitle">3D-вид</sys:String>
+    <sys:String x:Key="Lbl3DRotate">Повернуть</sys:String>
+    <sys:String x:Key="Lbl3DTilt">Наклон</sys:String>
+    <sys:String x:Key="Lbl3DZoom">Масштаб</sys:String>
+    <sys:String x:Key="Lbl3DVertExag">Вертикальное преувеличение</sys:String>
+    <sys:String x:Key="Btn3DSave">💾 Сохранить</sys:String>
+    <sys:String x:Key="Lbl3DDetail">Детализация</sys:String>
+    <sys:String x:Key="Lbl3DFlags">Флаги</sys:String>
+    <sys:String x:Key="Lbl3DWaypoints">Путевые точки</sys:String>
+    <sys:String x:Key="Lbl3DTrackPts">Точки трека:</sys:String>
+    <sys:String x:Key="Lbl3DSun">☀ Солнце</sys:String>
+    <sys:String x:Key="Map3DBuilding">Построение рельефа…</sys:String>
+    <sys:String x:Key="Map3DNavHint">ЛКМ: панорамирование   ПКМ: вращение / наклон   Колесо: масштаб</sys:String>
+
+    <!-- Analyze race window -->
+    <sys:String x:Key="AnalyzeRaceTitle">Анализ скоростных способностей</sys:String>
+    <sys:String x:Key="DescAnalyzeRace">Изучение зависимости скорости атлета от рельефа по одному или нескольким записанным трекам. Можно использовать только треки с временными метками; поставьте галочки напротив нужных.</sys:String>
+    <sys:String x:Key="LblRunnerName">Имя бегуна:</sys:String>
+    <sys:String x:Key="ChkUseHr">Использовать ЧСС для калибровки усталости (если доступно)</sys:String>
+    <sys:String x:Key="LblFatigueDriver">Усталость определяется по:</sys:String>
+    <sys:String x:Key="FatigueAscent">Суммарный набор высоты</sys:String>
+    <sys:String x:Key="FatigueElapsed">Прошедшее время</sys:String>
+    <sys:String x:Key="FatigueDistance">Расстояние</sys:String>
+    <sys:String x:Key="ChkNormalize">Нормализовать каждый трек к своему темпу перед объединением</sys:String>
+    <sys:String x:Key="BtnAnalyze">Анализировать</sys:String>
+    <sys:String x:Key="AnalyzeInitialText">Отчёт появится здесь после анализа.</sys:String>
+    <sys:String x:Key="BtnExportModel">Экспортировать модель…</sys:String>
+
+    <!-- Apply race model window -->
+    <sys:String x:Key="ApplyRaceModelTitle">Применение гоночной модели</sys:String>
+    <sys:String x:Key="DescApplyRaceModel">Предсказание хода гонки на выбранном треке с помощью сохранённой гоночной модели.</sys:String>
+    <sys:String x:Key="BtnImportModel">Импортировать модель…</sys:String>
+    <sys:String x:Key="BtnCreateProfile">Создать профиль…</sys:String>
+    <sys:String x:Key="LblNoModel">Модель не загружена.</sys:String>
+    <sys:String x:Key="LblStartTime">Время старта (ЧЧ:мм):</sys:String>
+    <sys:String x:Key="LblSurface">Поверхность / условия:</sys:String>
+    <sys:String x:Key="SurfaceModelled">Как смоделировано (1.00×)</sys:String>
+    <sys:String x:Key="SurfaceFast">Быстро / сухо (1.05×)</sys:String>
+    <sys:String x:Key="SurfaceSoft">Мягко / грязно (0.90×)</sys:String>
+    <sys:String x:Key="SurfaceTech">Технически / каменисто (0.80×)</sys:String>
+    <sys:String x:Key="BtnInferSurface">Определить поверхность из маршрутизации…</sys:String>
+    <sys:String x:Key="LblEffort">Усилие:</sys:String>
+    <sys:String x:Key="EffortEasy">Лёгкое (×0.88)</sys:String>
+    <sys:String x:Key="EffortSteady">Умеренное (×0.94)</sys:String>
+    <sys:String x:Key="EffortRace">Гонка (×1.00)</sys:String>
+    <sys:String x:Key="EffortAllOut">Максимальное (×1.04)</sys:String>
+    <sys:String x:Key="ChkAltitudeDerate">Применить снижение темпа по высоте</sys:String>
+    <sys:String x:Key="ChkCalibrate">Калибровать темп по последней гонке (Riegel)</sys:String>
+    <sys:String x:Key="ChkCap">Ограничить темп устойчивым максимумом</sys:String>
+    <sys:String x:Key="ChkLoad">Учесть рюкзак / палки при подъёме</sys:String>
+    <sys:String x:Key="ProfileExpander">Профиль атлета (сохраняется на следующий раз)</sys:String>
+    <sys:String x:Key="LblMassKg">Масса (кг)</sys:String>
+    <sys:String x:Key="LblAge">Возраст</sys:String>
+    <sys:String x:Key="LblHrMax">ЧСС макс.</sys:String>
+    <sys:String x:Key="LblRestHr">ЧСС покоя</sys:String>
+    <sys:String x:Key="LblLthr">LTHR</sys:String>
+    <sys:String x:Key="LblPackKg">Рюкзак (кг)</sys:String>
+    <sys:String x:Key="LblSex">Пол</sys:String>
+    <sys:String x:Key="SexFemale">Женский</sys:String>
+    <sys:String x:Key="SexMale">Мужской</sys:String>
+    <sys:String x:Key="ChkPoles">Трекинговые палки</sys:String>
+    <sys:String x:Key="LblRecentRaceKm">Последняя гонка (км)</sys:String>
+    <sys:String x:Key="LblInHms">за (ч:мм:сс)</sys:String>
+    <sys:String x:Key="BtnPredict">Предсказать</sys:String>
+    <sys:String x:Key="LblPrediction">Прогноз</sys:String>
+    <sys:String x:Key="ApplyInitialText">Импортируйте модель и нажмите Предсказать.</sys:String>
+    <sys:String x:Key="BtnAddPredicted">Добавить предсказанный трек</sys:String>
+
+    <!-- Statistics formatter labels -->
+    <sys:String x:Key="StatsPoints">Точки:</sys:String>
+    <sys:String x:Key="StatsDistance">Дистанция:</sys:String>
+    <sys:String x:Key="StatsAscent">Набор:</sys:String>
+    <sys:String x:Key="StatsDescent">Спуск:</sys:String>
+    <sys:String x:Key="StatsElevation">Высота:</sys:String>
+    <sys:String x:Key="StatsAvgIncline">Ср. уклон:</sys:String>
+    <sys:String x:Key="StatsClimbPerKm">Подъём/км:</sys:String>
+    <sys:String x:Key="StatsMaxGrade">Макс. уклон/100м:</sys:String>
+    <sys:String x:Key="StatsSteep">Крутые (&gt;15%):</sys:String>
+    <sys:String x:Key="StatsStart">Начало:</sys:String>
+    <sys:String x:Key="StatsDuration">Продолж.:</sys:String>
+    <sys:String x:Key="StatsMovingTime">В движении:</sys:String>
+    <sys:String x:Key="StatsAvgSpeed">Ср. скорость:</sys:String>
+    <sys:String x:Key="StatsAvgPace">Ср. темп:</sys:String>
+    <sys:String x:Key="StatsMovingAvg">Ср. дв. скор.:</sys:String>
+    <sys:String x:Key="StatsMovingPace">Ср. дв. темп:</sys:String>
+    <sys:String x:Key="StatsMaxSpeed">Макс. скорость:</sys:String>
+    <sys:String x:Key="StatsBestPace">Лучший темп:</sys:String>
+
+    <!-- Gradient legend labels -->
+    <sys:String x:Key="GradPace">Темп</sys:String>
+    <sys:String x:Key="GradGrade">Уклон</sys:String>
+    <sys:String x:Key="GradSurface">Покрытие</sys:String>
+    <sys:String x:Key="GradEasy">легко</sys:String>
+    <sys:String x:Key="GradHard">сложно</sys:String>
+
+    <!-- Measurement panel text -->
+    <sys:String x:Key="MeasPtLegs">{0} точек, {1} участок(ов)</sys:String>
+    <sys:String x:Key="MeasPathLength">Длина пути:</sys:String>
+    <sys:String x:Key="MeasStraightLine">Прямая:</sys:String>
+    <sys:String x:Key="MeasBearing">Азимут:</sys:String>
+    <sys:String x:Key="MeasElevRange">Высота:</sys:String>
+    <sys:String x:Key="MeasAscent">Набор:</sys:String>
+    <sys:String x:Key="MeasDescent">Спуск:</sys:String>
+    <sys:String x:Key="MeasAvgIncline">Ср. уклон:</sys:String>
+    <sys:String x:Key="MeasNoElevation">(нет данных высот)</sys:String>
+
+    <!-- Profile plot labels -->
+    <sys:String x:Key="PlotAltitude">Высота</sys:String>
+    <sys:String x:Key="PlotAltitudeM">Высота, м</sys:String>
+    <sys:String x:Key="PlotAltitudeMEst">Высота, м (оценка)</sys:String>
+    <sys:String x:Key="PlotSpeed">Скорость</sys:String>
+    <sys:String x:Key="PlotPace">Темп</sys:String>
+    <sys:String x:Key="PlotSpeedKmh">Скорость, км/ч</sys:String>
+    <sys:String x:Key="PlotPaceMinKm">Темп, мин/км</sys:String>
+    <sys:String x:Key="PlotHrBpm">ЧСС, уд/мин</sys:String>
+    <sys:String x:Key="PlotCadence">Каденс</sys:String>
+    <sys:String x:Key="PlotTempC">Темп-ра, °C</sys:String>
+    <sys:String x:Key="PlotKm">км</sys:String>
+
+    <!-- Analyze race report -->
+    <sys:String x:Key="RaNoSegments">Не найдено временных движущихся сегментов в выбранных треках.</sys:String>
+    <sys:String x:Key="RaTracksFitted">Треки:</sys:String>
+    <sys:String x:Key="RaSegmentsUsed">Сегментов:</sys:String>
+    <sys:String x:Key="RaSignals">Сигналы:</sys:String>
+    <sys:String x:Key="RaFlatSpeed">Скорость на равнине:</sys:String>
+    <sys:String x:Key="RaSpeedByGrade">Скорость по уклону:</sys:String>
+    <sys:String x:Key="RaFatigue">Усталость:</sys:String>
+    <sys:String x:Key="RaEndEffortSpeed">скорость в конце</sys:String>
+    <sys:String x:Key="RaHrDrift">Дрейф ЧСС:</sys:String>
+    <sys:String x:Key="RaTurnPenalty">Штраф за повороты:</sys:String>
+    <sys:String x:Key="RaTwistySection">петляющий участок</sys:String>
+    <sys:String x:Key="RaHintFitted">Аппроксимировано по {0} треку(ам), {1} сегментам.</sys:String>
+    <sys:String x:Key="RaAnalysisFailed">Ошибка анализа: </sys:String>
+
+    <!-- Prediction report -->
+    <sys:String x:Key="RpStart">Старт:</sys:String>
+    <sys:String x:Key="RpPredictedFinish">Прогноз финиша:</sys:String>
+    <sys:String x:Key="RpDistance">Дистанция:</sys:String>
+    <sys:String x:Key="RpAvgMoving">Ср. дв. скорость:</sys:String>
+    <sys:String x:Key="RpEffort">Усилие:</sys:String>
+    <sys:String x:Key="RpCalibrated">Откалибровано:</sys:String>
+    <sys:String x:Key="RpToYourRace">к вашему</sys:String>
+    <sys:String x:Key="RpSustainableCap">Предел выносливости:</sys:String>
+    <sys:String x:Key="RpCeilingFromRace">потолок из вашего забега</sys:String>
+    <sys:String x:Key="RpRiegel">Ригель (равнина) ⇒</sys:String>
+    <sys:String x:Key="RpLoad">Нагрузка:</sys:String>
+    <sys:String x:Key="RpPolesOnClimbs">палки на подъёмах</sys:String>
+    <sys:String x:Key="RpAltitudeDerate">Высота: замедление выше опорной высоты</sys:String>
+    <sys:String x:Key="RpWaypointETAs">Контрольные пункты:</sys:String>
+    <sys:String x:Key="RpHintPredicted">Прогноз: {0:F1} км за {1}.</sys:String>
+
+</ResourceDictionary>

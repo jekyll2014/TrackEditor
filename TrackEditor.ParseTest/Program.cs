@@ -63,8 +63,7 @@ foreach (string file in Directory.GetFiles(dir).OrderBy(f => f))
             if (hasTime)
             {
                 var res = RaceAnalyzer.Analyze(new[] { t });
-                foreach (var line in res.Report.Split('\n'))
-                    Console.WriteLine("    | " + line.TrimEnd());
+                Console.WriteLine($"    | Fitted: {res.TracksUsed} track(s), {res.SegmentsUsed} segs, flat {res.Model.AthleteBaseline.FlatSpeedMps * 3.6:F1} km/h");
                 var round = RaceModel.FromJson(res.Model.ToJson());
                 Console.WriteLine($"    | json round-trip: {round.BaseCurve.SpeedMps.Length} curve bins, " +
                                   $"flat {round.AthleteBaseline.FlatSpeedMps * 3.6:F1} km/h");
@@ -87,7 +86,7 @@ if (fitFile is not null && planFile is not null)
     var fit = RaceAnalyzer.Analyze(GpxIo.Load(fitFile));
     var plan = GpxIo.Load(planFile)[0];
     var pred = RacePredictor.Predict(plan, fit.Model, new PredictOptions { StartTime = DateTime.Today.AddHours(8) });
-    foreach (var line in pred.Report.Split('\n')) Console.WriteLine("    " + line.TrimEnd());
+    Console.WriteLine($"    Predicted {pred.DistanceKm:F1} km in {pred.TotalTime:hh\\:mm\\:ss}");
     bool timed = pred.PredictedTrack.Points.All(p => p.Time is not null);
     Console.WriteLine($"    injected times on all {pred.PredictedTrack.Points.Count} points: {timed}");
 }

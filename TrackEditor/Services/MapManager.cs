@@ -13,7 +13,7 @@ using Mapsui.Tiling.Layers;
 using NetTopologySuite.Geometries;
 
 using System.IO;
-
+using Mapsui.Manipulations;
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
 
@@ -75,8 +75,7 @@ public class MapManager : IDisposable
             HorizontalAlignment = Mapsui.Widgets.HorizontalAlignment.Right,
             VerticalAlignment = Mapsui.Widgets.VerticalAlignment.Bottom,
             TextAlignment = Mapsui.Widgets.Alignment.Center,
-            MarginX = 12,
-            MarginY = 12,
+            Margin = new Mapsui.MRect(12, 12, 12, 12),
         });
     }
 
@@ -239,7 +238,8 @@ public class MapManager : IDisposable
         cache = new MbTilesCache(CacheFile(provider), name, limitBytes);
         var source = new HttpTileSource(schema, url, name: name,
             attribution: new BruTile.Attribution(attrText, attrUrl),
-            persistentCache: cache, userAgent: UserAgent);
+            persistentCache: cache,
+            configureHttpRequestMessage: msg => msg.Headers.UserAgent.ParseAdd(UserAgent));
         return new TileLayer(source) { Name = "Basemap" };
     }
 
@@ -508,7 +508,7 @@ public class MapManager : IDisposable
         if (ViewerPosition is not { } v) return -1;
         var s = WorldToScreen(new TrackPoint { Lat = v.Lat, Lon = v.Lon });
         if (s is null) return -1;
-        return Math.Sqrt((s.X - screenX) * (s.X - screenX) + (s.Y - screenY) * (s.Y - screenY));
+        return Math.Sqrt((s.Value.X - screenX) * (s.Value.X - screenX) + (s.Value.Y - screenY) * (s.Value.Y - screenY));
     }
 
     public void SetHover(TrackPoint? point)
@@ -585,7 +585,7 @@ public class MapManager : IDisposable
     }
 
     /// <summary>Screen-space position of a track point, or null when the viewport is not ready.</summary>
-    public MPoint? WorldToScreen(TrackPoint p)
+    public ScreenPosition? WorldToScreen(TrackPoint p)
     {
         var viewport = _ctrl.Map.Navigator.Viewport;
         if (viewport.Width <= 0) return null;
@@ -602,7 +602,7 @@ public class MapManager : IDisposable
         {
             var s = WorldToScreen(track.Points[i]);
             if (s is null) return -1;
-            double d = Math.Sqrt((s.X - screenX) * (s.X - screenX) + (s.Y - screenY) * (s.Y - screenY));
+            double d = Math.Sqrt((s.Value.X - screenX) * (s.Value.X - screenX) + (s.Value.Y - screenY) * (s.Value.Y - screenY));
             if (d < bestDist) { bestDist = d; best = i; }
         }
         return best;
@@ -615,14 +615,14 @@ public class MapManager : IDisposable
         double bestDist = maxPx;
         foreach (var track in tracks.Where(t => t.Visible && t.Points.Count > 1))
         {
-            MPoint? prev = null;
+            ScreenPosition? prev = null;
             foreach (var p in track.Points)
             {
                 var s = WorldToScreen(p);
                 if (s is null) return null;
                 if (prev is not null)
                 {
-                    double d = GeoMath.PointToSegmentDist(screenX, screenY, prev.X, prev.Y, s.X, s.Y);
+                    double d = GeoMath.PointToSegmentDist(screenX, screenY, prev.Value.X, prev.Value.Y, s.Value.X, s.Value.Y);
                     if (d < bestDist) { bestDist = d; best = track; }
                 }
                 prev = s;

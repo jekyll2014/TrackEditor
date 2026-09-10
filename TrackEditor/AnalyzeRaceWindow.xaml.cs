@@ -8,6 +8,8 @@ using Microsoft.Win32;
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
 using TrackEditor.Core.Services.RaceAnalysis;
+using TrackEditor.Localization;
+using TrackEditor.Services;
 
 namespace TrackEditor;
 
@@ -116,16 +118,16 @@ public partial class AnalyzeRaceWindow : Window
         {
             var result = RaceAnalyzer.Analyze(chosen, options);
             _model = result.Model;
-            ReportText.Text = result.Report;
+            ReportText.Text = RaceFormatter.FormatAnalysisReport(result, options);
             ExportButton.IsEnabled = true;
-            HintText.Text = $"Fitted from {result.TracksUsed} track(s), {result.SegmentsUsed} segments.";
+            HintText.Text = string.Format(Loc.Get("RaHintFitted"), result.TracksUsed, result.SegmentsUsed);
         }
         catch (System.Exception ex)
         {
             _model = null;
             ExportButton.IsEnabled = false;
-            ReportText.Text = "Analysis failed: " + ex.Message;
-            HintText.Text = "Analysis failed.";
+            ReportText.Text = Loc.Get("RaAnalysisFailed") + ex.Message;
+            HintText.Text = Loc.Get("RaAnalysisFailed").TrimEnd();
         }
     }
 

@@ -12,14 +12,21 @@ public class TrackGradientResult
     /// undefined for that segment (e.g. a gap with no timestamps); the renderer draws those neutrally.</summary>
     public double[] Goodness { get; init; } = System.Array.Empty<double>();
 
-    /// <summary>Short metric name for the legend caption (e.g. "Speed", "Grade", "Surface").</summary>
-    public string Caption { get; init; } = "";
+    /// <summary>Which metric produced this result — used by the UI layer to format legend labels.</summary>
+    public GradientMetric Metric { get; init; }
 
-    /// <summary>Legend label for the red end (fast / easy / descending).</summary>
-    public string HighLabel { get; init; } = "";
+    /// <summary>Whether pace mode (min/km) was active — relevant when Metric == Speed.</summary>
+    public bool PaceMode { get; init; }
 
-    /// <summary>Legend label for the blue end (slow / hard / climbing).</summary>
-    public string LowLabel { get; init; } = "";
+    /// <summary>Grade unit used — relevant when Metric == Inclination.</summary>
+    public GradeUnit GradeUnit { get; init; }
+
+    /// <summary>95th-percentile value at the red (fast/easy/descending) end of the ramp, in raw metric units
+    /// (m/s for Speed, grade % for Inclination). NaN for Pavement.</summary>
+    public double HighValue { get; init; } = double.NaN;
+
+    /// <summary>5th-percentile value at the blue (slow/hard/climbing) end of the ramp. NaN for Pavement.</summary>
+    public double LowValue { get; init; } = double.NaN;
 }
 
 /// <summary>
@@ -67,9 +74,10 @@ public static class TrackGradient
         return new TrackGradientResult
         {
             Goodness = g,
-            Caption = paceMode ? "Pace" : "Speed",
-            HighLabel = FormatSpeed(hi, paceMode),        // red end = fastest
-            LowLabel = FormatSpeed(lo, paceMode),         // blue end = slowest
+            Metric = GradientMetric.Speed,
+            PaceMode = paceMode,
+            HighValue = hi,   // red end = fastest m/s
+            LowValue = lo,    // blue end = slowest m/s
         };
     }
 
@@ -97,9 +105,10 @@ public static class TrackGradient
         return new TrackGradientResult
         {
             Goodness = g,
-            Caption = "Grade",
-            HighLabel = FormatGrade(lo, gradeUnit),       // red end = descending
-            LowLabel = FormatGrade(hi, gradeUnit),        // blue end = climbing
+            Metric = GradientMetric.Inclination,
+            GradeUnit = gradeUnit,
+            HighValue = lo,   // red end = steepest descent (most negative grade %)
+            LowValue = hi,    // blue end = steepest climb
         };
     }
 
@@ -118,9 +127,8 @@ public static class TrackGradient
         return new TrackGradientResult
         {
             Goodness = g,
-            Caption = "Surface",
-            HighLabel = "easy",     // red end = most passable (paved)
-            LowLabel = "hard",      // blue end = least passable
+            Metric = GradientMetric.Pavement,
+            // HighValue/LowValue: not applicable for surface — UI derives labels from Metric
         };
     }
 
@@ -220,18 +228,4 @@ public static class TrackGradient
         return (Pick(0.05), Pick(0.95));
     }
 
-    private static string FormatSpeed(double mps, bool paceMode) =>
-        double.IsNaN(mps) ? "—"
-        : paceMode ? $"{PaceFormat.MinPerKm(mps)} /km"
-        : $"{mps * 3.6:F1} km/h";
-
-    /// <summary>Formats a rise/run grade percentage in the chosen unit: the percentage itself, or the
-    /// equivalent slope angle (arctan) in degrees.</summary>
-    private static string FormatGrade(double pct, GradeUnit unit)
-    {
-        if (double.IsNaN(pct)) return "—";
-        return unit == GradeUnit.Degree
-            ? $"{System.Math.Atan(pct / 100.0) * (180.0 / System.Math.PI):+0.#;-0.#;0}°"
-            : $"{pct:+0.#;-0.#;0}%";
-    }
 }

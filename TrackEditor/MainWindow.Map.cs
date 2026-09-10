@@ -4,6 +4,7 @@ using System.Windows.Input;
 
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
+using TrackEditor.Localization;
 using TrackEditor.Services;
 
 namespace TrackEditor;
@@ -495,7 +496,7 @@ public partial class MainWindow
         {
             var s = _mapMgr.WorldToScreen(pts[i]);
             if (s is null) return; // viewport not ready
-            if (s.X < -100 || s.Y < -100 || s.X > w + 100 || s.Y > h + 100) continue;
+            if (s.Value.X < -100 || s.Value.Y < -100 || s.Value.X > w + 100 || s.Value.Y > h + 100) continue;
 
             string text = BuildFlagText(i, t0);
             if (text.Length == 0) continue;
@@ -505,7 +506,7 @@ public partial class MainWindow
             int widest = lines.Max(l => l.Length);
             double rw = 7.5 * widest + 16;
             double rh = 8 + 18 * lines.Length;
-            var rect = new Rect(s.X - rw / 2, s.Y - 14 - rh, rw, rh);
+            var rect = new Rect(s.Value.X - rw / 2, s.Value.Y - 14 - rh, rw, rh);
             if (placed.Any(r => r.IntersectsWith(rect))) continue;
 
             placed.Add(rect);
@@ -578,36 +579,36 @@ public partial class MainWindow
                 sc.MarkerSize = 0;
                 sc.LineWidth = 2;
                 sc.Color = altColor;
-                sc.LegendText = "Altitude";
+                sc.LegendText = Loc.Get("PlotAltitude");
                 sc.Axes.YAxis = plt.Axes.Left;
                 // Dashed line signals the heights are estimated (DEM/online), not recorded.
                 if (eleEstimated) sc.LinePattern = ScottPlot.LinePattern.Dashed;
-                StyleYAxis(plt.Axes.Left, eleEstimated ? "Altitude, m (est.)" : "Altitude, m", altColor);
+                StyleYAxis(plt.Axes.Left, Loc.Get(eleEstimated ? "PlotAltitudeMEst" : "PlotAltitudeM"), altColor);
                 hasAlt = true;
             }
 
             if (showSpeed && xsS.Count > 1)
             {
-                var sc = plt.Add.Scatter(xsS.ToArray(), ysS.ToArray());
+                var sc = plt.Add.Scatter([.. xsS], ysS.ToArray());
                 sc.MarkerSize = 0;
                 sc.LineWidth = 2;
                 sc.Color = spdColor;
-                sc.LegendText = _settings.PaceMode ? "Pace" : "Speed";
+                sc.LegendText = Loc.Get(_settings.PaceMode ? "PlotPace" : "PlotSpeed");
                 // Altitude keeps the left axis; speed goes on a right axis, or on the left if alone.
                 ScottPlot.IYAxis yax = hasAlt ? plt.Axes.AddRightAxis() : plt.Axes.Left;
                 sc.Axes.YAxis = yax;
-                StyleYAxis(yax, _settings.PaceMode ? "Pace, min/km" : "Speed, km/h", spdColor);
+                StyleYAxis(yax, Loc.Get(_settings.PaceMode ? "PlotPaceMinKm" : "PlotSpeedKmh"), spdColor);
                 hasSpeed = true;
             }
         }
 
         // Recorded sensor channels, each on its own right axis so their differing units don't fight.
-        bool hasHr = AddSignalSeries(plt, ChkHr?.IsChecked == true, p => (double?)p.Hr, "HR, bpm", "#C0392B");
-        bool hasCad = AddSignalSeries(plt, ChkCad?.IsChecked == true, p => (double?)p.Cad, "Cadence", "#8E44AD");
-        bool hasTemp = AddSignalSeries(plt, ChkTemp?.IsChecked == true, p => p.Temp, "Temp, °C", "#16A085");
+        bool hasHr = AddSignalSeries(plt, ChkHr?.IsChecked == true, p => (double?)p.Hr, Loc.Get("PlotHrBpm"), "#C0392B");
+        bool hasCad = AddSignalSeries(plt, ChkCad?.IsChecked == true, p => (double?)p.Cad, Loc.Get("PlotCadence"), "#8E44AD");
+        bool hasTemp = AddSignalSeries(plt, ChkTemp?.IsChecked == true, p => p.Temp, Loc.Get("PlotTempC"), "#16A085");
 
         int seriesCount = (hasAlt ? 1 : 0) + (hasSpeed ? 1 : 0) + (hasHr ? 1 : 0) + (hasCad ? 1 : 0) + (hasTemp ? 1 : 0);
-        plt.Axes.Bottom.Label.Text = "km";
+        plt.Axes.Bottom.Label.Text = Loc.Get("PlotKm");
         if (seriesCount == 0) plt.Axes.Left.Label.Text = "";
         if (seriesCount >= 2) plt.ShowLegend(ScottPlot.Alignment.UpperLeft);
         else plt.HideLegend();

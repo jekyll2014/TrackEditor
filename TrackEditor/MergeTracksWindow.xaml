@@ -1,7 +1,7 @@
 <Window x:Class="TrackEditor.MergeTracksWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Merge Tracks" Height="580" Width="560"
+        Title="{DynamicResource MergeTracksTitle}" Height="580" Width="560"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" MinHeight="460" MinWidth="480">
     <Grid Margin="14">
         <Grid.RowDefinitions>
@@ -14,50 +14,50 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8" x:Name="BaseText"
-                   Text="Fuse a second recording of the same route into the base track."/>
+                   Text="{DynamicResource DescMergeTracks}"/>
 
         <StackPanel Grid.Row="1" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                <TextBlock Text="Merge with:" VerticalAlignment="Center" Width="150"/>
+                <TextBlock Text="{DynamicResource LblMergeWith}" VerticalAlignment="Center" Width="150"/>
                 <ComboBox x:Name="CmbOther" Width="330"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                <TextBlock Text="Align points by:" VerticalAlignment="Center" Width="150"/>
+                <TextBlock Text="{DynamicResource LblAlignBy}" VerticalAlignment="Center" Width="150"/>
                 <ComboBox x:Name="CmbAlign" Width="330" SelectedIndex="0">
-                    <ComboBoxItem Content="Auto (timestamp if both share a clock, else distance)"/>
-                    <ComboBoxItem Content="Timestamp"/>
-                    <ComboBoxItem Content="Distance (nearest point on the other line)"/>
+                    <ComboBoxItem Content="{DynamicResource MergeAlignAuto}"/>
+                    <ComboBoxItem Content="{DynamicResource MergeAlignTimestamp}"/>
+                    <ComboBoxItem Content="{DynamicResource MergeAlignDistance}"/>
                 </ComboBox>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                <TextBlock Text="Geometry:" VerticalAlignment="Center" Width="150"/>
+                <TextBlock Text="{DynamicResource LblGeometry}" VerticalAlignment="Center" Width="150"/>
                 <ComboBox x:Name="CmbGeometry" Width="330" SelectedIndex="0">
-                    <ComboBoxItem Content="Keep base line (only pull in extra fields)"/>
-                    <ComboBoxItem Content="Average both lines where they overlap (de-noise)"/>
+                    <ComboBoxItem Content="{DynamicResource MergeGeoKeep}"/>
+                    <ComboBoxItem Content="{DynamicResource MergeGeoAvg}"/>
                 </ComboBox>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                <TextBlock Text="Match gate (m):" VerticalAlignment="Center" Width="150"/>
+                <TextBlock Text="{DynamicResource LblMatchGate}" VerticalAlignment="Center" Width="150"/>
                 <TextBox x:Name="TxtGate" Width="80" Text="60"/>
-                <CheckBox x:Name="ChkPreferBase" Content="Keep base value when both have a field"
+                <CheckBox x:Name="ChkPreferBase" Content="{DynamicResource ChkPreferBase}"
                           VerticalAlignment="Center" Margin="16,0,0,0"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                <Button x:Name="RunButton" Content="Merge" Width="100" Click="Run_Click"/>
+                <Button x:Name="RunButton" Content="{DynamicResource BtnMerge}" Width="100" Click="Run_Click"/>
                 <TextBlock x:Name="HintText" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#666"/>
             </StackPanel>
         </StackPanel>
 
-        <TextBlock Grid.Row="3" Text="Result" FontWeight="Bold" Margin="0,4,0,4"/>
+        <TextBlock Grid.Row="3" Text="{DynamicResource LblResult}" FontWeight="Bold" Margin="0,4,0,4"/>
 
         <TextBox x:Name="ReportText" Grid.Row="4" IsReadOnly="True" FontFamily="Consolas" FontSize="12"
                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
                  TextWrapping="NoWrap" Background="#FAFAFA"
-                 Text="Pick a track and press Merge."/>
+                 Text="{DynamicResource MergeInitialText}"/>
 
         <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button x:Name="AddButton" Content="Add Merged Track" Width="150" IsEnabled="False" Click="Add_Click"/>
-            <Button Content="Cancel" Width="80" Margin="8,0,0,0" IsCancel="True"/>
+            <Button x:Name="AddButton" Content="{DynamicResource BtnAddMerged}" Width="150" IsEnabled="False" Click="Add_Click"/>
+            <Button Content="{DynamicResource BtnCancel}" Width="80" Margin="8,0,0,0" IsCancel="True"/>
         </StackPanel>
     </Grid>
 </Window>
