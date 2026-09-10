@@ -416,6 +416,32 @@ public partial class MainWindow
         }
     }
 
+    private async void MyLocation_Click(object sender, RoutedEventArgs e)
+    {
+        BtnMyLocation.IsEnabled = false;
+        try
+        {
+            var locator = new Windows.Devices.Geolocation.Geolocator();
+            var pos = await locator.GetGeopositionAsync();
+            double lat = pos.Coordinate.Point.Position.Latitude;
+            double lon = pos.Coordinate.Point.Position.Longitude;
+            _mapMgr.CenterOn(lat, lon);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            MessageBox.Show("Location access denied. Enable location in Windows Settings → Privacy → Location.",
+                "My Location", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Could not get location: {ex.Message}", "My Location", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally
+        {
+            BtnMyLocation.IsEnabled = true;
+        }
+    }
+
     /// <summary>
     /// A flag-content field was toggled (from the View menu or the toolbar dropdown). Each field is
     /// independent; the clicked item's new IsChecked state is written back to settings, mirrored onto

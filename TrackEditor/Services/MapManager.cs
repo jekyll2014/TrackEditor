@@ -129,6 +129,12 @@ public class MapManager : IDisposable
         _ctrl.Map.Navigator.CenterOn(m);
     }
 
+    public void CenterOn(double lat, double lon)
+    {
+        var (x, y) = SphericalMercator.FromLonLat(lon, lat);
+        _ctrl.Map.Navigator.CenterOn(new MPoint(x, y));
+    }
+
     private long LimitBytes => _tileLimitMB > 0 ? (long)_tileLimitMB * 1024 * 1024 : 0;
 
     /// <summary>Swaps the basemap layer (kept at the bottom of the stack) for a different provider, applying
