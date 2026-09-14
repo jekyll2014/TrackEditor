@@ -22,8 +22,8 @@
     <sys:String x:Key="MenuOpenUrl">Открыть из URL…</sys:String>
     <sys:String x:Key="MenuSaveActive">Сохранить активный трек как GPX…</sys:String>
     <sys:String x:Key="MenuSaveAll">Сохранить все треки как GPX…</sys:String>
-    <sys:String x:Key="Menu3DView">3D-вид текущей карты…</sys:String>
-    <sys:String x:Key="MenuExportMap">Экспорт изображения карты…</sys:String>
+    <sys:String x:Key="Menu3DView">3D-вид карты…</sys:String>
+    <sys:String x:Key="MenuExportMap">Сохранить карту…</sys:String>
     <sys:String x:Key="MenuExit">Выход</sys:String>
 
     <!-- Edit menu -->
@@ -31,15 +31,15 @@
     <sys:String x:Key="MenuUndo">Отменить</sys:String>
     <sys:String x:Key="MenuRedo">Повторить</sys:String>
     <sys:String x:Key="MenuCopyPoints">Копировать точки</sys:String>
-    <sys:String x:Key="MenuPastePoints">Вставить точки после выбранных</sys:String>
+    <sys:String x:Key="MenuPastePoints">Вставить точки после выбранной</sys:String>
     <sys:String x:Key="MenuDeletePoints">Удалить выбранные точки</sys:String>
 
     <!-- Track menu -->
     <sys:String x:Key="MenuTrackTop">Трек</sys:String>
-    <sys:String x:Key="MenuNewTrack">Новый пустой трек (режим рисования)</sys:String>
+    <sys:String x:Key="MenuNewTrack">Создать трек</sys:String>
     <sys:String x:Key="MenuDeleteLast">Удалить последнюю точку</sys:String>
-    <sys:String x:Key="MenuSplit">Разделить у выбранной точки</sys:String>
-    <sys:String x:Key="MenuCrop">Обрезать по выбранному диапазону</sys:String>
+    <sys:String x:Key="MenuSplit">Разделить по выбранной точке</sys:String>
+    <sys:String x:Key="MenuCrop">Оставить только выбранный диапазон</sys:String>
     <sys:String x:Key="MenuDeleteRange">Удалить выбранный диапазон</sys:String>
     <sys:String x:Key="MenuSimplify">Упростить…</sys:String>
     <sys:String x:Key="MenuReverse">Инвертировать трек</sys:String>
@@ -74,14 +74,14 @@
     <sys:String x:Key="MenuColTime">Время</sys:String>
     <sys:String x:Key="MenuColDist">Км</sys:String>
     <sys:String x:Key="MenuColHr">ЧСС</sys:String>
-    <sys:String x:Key="MenuColCad">Каданс</sys:String>
+    <sys:String x:Key="MenuColCad">Каденс</sys:String>
     <sys:String x:Key="MenuColTemp">Температура (°C)</sys:String>
     <sys:String x:Key="MenuColSurface">Поверхность</sys:String>
 
     <!-- Race menu -->
-    <sys:String x:Key="MenuRace">Гонка</sys:String>
-    <sys:String x:Key="MenuAnalyzeRace">Анализ скорости гонки…</sys:String>
-    <sys:String x:Key="MenuApplyRaceModel">Применить модель гонки…</sys:String>
+    <sys:String x:Key="MenuRace">Забег</sys:String>
+    <sys:String x:Key="MenuAnalyzeRace">Анализ забега…</sys:String>
+    <sys:String x:Key="MenuApplyRaceModel">Применить модель забега…</sys:String>
     <sys:String x:Key="MenuEvalSurface">Оценить поверхность (маршрутизация)…</sys:String>
     <sys:String x:Key="MenuExportPacing">Экспорт темпа (CSV)…</sys:String>
 
@@ -148,7 +148,7 @@
     <sys:String x:Key="CtxReevalEle">Пересчитать высоты (SRTM / Онлайн)</sys:String>
     <sys:String x:Key="CtxResetEle">Сбросить данные высот</sys:String>
     <sys:String x:Key="CtxEvalSurface">Оценить поверхность (маршрутизация)…</sys:String>
-    <sys:String x:Key="CtxApplyRaceModel">Применить модель гонки…</sys:String>
+    <sys:String x:Key="CtxApplyRaceModel">Применить модель забега…</sys:String>
     <sys:String x:Key="CtxZoomTrack">Приблизить к треку</sys:String>
     <sys:String x:Key="CtxDeleteTrack">Удалить трек</sys:String>
 
@@ -177,7 +177,7 @@
     <!-- Server tab -->
     <sys:String x:Key="SrvNotSignedIn">Не авторизован — Сервер › Войти…</sys:String>
     <sys:String x:Key="SrvSaveNew">Сохранить активный трек на сервер</sys:String>
-    <sys:String x:Key="SrvSharedBadge"> общий</sys:String>
+    <sys:String x:Key="SrvSharedBadge">общий</sys:String>
 
     <!-- Map context menu -->
     <sys:String x:Key="MapFitAll">Показать все треки</sys:String>
@@ -204,8 +204,8 @@
     <sys:String x:Key="ChkAltitude">Высота</sys:String>
     <sys:String x:Key="ChkSpeed">Скорость</sys:String>
     <sys:String x:Key="ChkHr">ЧСС</sys:String>
-    <sys:String x:Key="ChkCadence">Каданс</sys:String>
-    <sys:String x:Key="ChkTemp">Темп.</sys:String>
+    <sys:String x:Key="ChkCadence">Каденс</sys:String>
+    <sys:String x:Key="ChkTemp">Температура (°C)</sys:String>
 
     <!-- Settings window -->
     <sys:String x:Key="SettingsTitle">Настройки</sys:String>
@@ -229,7 +229,7 @@
     <sys:String x:Key="ChkColTime">Время</sys:String>
     <sys:String x:Key="ChkColDist">Км</sys:String>
     <sys:String x:Key="ChkColHr">ЧСС</sys:String>
-    <sys:String x:Key="ChkColCad">Каданс</sys:String>
+    <sys:String x:Key="ChkColCad">Каденс</sys:String>
     <sys:String x:Key="ChkColTemp">Температура (°C)</sys:String>
     <sys:String x:Key="ChkColSurface">Поверхность</sys:String>
     <sys:String x:Key="GrpStatistics">Статистика</sys:String>
@@ -337,8 +337,8 @@
     <sys:String x:Key="BtnExportModel">Экспортировать модель…</sys:String>
 
     <!-- Apply race model window -->
-    <sys:String x:Key="ApplyRaceModelTitle">Применение гоночной модели</sys:String>
-    <sys:String x:Key="DescApplyRaceModel">Предсказание хода гонки на выбранном треке с помощью сохранённой гоночной модели.</sys:String>
+    <sys:String x:Key="ApplyRaceModelTitle">Применение модели забега</sys:String>
+    <sys:String x:Key="DescApplyRaceModel">Предсказание хода забега на выбранном треке с помощью сохранённой модели забега.</sys:String>
     <sys:String x:Key="BtnImportModel">Импортировать модель…</sys:String>
     <sys:String x:Key="BtnCreateProfile">Создать профиль…</sys:String>
     <sys:String x:Key="LblNoModel">Модель не загружена.</sys:String>
@@ -352,10 +352,10 @@
     <sys:String x:Key="LblEffort">Усилие:</sys:String>
     <sys:String x:Key="EffortEasy">Лёгкое (×0.88)</sys:String>
     <sys:String x:Key="EffortSteady">Умеренное (×0.94)</sys:String>
-    <sys:String x:Key="EffortRace">Гонка (×1.00)</sys:String>
+    <sys:String x:Key="EffortRace">Забег (×1.00)</sys:String>
     <sys:String x:Key="EffortAllOut">Максимальное (×1.04)</sys:String>
     <sys:String x:Key="ChkAltitudeDerate">Применить снижение темпа по высоте</sys:String>
-    <sys:String x:Key="ChkCalibrate">Калибровать темп по последней гонке (Riegel)</sys:String>
+    <sys:String x:Key="ChkCalibrate">Калибровать темп по предыдущему забегу (Riegel)</sys:String>
     <sys:String x:Key="ChkCap">Ограничить темп устойчивым максимумом</sys:String>
     <sys:String x:Key="ChkLoad">Учесть рюкзак / палки при подъёме</sys:String>
     <sys:String x:Key="ProfileExpander">Профиль атлета (сохраняется на следующий раз)</sys:String>
@@ -369,7 +369,7 @@
     <sys:String x:Key="SexFemale">Женский</sys:String>
     <sys:String x:Key="SexMale">Мужской</sys:String>
     <sys:String x:Key="ChkPoles">Трекинговые палки</sys:String>
-    <sys:String x:Key="LblRecentRaceKm">Последняя гонка (км)</sys:String>
+    <sys:String x:Key="LblRecentRaceKm">Предыдущий забег (км)</sys:String>
     <sys:String x:Key="LblInHms">за (ч:мм:сс)</sys:String>
     <sys:String x:Key="BtnPredict">Предсказать</sys:String>
     <sys:String x:Key="LblPrediction">Прогноз</sys:String>
@@ -440,7 +440,7 @@
     <sys:String x:Key="RaTurnPenalty">Штраф за повороты:</sys:String>
     <sys:String x:Key="RaTwistySection">петляющий участок</sys:String>
     <sys:String x:Key="RaHintFitted">Аппроксимировано по {0} треку(ам), {1} сегментам.</sys:String>
-    <sys:String x:Key="RaAnalysisFailed">Ошибка анализа: </sys:String>
+    <sys:String x:Key="RaAnalysisFailed">Ошибка анализа:</sys:String>
 
     <!-- Prediction report -->
     <sys:String x:Key="RpStart">Старт:</sys:String>
