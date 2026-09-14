@@ -329,6 +329,7 @@
     <sys:String x:Key="SportRunning">Bėgimas</sys:String>
     <sys:String x:Key="SportRoadBike">Plentinis dviratis</sys:String>
     <sys:String x:Key="SportXCBike">Kalnų dviratis (XC)</sys:String>
+    <sys:String x:Key="SportHintModel">(nustatytas įkelto modelio)</sys:String>
     <sys:String x:Key="LblRunnerName">Sportininko vardas:</sys:String>
     <sys:String x:Key="ChkUseHr">Naudoti širdies ritmą nuovargiui kalibruoti (kai yra)</sys:String>
     <sys:String x:Key="LblFatigueDriver">Nuovargis nulemtas:</sys:String>

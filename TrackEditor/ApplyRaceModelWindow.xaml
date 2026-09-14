@@ -28,6 +28,16 @@
 
         <StackPanel Grid.Row="2" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                <TextBlock Text="{DynamicResource LblSport}" VerticalAlignment="Center" Width="130"/>
+                <ComboBox x:Name="CmbSport" Width="220" SelectionChanged="CmbSport_SelectionChanged">
+                    <ComboBoxItem Content="{DynamicResource SportRunning}" Tag="Running" IsSelected="True"/>
+                    <ComboBoxItem Content="{DynamicResource SportRoadBike}" Tag="CyclingRoad"/>
+                    <ComboBoxItem Content="{DynamicResource SportXCBike}" Tag="CyclingXC"/>
+                </ComboBox>
+                <TextBlock x:Name="SportHint" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="#888"
+                           FontSize="11" Text="{DynamicResource SportHintModel}" Visibility="Collapsed"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                 <TextBlock Text="{DynamicResource LblStartTime}" VerticalAlignment="Center" Width="130"/>
                 <TextBox x:Name="TxtStart" Width="80" Text="08:00"/>
             </StackPanel>
@@ -125,6 +135,7 @@
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource LblFtpW}" VerticalAlignment="Center" Margin="0,0,8,4"/>
                     <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtFtp" Margin="0,0,0,4"
+                               TextChanged="TxtFtp_TextChanged"
                                ToolTip="Functional Threshold Power (W) — highest power you can sustain for ~1 hour"/>
                     <TextBlock Grid.Row="0" Grid.Column="3" Text="{DynamicResource LblBikeKg}" VerticalAlignment="Center" Margin="0,0,8,4"/>
                     <TextBox   Grid.Row="0" Grid.Column="4" x:Name="TxtBikeKg" Margin="0,0,0,4"
@@ -156,7 +167,8 @@
             </Expander>
             <CheckBox x:Name="ChkUsePhysics" Content="{DynamicResource ChkUsePhysics}"
                       Margin="0,4,0,0" Visibility="Collapsed"
-                      ToolTip="Physics model requires FTP in the cycling section above. Data-driven model works without FTP."/>
+                      Checked="ChkUsePhysics_Changed" Unchecked="ChkUsePhysics_Changed"
+                      ToolTip="Physics model requires FTP in the cycling section above. Works without a fitted model."/>
 
             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <Button x:Name="RunButton" Content="{DynamicResource BtnPredict}" Width="100" Click="Run_Click" IsEnabled="False"/>

@@ -329,6 +329,7 @@
     <sys:String x:Key="SportRunning">Running</sys:String>
     <sys:String x:Key="SportRoadBike">Road bike</sys:String>
     <sys:String x:Key="SportXCBike">XC / MTB</sys:String>
+    <sys:String x:Key="SportHintModel">(set by loaded model)</sys:String>
     <sys:String x:Key="LblRunnerName">Athlete name:</sys:String>
     <sys:String x:Key="ChkUseHr">Use heart rate to calibrate fatigue (when present)</sys:String>
     <sys:String x:Key="LblFatigueDriver">Fatigue driven by:</sys:String>

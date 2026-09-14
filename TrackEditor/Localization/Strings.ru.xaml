@@ -329,6 +329,7 @@
     <sys:String x:Key="SportRunning">Бег</sys:String>
     <sys:String x:Key="SportRoadBike">Шоссейный велосипед</sys:String>
     <sys:String x:Key="SportXCBike">Горный велосипед (XC)</sys:String>
+    <sys:String x:Key="SportHintModel">(задан загруженной моделью)</sys:String>
     <sys:String x:Key="LblRunnerName">Имя спортсмена:</sys:String>
     <sys:String x:Key="ChkUseHr">Использовать ЧСС для калибровки усталости (если доступно)</sys:String>
     <sys:String x:Key="LblFatigueDriver">Усталость определяется по:</sys:String>

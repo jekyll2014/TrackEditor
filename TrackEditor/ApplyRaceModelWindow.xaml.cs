@@ -86,16 +86,94 @@ public partial class ApplyRaceModelWindow : Window
     /// <summary>Shows/hides cycling vs running controls and pre-populates CdA/Crr from model defaults.</summary>
     private void ApplyModelToUi(RaceModel m)
     {
-        bool isCycling = m.Sport != SportType.Running;
+        // Sync the sport combo to the loaded model and trigger the cycling UI update.
+        SetSportCombo(m.Sport);
+
+        var spec = m.Cycling ?? (m.Sport == SportType.CyclingXC ? CyclingSpec.XCDefault() : CyclingSpec.RoadDefault());
+        if (m.Sport != SportType.Running)
+        {
+            TxtCdA.Text = spec.CdA.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            TxtCrr.Text = spec.Crr.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            SportHint.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            SportHint.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void SetSportCombo(SportType sport)
+    {
+        string tag = sport switch
+        {
+            SportType.CyclingRoad => "CyclingRoad",
+            SportType.CyclingXC => "CyclingXC",
+            _ => "Running",
+        };
+        foreach (System.Windows.Controls.ComboBoxItem item in CmbSport.Items)
+            if (item.Tag as string == tag) { CmbSport.SelectedItem = item; break; }
+    }
+
+    private SportType SelectedSport() =>
+        ((CmbSport.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string) switch
+        {
+            "CyclingRoad" => SportType.CyclingRoad,
+            "CyclingXC" => SportType.CyclingXC,
+            _ => SportType.Running,
+        };
+
+    private void CmbSport_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        // When user picks sport manually (no model), reset model so physics-only path is used.
+        if (_model is not null && _model.Sport != SelectedSport())
+        {
+            _model = null;
+            ModelText.Text = Loc.Get("LblNoModel");
+            SportHint.Visibility = Visibility.Collapsed;
+        }
+        UpdateCyclingVisibility();
+        UpdateRunButtonState();
+    }
+
+    private void UpdateCyclingVisibility()
+    {
+        bool isCycling = SelectedSport() != SportType.Running;
         CyclingExpander.Visibility = isCycling ? Visibility.Visible : Visibility.Collapsed;
         ChkUsePhysics.Visibility = isCycling ? Visibility.Visible : Visibility.Collapsed;
         ChkLoad.Visibility = isCycling ? Visibility.Collapsed : Visibility.Visible;
+        if (isCycling && string.IsNullOrWhiteSpace(TxtCdA.Text))
+        {
+            var def = SelectedSport() == SportType.CyclingXC ? CyclingSpec.XCDefault() : CyclingSpec.RoadDefault();
+            TxtCdA.Text = def.CdA.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            TxtCrr.Text = def.Crr.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+    }
 
-        if (!isCycling) return;
+    private void UpdateRunButtonState()
+    {
+        if (RunButton is null) return;
+        bool modelLoaded = _model is not null;
+        bool physicsReady = SelectedSport() != SportType.Running
+            && ChkUsePhysics?.IsChecked == true
+            && ParseNullableDouble(TxtFtp?.Text) is not null;
+        RunButton.IsEnabled = modelLoaded || physicsReady;
+    }
 
-        var spec = m.Cycling ?? (m.Sport == SportType.CyclingXC ? CyclingSpec.XCDefault() : CyclingSpec.RoadDefault());
-        TxtCdA.Text = spec.CdA.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        TxtCrr.Text = spec.Crr.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    private void ChkUsePhysics_Changed(object sender, RoutedEventArgs e) => UpdateRunButtonState();
+
+    private void TxtFtp_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e) => UpdateRunButtonState();
+
+    /// <summary>Stub model for physics-only predictions (no fitted rides required).</summary>
+    private RaceModel BuildPhysicsModel()
+    {
+        var sport = SelectedSport();
+        double cdA = ParseNullableDouble(TxtCdA.Text) ?? (sport == SportType.CyclingXC ? 0.45 : 0.32);
+        double crr = ParseNullableDouble(TxtCrr.Text) ?? (sport == SportType.CyclingXC ? 0.012 : 0.004);
+        return new RaceModel
+        {
+            Sport = sport,
+            Cycling = new CyclingSpec { CdA = cdA, Crr = crr },
+        };
     }
 
     private static string DescribeModel(RaceModel m)
@@ -117,7 +195,8 @@ public partial class ApplyRaceModelWindow : Window
 
     private void Run_Click(object sender, RoutedEventArgs e)
     {
-        if (_model is null) return;
+        bool physicsOnly = _model is null;
+        var modelToUse = _model ?? BuildPhysicsModel();
         if (!TryParseStart(TxtStart.Text, out DateTime start))
         {
             HintText.Text = "Start time must be HH:mm (e.g. 08:00).";
@@ -125,12 +204,13 @@ public partial class ApplyRaceModelWindow : Window
         }
 
         SaveUiToProfile();
-        bool usePhysics = ChkUsePhysics.IsChecked == true && _model?.Sport != SportType.Running;
+        bool isCycling = SelectedSport() != SportType.Running;
+        bool usePhysics = isCycling && ChkUsePhysics.IsChecked == true;
         CyclingSpec? physicsSpec = null;
-        if (usePhysics)
+        if (isCycling)
         {
-            double cdA = ParseNullableDouble(TxtCdA.Text) ?? (_model?.Cycling?.CdA ?? 0.32);
-            double crr = ParseNullableDouble(TxtCrr.Text) ?? (_model?.Cycling?.Crr ?? 0.004);
+            double cdA = ParseNullableDouble(TxtCdA.Text) ?? (modelToUse.Cycling?.CdA ?? 0.32);
+            double crr = ParseNullableDouble(TxtCrr.Text) ?? (modelToUse.Cycling?.Crr ?? 0.004);
             physicsSpec = new CyclingSpec { CdA = cdA, Crr = crr };
         }
 
@@ -144,16 +224,16 @@ public partial class ApplyRaceModelWindow : Window
             Profile = _settings.Profile,
             CalibrateToRecentRace = ChkCalibrate.IsChecked == true,
             CapToSustainable = ChkCap.IsChecked == true,
-            UseLoadModel = ChkLoad.IsChecked == true && _model?.Sport == SportType.Running,
+            UseLoadModel = ChkLoad.IsChecked == true && !isCycling,
             UsePhysics = usePhysics,
             PhysicsSpec = physicsSpec,
         };
 
         try
         {
-            var result = RacePredictor.Predict(_target, _model, options);
+            var result = RacePredictor.Predict(_target, modelToUse, options);
             PredictedTrack = result.PredictedTrack;   // held; only committed if the user clicks Add
-            ReportText.Text = RaceFormatter.FormatPredictionReport(result, options, _model);
+            ReportText.Text = RaceFormatter.FormatPredictionReport(result, options, modelToUse);
             AddButton.IsEnabled = true;
             HintText.Text = string.Format(Loc.Get("RpHintPredicted"), result.DistanceKm, result.TotalTime);
         }
