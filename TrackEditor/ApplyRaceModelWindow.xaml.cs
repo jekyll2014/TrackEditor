@@ -57,6 +57,7 @@ public partial class ApplyRaceModelWindow : Window
         {
             _model = RaceModel.Load(dlg.FileName);
             ModelText.Text = DescribeModel(_model);
+            ApplyModelToUi(_model);
             RunButton.IsEnabled = true;
             HintText.Text = "Model loaded — press Predict.";
         }
@@ -77,16 +78,41 @@ public partial class ApplyRaceModelWindow : Window
         if (an.Model is not RaceModel m) return;
         _model = m;
         ModelText.Text = "Created: " + DescribeModel(m);
+        ApplyModelToUi(m);
         RunButton.IsEnabled = true;
         HintText.Text = "Profile created — press Predict.";
+    }
+
+    /// <summary>Shows/hides cycling vs running controls and pre-populates CdA/Crr from model defaults.</summary>
+    private void ApplyModelToUi(RaceModel m)
+    {
+        bool isCycling = m.Sport != SportType.Running;
+        CyclingExpander.Visibility = isCycling ? Visibility.Visible : Visibility.Collapsed;
+        ChkUsePhysics.Visibility = isCycling ? Visibility.Visible : Visibility.Collapsed;
+        ChkLoad.Visibility = isCycling ? Visibility.Collapsed : Visibility.Visible;
+
+        if (!isCycling) return;
+
+        var spec = m.Cycling ?? (m.Sport == SportType.CyclingXC ? CyclingSpec.XCDefault() : CyclingSpec.RoadDefault());
+        TxtCdA.Text = spec.CdA.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        TxtCrr.Text = spec.Crr.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static string DescribeModel(RaceModel m)
     {
         string src = m.Meta.SourceTracks.Count > 0 ? string.Join(", ", m.Meta.SourceTracks) : "unknown";
         string who = string.IsNullOrWhiteSpace(m.Meta.AthleteName) ? "" : m.Meta.AthleteName.Trim() + " · ";
-        return $"{who}Flat pace {m.AthleteBaseline.FlatSpeedMps * 3.6:F1} km/h · fatigue by {m.Fatigue.Driver} · " +
-               $"from: {src}";
+        string sport = m.Sport switch
+        {
+            SportType.CyclingRoad => "Road bike · ",
+            SportType.CyclingXC => "XC/MTB · ",
+            _ => "",
+        };
+        string physicsHint = m.Cycling is CyclingSpec s
+            ? $"CdA {s.CdA:F2} Crr {s.Crr:F4} · "
+            : "";
+        return $"{who}{sport}{physicsHint}Flat {m.AthleteBaseline.FlatSpeedMps * 3.6:F1} km/h · " +
+               $"fatigue/{m.Fatigue.Driver} · from: {src}";
     }
 
     private void Run_Click(object sender, RoutedEventArgs e)
@@ -99,6 +125,15 @@ public partial class ApplyRaceModelWindow : Window
         }
 
         SaveUiToProfile();
+        bool usePhysics = ChkUsePhysics.IsChecked == true && _model?.Sport != SportType.Running;
+        CyclingSpec? physicsSpec = null;
+        if (usePhysics)
+        {
+            double cdA = ParseNullableDouble(TxtCdA.Text) ?? (_model?.Cycling?.CdA ?? 0.32);
+            double crr = ParseNullableDouble(TxtCrr.Text) ?? (_model?.Cycling?.Crr ?? 0.004);
+            physicsSpec = new CyclingSpec { CdA = cdA, Crr = crr };
+        }
+
         var options = new PredictOptions
         {
             StartTime = start,
@@ -109,7 +144,9 @@ public partial class ApplyRaceModelWindow : Window
             Profile = _settings.Profile,
             CalibrateToRecentRace = ChkCalibrate.IsChecked == true,
             CapToSustainable = ChkCap.IsChecked == true,
-            UseLoadModel = ChkLoad.IsChecked == true,
+            UseLoadModel = ChkLoad.IsChecked == true && _model?.Sport == SportType.Running,
+            UsePhysics = usePhysics,
+            PhysicsSpec = physicsSpec,
         };
 
         try
@@ -194,6 +231,8 @@ public partial class ApplyRaceModelWindow : Window
         ChkPoles.IsChecked = p.UsePoles;
         TxtRaceKm.Text = p.RecentRace is { IsValid: true } r ? r.DistanceKm.ToString(CultureInfo.InvariantCulture) : "";
         TxtRaceTime.Text = p.RecentRace is { IsValid: true } rr ? rr.Time.ToString(@"h\:mm\:ss") : "";
+        TxtFtp.Text = p.FtpW?.ToString(CultureInfo.InvariantCulture) ?? "";
+        TxtBikeKg.Text = p.BikeKg?.ToString(CultureInfo.InvariantCulture) ?? "";
     }
 
     private void SaveUiToProfile()
@@ -207,6 +246,8 @@ public partial class ApplyRaceModelWindow : Window
         p.LthrBpm = ParseNullableInt(TxtLthr.Text);
         p.PackKg = ParseNullableDouble(TxtPack.Text);
         p.UsePoles = ChkPoles.IsChecked == true;
+        p.FtpW = ParseNullableDouble(TxtFtp.Text);
+        p.BikeKg = ParseNullableDouble(TxtBikeKg.Text);
 
         double? km = ParseNullableDouble(TxtRaceKm.Text);
         TimeSpan? time = ParseNullableTime(TxtRaceTime.Text);
@@ -215,6 +256,18 @@ public partial class ApplyRaceModelWindow : Window
             : null;
 
         _settings.Save();
+    }
+
+    private void CmbCdAPreset_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (CmbCdAPreset.SelectedItem is System.Windows.Controls.ComboBoxItem item && item.Tag is string tag)
+            TxtCdA.Text = tag;
+    }
+
+    private void CmbCrrPreset_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (CmbCrrPreset.SelectedItem is System.Windows.Controls.ComboBoxItem item && item.Tag is string tag)
+            TxtCrr.Text = tag;
     }
 
     private static double? ParseNullableDouble(string? s) =>

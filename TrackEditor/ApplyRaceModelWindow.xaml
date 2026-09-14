@@ -107,6 +107,57 @@
                 </Grid>
             </Expander>
 
+            <Expander x:Name="CyclingExpander" Header="{DynamicResource CyclingPhysicsExpander}"
+                      Margin="0,8,0,0" Visibility="Collapsed">
+                <Grid Margin="6,6,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="80"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="140"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource LblFtpW}" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                    <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtFtp" Margin="0,0,0,4"
+                               ToolTip="Functional Threshold Power (W) — highest power you can sustain for ~1 hour"/>
+                    <TextBlock Grid.Row="0" Grid.Column="3" Text="{DynamicResource LblBikeKg}" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                    <TextBox   Grid.Row="0" Grid.Column="4" x:Name="TxtBikeKg" Margin="0,0,0,4"
+                               ToolTip="Bike mass in kg (road ≈9, XC ≈12)"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource LblCdA}" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                    <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtCdA" Margin="0,0,0,4"
+                               ToolTip="Aerodynamic drag area (m²). Road hoods ≈0.32, drops ≈0.26, XC ≈0.45"/>
+                    <TextBlock Grid.Row="1" Grid.Column="3" VerticalAlignment="Center" Margin="0,0,8,4" Text="Preset:"/>
+                    <ComboBox  Grid.Row="1" Grid.Column="4" x:Name="CmbCdAPreset" Margin="0,0,0,4"
+                               SelectionChanged="CmbCdAPreset_SelectionChanged">
+                        <ComboBoxItem Content="Road / hoods (0.32)" Tag="0.32"/>
+                        <ComboBoxItem Content="Road / drops (0.26)" Tag="0.26"/>
+                        <ComboBoxItem Content="XC / MTB (0.45)" Tag="0.45"/>
+                        <ComboBoxItem Content="Aero / TT (0.21)" Tag="0.21"/>
+                    </ComboBox>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource LblCrr}" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                    <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtCrr" Margin="0,0,0,4"
+                               ToolTip="Rolling resistance coefficient. Asphalt ≈0.004, gravel ≈0.008, XC trail ≈0.012"/>
+                    <TextBlock Grid.Row="2" Grid.Column="3" VerticalAlignment="Center" Margin="0,0,8,4" Text="Preset:"/>
+                    <ComboBox  Grid.Row="2" Grid.Column="4" x:Name="CmbCrrPreset" Margin="0,0,0,4"
+                               SelectionChanged="CmbCrrPreset_SelectionChanged">
+                        <ComboBoxItem Content="Asphalt (0.004)" Tag="0.004"/>
+                        <ComboBoxItem Content="Gravel (0.008)" Tag="0.008"/>
+                        <ComboBoxItem Content="XC trail (0.012)" Tag="0.012"/>
+                    </ComboBox>
+                </Grid>
+            </Expander>
+            <CheckBox x:Name="ChkUsePhysics" Content="{DynamicResource ChkUsePhysics}"
+                      Margin="0,4,0,0" Visibility="Collapsed"
+                      ToolTip="Physics model requires FTP in the cycling section above. Data-driven model works without FTP."/>
+
             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <Button x:Name="RunButton" Content="{DynamicResource BtnPredict}" Width="100" Click="Run_Click" IsEnabled="False"/>
                 <TextBlock x:Name="HintText" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#666"/>

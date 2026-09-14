@@ -325,7 +325,11 @@
     <!-- Analyze race window -->
     <sys:String x:Key="AnalyzeRaceTitle">Analyze Race Ability</sys:String>
     <sys:String x:Key="DescAnalyzeRace">Learn the athlete's speed-vs-terrain behaviour from one or more recorded tracks. Only timestamped tracks can be used; tick the ones to include.</sys:String>
-    <sys:String x:Key="LblRunnerName">Runner name:</sys:String>
+    <sys:String x:Key="LblSport">Sport:</sys:String>
+    <sys:String x:Key="SportRunning">Running</sys:String>
+    <sys:String x:Key="SportRoadBike">Road bike</sys:String>
+    <sys:String x:Key="SportXCBike">XC / MTB</sys:String>
+    <sys:String x:Key="LblRunnerName">Athlete name:</sys:String>
     <sys:String x:Key="ChkUseHr">Use heart rate to calibrate fatigue (when present)</sys:String>
     <sys:String x:Key="LblFatigueDriver">Fatigue driven by:</sys:String>
     <sys:String x:Key="FatigueAscent">Cumulative ascent</sys:String>
@@ -358,6 +362,12 @@
     <sys:String x:Key="ChkCalibrate">Calibrate pace to my recent race (Riegel)</sys:String>
     <sys:String x:Key="ChkCap">Cap pace to my sustainable ceiling</sys:String>
     <sys:String x:Key="ChkLoad">Apply pack / poles climb-cost</sys:String>
+    <sys:String x:Key="CyclingPhysicsExpander">Cycling physics (optional — needed for physics model)</sys:String>
+    <sys:String x:Key="LblFtpW">FTP (W):</sys:String>
+    <sys:String x:Key="LblBikeKg">Bike (kg):</sys:String>
+    <sys:String x:Key="LblCdA">CdA (m²):</sys:String>
+    <sys:String x:Key="LblCrr">Crr:</sys:String>
+    <sys:String x:Key="ChkUsePhysics">Use physics model (Martin 1998 power balance + W′/CP fatigue)</sys:String>
     <sys:String x:Key="ProfileExpander">Athlete profile (saved for next time)</sys:String>
     <sys:String x:Key="LblMassKg">Mass (kg)</sys:String>
     <sys:String x:Key="LblAge">Age</sys:String>
@@ -456,6 +466,8 @@
     <sys:String x:Key="RpLoad">Load:</sys:String>
     <sys:String x:Key="RpPolesOnClimbs">poles on climbs</sys:String>
     <sys:String x:Key="RpAltitudeDerate">Altitude: derate applied above reference elevation</sys:String>
+    <sys:String x:Key="RaPhysicsSpec">Physics spec:</sys:String>
+    <sys:String x:Key="RpPowerTarget">Power target:</sys:String>
     <sys:String x:Key="RpWaypointETAs">Waypoint ETAs:</sys:String>
     <sys:String x:Key="RpHintPredicted">Predicted {0:F1} km in {1}.</sys:String>
 

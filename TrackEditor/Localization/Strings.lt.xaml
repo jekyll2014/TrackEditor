@@ -325,7 +325,11 @@
     <!-- Analyze race window -->
     <sys:String x:Key="AnalyzeRaceTitle">Lenktyninių gebėjimų analizė</sys:String>
     <sys:String x:Key="DescAnalyzeRace">Sužinokite sportininko greičio ir reljefo priklausomybę iš vieno ar kelių įrašytų takų. Galima naudoti tik takus su laiko žymomis; pažymėkite norimus įtraukti.</sys:String>
-    <sys:String x:Key="LblRunnerName">Bėgiko vardas:</sys:String>
+    <sys:String x:Key="LblSport">Sportas:</sys:String>
+    <sys:String x:Key="SportRunning">Bėgimas</sys:String>
+    <sys:String x:Key="SportRoadBike">Plentinis dviratis</sys:String>
+    <sys:String x:Key="SportXCBike">Kalnų dviratis (XC)</sys:String>
+    <sys:String x:Key="LblRunnerName">Sportininko vardas:</sys:String>
     <sys:String x:Key="ChkUseHr">Naudoti širdies ritmą nuovargiui kalibruoti (kai yra)</sys:String>
     <sys:String x:Key="LblFatigueDriver">Nuovargis nulemtas:</sys:String>
     <sys:String x:Key="FatigueAscent">Bendras kilimas</sys:String>
@@ -358,6 +362,12 @@
     <sys:String x:Key="ChkCalibrate">Kalibruoti tempą pagal nesenią varžybą (Riegel)</sys:String>
     <sys:String x:Key="ChkCap">Apriboti tempą tvariu maksimumu</sys:String>
     <sys:String x:Key="ChkLoad">Taikyti kuprinės / lazdų kylimo kaštus</sys:String>
+    <sys:String x:Key="CyclingPhysicsExpander">Dviračio fizika (fiziniam modeliui)</sys:String>
+    <sys:String x:Key="LblFtpW">FTP (W):</sys:String>
+    <sys:String x:Key="LblBikeKg">Dviratis (kg):</sys:String>
+    <sys:String x:Key="LblCdA">CdA (m²):</sys:String>
+    <sys:String x:Key="LblCrr">Crr:</sys:String>
+    <sys:String x:Key="ChkUsePhysics">Fizinis modelis (Martin 1998 + W′/CP nuovargis)</sys:String>
     <sys:String x:Key="ProfileExpander">Sportininko profilis (išsaugomas kitam kartui)</sys:String>
     <sys:String x:Key="LblMassKg">Masė (kg)</sys:String>
     <sys:String x:Key="LblAge">Amžius</sys:String>
@@ -456,6 +466,8 @@
     <sys:String x:Key="RpLoad">Apkrova:</sys:String>
     <sys:String x:Key="RpPolesOnClimbs">lazdos į kalnus</sys:String>
     <sys:String x:Key="RpAltitudeDerate">Aukštis: sulėtinimas virš etaloninio aukščio</sys:String>
+    <sys:String x:Key="RaPhysicsSpec">Fizika:</sys:String>
+    <sys:String x:Key="RpPowerTarget">Tikslinė galia:</sys:String>
     <sys:String x:Key="RpWaypointETAs">Tarpiniai taškai:</sys:String>
     <sys:String x:Key="RpHintPredicted">Prognozė: {0:F1} km per {1}.</sys:String>
 

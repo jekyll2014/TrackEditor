@@ -109,6 +109,7 @@ public partial class AnalyzeRaceWindow : Window
         var options = new RaceAnalysisOptions
         {
             AthleteName = TxtRunnerName.Text,
+            Sport = SelectedSport(),
             UseHr = ChkUseHr.IsChecked == true,
             NormalizePerTrack = ChkNormalize.IsChecked == true,
             Driver = SelectedDriver(),
@@ -148,6 +149,25 @@ public partial class AnalyzeRaceWindow : Window
             "Distance" => FatigueDriver.Distance,
             _ => FatigueDriver.CumAscent,
         };
+
+    private SportType SelectedSport() =>
+        ((CmbSport.SelectedItem as ComboBoxItem)?.Tag as string) switch
+        {
+            "CyclingRoad" => SportType.CyclingRoad,
+            "CyclingXC" => SportType.CyclingXC,
+            _ => SportType.Running,
+        };
+
+    private void CmbSport_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (CmbDriver is null) return;  // called before InitializeComponent completes
+        // For cycling, distance is a more meaningful fatigue driver than cumulative ascent.
+        var sport = SelectedSport();
+        if (sport != SportType.Running)
+            CmbDriver.SelectedIndex = 2;   // Distance
+        else
+            CmbDriver.SelectedIndex = 0;   // CumAscent
+    }
 
     private void Export_Click(object sender, RoutedEventArgs e)
     {

@@ -51,11 +51,24 @@ public class AthleteProfile
     // --- endurance anchor (Riegel phase) ---
     public RecentRace? RecentRace { get; set; }
 
+    // --- cycling ---
+    /// <summary>Functional threshold power (W) — highest power sustainable for ~1 hour. Primary anchor for
+    /// physics-based cycling predictions (Option B).</summary>
+    public double? FtpW { get; set; }
+    /// <summary>Critical power (W) from a CP test. If absent, the predictor uses 95% of FTP as a proxy.</summary>
+    public double? CriticalPowerW { get; set; }
+    /// <summary>Anaerobic work capacity W' (J). Depleted above CP, recovers below. Typical range 15 000–25 000 J.
+    /// Defaults to 20 000 J when absent.</summary>
+    public double? WPrimeJ { get; set; }
+    /// <summary>Bike mass (kg). Added to body mass for physics predictions. Road bike ≈8–10 kg, XC ≈11–14 kg.</summary>
+    public double? BikeKg { get; set; }
+
     [JsonIgnore]
     public bool IsEmpty =>
         MassKg is null && Age is null && Sex == Sex.Unspecified &&
         HrMaxBpm is null && RestingHrBpm is null && LthrBpm is null &&
-        PackKg is null && !UsePoles && (RecentRace is null || !RecentRace.IsValid);
+        PackKg is null && !UsePoles && (RecentRace is null || !RecentRace.IsValid) &&
+        FtpW is null && CriticalPowerW is null && WPrimeJ is null && BikeKg is null;
 
     /// <summary>Best available HRmax: the entered value, else Tanaka age estimate (208 − 0.7·age), else null.</summary>
     [JsonIgnore]
@@ -79,11 +92,20 @@ public class AthleteProfile
     [JsonIgnore]
     public double? TotalMassKg => MassKg is double m ? m + (PackKg ?? 0) : null;
 
+    /// <summary>Effective critical power: user-supplied CP, or 95% of FTP (standard physiological proxy).</summary>
+    [JsonIgnore]
+    public double? EffectiveCpW => CriticalPowerW ?? (FtpW is double f ? f * 0.95 : null);
+
+    /// <summary>Total cycling system mass (rider + bike), kg. Falls back to a 9 kg bike estimate when not supplied.</summary>
+    [JsonIgnore]
+    public double? TotalCyclingMassKg => MassKg is double m ? m + (BikeKg ?? 9.0) : null;
+
     public AthleteProfile Clone() => new()
     {
         MassKg = MassKg, Age = Age, Sex = Sex,
         HrMaxBpm = HrMaxBpm, RestingHrBpm = RestingHrBpm, LthrBpm = LthrBpm,
         PackKg = PackKg, UsePoles = UsePoles,
         RecentRace = RecentRace?.Clone(),
+        FtpW = FtpW, CriticalPowerW = CriticalPowerW, WPrimeJ = WPrimeJ, BikeKg = BikeKg,
     };
 }

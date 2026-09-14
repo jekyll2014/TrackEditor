@@ -325,7 +325,11 @@
     <!-- Analyze race window -->
     <sys:String x:Key="AnalyzeRaceTitle">Анализ скоростных способностей</sys:String>
     <sys:String x:Key="DescAnalyzeRace">Изучение зависимости скорости атлета от рельефа по одному или нескольким записанным трекам. Можно использовать только треки с временными метками; поставьте галочки напротив нужных.</sys:String>
-    <sys:String x:Key="LblRunnerName">Имя бегуна:</sys:String>
+    <sys:String x:Key="LblSport">Вид спорта:</sys:String>
+    <sys:String x:Key="SportRunning">Бег</sys:String>
+    <sys:String x:Key="SportRoadBike">Шоссейный велосипед</sys:String>
+    <sys:String x:Key="SportXCBike">Горный велосипед (XC)</sys:String>
+    <sys:String x:Key="LblRunnerName">Имя спортсмена:</sys:String>
     <sys:String x:Key="ChkUseHr">Использовать ЧСС для калибровки усталости (если доступно)</sys:String>
     <sys:String x:Key="LblFatigueDriver">Усталость определяется по:</sys:String>
     <sys:String x:Key="FatigueAscent">Суммарный набор высоты</sys:String>
@@ -358,6 +362,12 @@
     <sys:String x:Key="ChkCalibrate">Калибровать темп по предыдущему забегу (Riegel)</sys:String>
     <sys:String x:Key="ChkCap">Ограничить темп устойчивым максимумом</sys:String>
     <sys:String x:Key="ChkLoad">Учесть рюкзак / палки при подъёме</sys:String>
+    <sys:String x:Key="CyclingPhysicsExpander">Физика велосипеда (для физической модели)</sys:String>
+    <sys:String x:Key="LblFtpW">FTP (Вт):</sys:String>
+    <sys:String x:Key="LblBikeKg">Велосипед (кг):</sys:String>
+    <sys:String x:Key="LblCdA">CdA (м²):</sys:String>
+    <sys:String x:Key="LblCrr">Crr:</sys:String>
+    <sys:String x:Key="ChkUsePhysics">Физическая модель (Martin 1998, мощность + W′/CP усталость)</sys:String>
     <sys:String x:Key="ProfileExpander">Профиль атлета (сохраняется на следующий раз)</sys:String>
     <sys:String x:Key="LblMassKg">Масса (кг)</sys:String>
     <sys:String x:Key="LblAge">Возраст</sys:String>
@@ -456,6 +466,8 @@
     <sys:String x:Key="RpLoad">Нагрузка:</sys:String>
     <sys:String x:Key="RpPolesOnClimbs">палки на подъёмах</sys:String>
     <sys:String x:Key="RpAltitudeDerate">Высота: замедление выше опорной высоты</sys:String>
+    <sys:String x:Key="RaPhysicsSpec">Физика:</sys:String>
+    <sys:String x:Key="RpPowerTarget">Целевая мощность:</sys:String>
     <sys:String x:Key="RpWaypointETAs">Контрольные пункты:</sys:String>
     <sys:String x:Key="RpHintPredicted">Прогноз: {0:F1} км за {1}.</sys:String>
 

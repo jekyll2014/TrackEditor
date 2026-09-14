@@ -39,6 +39,11 @@ public class PredictOptions
     public double EleWindowM { get; set; } = TrackResampler.DefaultEleWindowM;
     /// <summary>Speed can never fall below this (m/s) — guards against divide-by-tiny on extreme grades.</summary>
     public double MinSpeedMps { get; set; } = 0.3;
+    /// <summary>Route to the physics-based cycling predictor (Option B, Martin 1998 + W'/CP model).
+    /// Requires <see cref="AthleteProfile.EffectiveCpW"/> and a cycling-sport model. Ignored for running.</summary>
+    public bool UsePhysics { get; set; } = false;
+    /// <summary>Override physics spec (CdA, Crr) from the UI; falls back to model.Cycling, then sport defaults.</summary>
+    public CyclingSpec? PhysicsSpec { get; set; }
 
     /// <summary>Speed multiplier for <see cref="Effort"/> (1.0 = the model's fitted intensity).</summary>
     public double EffortScale => ScaleFor(Effort);
@@ -74,6 +79,11 @@ public static class RacePredictor
     public static PredictResult Predict(Track target, RaceModel model, PredictOptions? options = null)
     {
         var opt = options ?? new PredictOptions();
+
+        // Route to the physics predictor for cycling when explicitly requested and FTP/CP is available.
+        if (opt.UsePhysics && model.Sport != SportType.Running && opt.Profile?.EffectiveCpW is not null)
+            return CyclingPhysicsPredictor.Predict(target, model, opt);
+
         var pts = target.Points;
         if (pts.Count < 2) throw new InvalidOperationException("Target track needs at least two points.");
 

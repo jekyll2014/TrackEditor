@@ -3,8 +3,30 @@ using System.Text.Json.Serialization;
 
 namespace TrackEditor.Core.Services.RaceAnalysis;
 
+public enum SportType { Running, CyclingRoad, CyclingXC }
 public enum FatigueDriver { CumAscent, Elapsed, Distance }
 public enum FatigueShape { Linear, Exp }
+
+/// <summary>
+/// Physical parameters for cycling prediction (Option B, Martin et al. 1998). Stored in the model so a fitted
+/// model carries its defaults; the Apply window can override them per-prediction.
+/// Road hoods: CdA≈0.32, Crr≈0.004. XC/MTB: CdA≈0.45, Crr≈0.012.
+/// </summary>
+public class CyclingSpec
+{
+    /// <summary>Aerodynamic drag area CdA (m²). Road hoods ≈0.32, drops ≈0.26, TT ≈0.21, XC ≈0.45.</summary>
+    public double CdA { get; set; } = 0.32;
+    /// <summary>Rolling resistance coefficient. Asphalt ≈0.004, gravel ≈0.008, XC trail ≈0.012.</summary>
+    public double Crr { get; set; } = 0.004;
+    /// <summary>Drivetrain mechanical efficiency (0..1). Clean chain ≈0.97, XC drivetrain ≈0.95.</summary>
+    public double DrivetrainEff { get; set; } = 0.97;
+    /// <summary>Air density (kg/m³). Standard sea-level 15°C = 1.225; decreases ~1.1%/100 m.
+    /// The physics predictor further corrects per segment using a barometric approximation.</summary>
+    public double AirDensityKgM3 { get; set; } = 1.225;
+
+    public static CyclingSpec RoadDefault() => new() { CdA = 0.32, Crr = 0.004, DrivetrainEff = 0.97 };
+    public static CyclingSpec XCDefault() => new() { CdA = 0.45, Crr = 0.012, DrivetrainEff = 0.95 };
+}
 
 /// <summary>
 /// A portable, human-readable description of one athlete's speed-vs-terrain behaviour, fitted from recorded
@@ -15,12 +37,16 @@ public enum FatigueShape { Linear, Exp }
 public class RaceModel
 {
     public int Version { get; set; } = 1;
+    public SportType Sport { get; set; } = SportType.Running;
     public RaceModelMeta Meta { get; set; } = new();
     public BaseCurve BaseCurve { get; set; } = new();
     public FatigueSpec Fatigue { get; set; } = new();
     public TurnSpec Turn { get; set; } = new();
     public AltitudeSpec Altitude { get; set; } = new();
     public AthleteBaseline AthleteBaseline { get; set; } = new();
+    /// <summary>Physics parameters for cycling predictions (Option B). Null for running models.
+    /// Set to sport defaults when fitted from cycling tracks; editable per-prediction in the UI.</summary>
+    public CyclingSpec? Cycling { get; set; }
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {

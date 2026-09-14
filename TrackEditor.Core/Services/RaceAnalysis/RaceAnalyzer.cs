@@ -7,8 +7,9 @@ namespace TrackEditor.Core.Services.RaceAnalysis;
 public class RaceAnalysisOptions
 {
     public bool UseHr { get; set; } = true;
-    /// <summary>Optional runner name recorded in the model's metadata to identify whose ability it describes.</summary>
+    /// <summary>Optional athlete name recorded in the model's metadata to identify whose ability it describes.</summary>
     public string? AthleteName { get; set; }
+    public SportType Sport { get; set; } = SportType.Running;
     public FatigueDriver Driver { get; set; } = FatigueDriver.CumAscent;
     public bool NormalizePerTrack { get; set; } = true;
     public double SpacingM { get; set; } = TrackResampler.DefaultSpacingM;
@@ -160,6 +161,11 @@ public static class RaceAnalyzer
         double scale = opt.NormalizePerTrack ? athleteFlat : 1.0;
         var model = new RaceModel
         {
+            Sport = opt.Sport,
+            // Cycling models carry physics defaults that the user can override per-prediction in the UI.
+            Cycling = opt.Sport == SportType.CyclingXC ? CyclingSpec.XCDefault()
+                    : opt.Sport == SportType.CyclingRoad ? CyclingSpec.RoadDefault()
+                    : null,
             BaseCurve = new BaseCurve
             {
                 GradeMinDeg = opt.GradeMinDeg,
@@ -168,7 +174,7 @@ public static class RaceAnalyzer
             },
             Fatigue = fatigue,
             Turn = turnSpec,
-            Altitude = new AltitudeSpec { DeratePerKm = 0 },   // neutral in v1
+            Altitude = new AltitudeSpec { DeratePerKm = 0 },
             AthleteBaseline = new AthleteBaseline { FlatSpeedMps = athleteFlat, RefHr = refHr },
             Meta = new RaceModelMeta
             {

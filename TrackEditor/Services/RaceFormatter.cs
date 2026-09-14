@@ -14,6 +14,13 @@ public static class RaceFormatter
             return Loc.Get("RaNoSegments");
 
         var sb = new StringBuilder();
+        if (m.Sport != SportType.Running)
+        {
+            string sportName = m.Sport == SportType.CyclingXC ? "XC / MTB" : "Road bike";
+            sb.AppendLine($"{Loc.Get("LblSport")} {sportName}");
+            if (m.Cycling is CyclingSpec cs)
+                sb.AppendLine($"{Loc.Get("RaPhysicsSpec")} CdA {cs.CdA:F2} m²  Crr {cs.Crr:F4}  η {cs.DrivetrainEff:P0}");
+        }
         sb.AppendLine($"{Loc.Get("RaTracksFitted")} {m.Meta.SourceTracks.Count} ({string.Join(", ", m.Meta.SourceTracks)})");
         sb.AppendLine($"{Loc.Get("RaSegmentsUsed")} {m.Meta.SegmentsUsed}");
         sb.AppendLine($"{Loc.Get("RaSignals")} {string.Join(", ", m.Meta.SignalsUsed)}");
@@ -58,6 +65,16 @@ public static class RaceFormatter
             else
                 sb.AppendLine($"{Loc.Get("RpSustainableCap")} ×{scale:F2} {Loc.Get("RpCeilingFromRace")}");
             sb.AppendLine($"{Loc.Get("RpRiegel")} {EnduranceCalibration.RiegelTime(recent, r.DistanceKm):hh\\:mm\\:ss}");
+        }
+        if (opt.UsePhysics && opt.Profile?.EffectiveCpW is double cpW)
+        {
+            double targetW = cpW * opt.EffortScale;
+            string specDesc = opt.PhysicsSpec is CyclingSpec ps
+                ? $"CdA {ps.CdA:F2} Crr {ps.Crr:F4}"
+                : model.Cycling is CyclingSpec ms ? $"CdA {ms.CdA:F2} Crr {ms.Crr:F4}" : "default spec";
+            sb.AppendLine($"{Loc.Get("RpPowerTarget")} {targetW:F0} W (CP {cpW:F0} W)  {specDesc}");
+            if (opt.Profile.WPrimeJ is double wp)
+                sb.AppendLine($"W′ = {wp / 1000.0:F1} kJ");
         }
         if (opt.UseLoadModel && opt.Profile?.TotalMassKg is double tmass && opt.Profile.PackKg is double pack && pack > 0)
             sb.AppendLine($"{Loc.Get("RpLoad")} +{pack:F1} kg / {tmass:F0} kg{(opt.Profile.UsePoles ? $", {Loc.Get("RpPolesOnClimbs")}" : "")}");
