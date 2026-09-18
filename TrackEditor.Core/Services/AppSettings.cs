@@ -34,6 +34,8 @@ public class AppSettings
     public string? SrtmFolder { get; set; }
     public bool SrtmEnabled { get; set; } = true;
     public bool SrtmAutoDownload { get; set; } = true;
+    /// <summary>Maximum number of SRTM 1°×1° tiles held in the web 3D view's in-memory LRU cache.</summary>
+    public int SrtmCacheTiles { get; set; } = 20;
 
     public bool OnlineEnabled { get; set; }
     public OnlineElevationProvider OnlineProvider { get; set; } = OnlineElevationProvider.OpenTopoData;
