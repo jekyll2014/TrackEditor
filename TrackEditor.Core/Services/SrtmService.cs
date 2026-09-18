@@ -17,6 +17,7 @@ public class SrtmService
     public bool AutoDownload { get; set; }
 
     private readonly Dictionary<(int Lat, int Lon), (short[] Data, int Size)?> _cache = new();
+    private readonly object _cacheLock = new();
 
     public bool IsAvailable => !string.IsNullOrEmpty(Folder) && Directory.Exists(Folder);
 
@@ -50,7 +51,7 @@ public class SrtmService
             progress?.Report($"Downloading SRTM tile {name}…");
             if (await TryDownloadTileAsync(lat, lon, Path.Combine(Folder, name), ct))
             {
-                _cache.Remove((lat, lon)); // invalidate any cached "missing" result
+                lock (_cacheLock) { _cache.Remove((lat, lon)); } // invalidate any cached "missing" result
                 downloaded++;
             }
         }
@@ -114,7 +115,10 @@ public class SrtmService
     private (short[] Data, int Size)? GetTile(int lat, int lon)
     {
         var key = (lat, lon);
-        if (_cache.TryGetValue(key, out var cached)) return cached;
+        lock (_cacheLock)
+        {
+            if (_cache.TryGetValue(key, out var cached)) return cached;
+        }
 
         string name = TileName(lat, lon);
         (short[], int)? result = null;
@@ -136,7 +140,7 @@ public class SrtmService
         }
         catch { /* unreadable tile -> treat as missing */ }
 
-        _cache[key] = result;
+        lock (_cacheLock) { _cache[key] = result; }
         return result;
     }
 

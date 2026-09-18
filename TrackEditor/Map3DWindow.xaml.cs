@@ -72,6 +72,17 @@ public partial class Map3DWindow : Window
     private List<Patch> _patches = new();
     private int _lastBlocked;           // tiles skipped (fetch/decode failed) in the last drape build
 
+    // ── streaming tile cache ─────────────────────────────────────────────────
+    private readonly record struct TileKey(int X, int Y, int Zoom);
+    private sealed class StreamedTile { public required Patch Patch; public long LastUsed; }
+    private readonly Dictionary<TileKey, StreamedTile> _streamCache = new();
+    private HashSet<TileKey> _initialKeys = new();
+    private int _maxStreamTiles;
+    private System.Windows.Threading.DispatcherTimer? _streamTimer;
+    private CancellationTokenSource? _streamCts;
+    private bool _streamReady;
+    private const int StreamDebounceMs = 500;
+
     // Always-on-top flag billboards (waypoints + optional track points), drawn in the overlay viewport.
     private BillboardTextGroupVisual3D? _waypointFlags;
     private BillboardTextGroupVisual3D? _pointFlags;
@@ -135,6 +146,11 @@ public partial class Map3DWindow : Window
         _sunTimer.Tick += async (_, _) => { _sunTimer!.Stop(); await StartShadowRebakeAsync(); };
         InitSun();
 
+        _maxStreamTiles = ComputeMaxStreamTiles();
+        _streamTimer = new System.Windows.Threading.DispatcherTimer
+            { Interval = TimeSpan.FromMilliseconds(StreamDebounceMs) };
+        _streamTimer.Tick += async (_, _) => { _streamTimer!.Stop(); await DoStreamAsync(); };
+
         // Google-Earth-style mouse mapping: left drag pans (Helix), right drag orbits/tilts and the
         // wheel zooms (both handled here so the behaviour is identical to the on-screen buttons).
         Viewport.CameraMode = CameraMode.Inspect;
@@ -176,6 +192,9 @@ public partial class Map3DWindow : Window
 
             StatusText.Text = StatusLine(withEle);
             _detailReady = true;
+            _initialKeys = ComputeExtentKeys(_zoom);
+            _streamReady = true;
+            ScheduleStream(); // load tiles adjacent to the initial extent right away
 
             // If the sun was switched on while the terrain was still building, bake its shadows now.
             if (ChkSun.IsChecked == true) await StartShadowRebakeAsync();
@@ -243,6 +262,19 @@ public partial class Map3DWindow : Window
         _minEle = min;
         _maxEle = max;
         return found;
+    }
+
+    /// <summary>
+    /// Elevation (m) at any Mercator point: uses the pre-sampled grid within the original extent
+    /// (fast), and queries SrtmService directly for points outside it (thread-safe after lock fix).
+    /// Falls back to the extent minimum when no SRTM data exists for that location.
+    /// </summary>
+    private double SampleEleAny(double mx, double my)
+    {
+        if (mx >= _extent.MinX && mx <= _extent.MaxX && my >= _extent.MinY && my <= _extent.MaxY)
+            return SampleEle(mx, my);
+        var (lon, lat) = SphericalMercator.ToLonLat(mx, my);
+        return _srtm.GetElevation(lat, lon) ?? SampleEle(mx, my);
     }
 
     /// <summary>Bilinear terrain elevation (m) at a Mercator point, from the Grid×Grid sample grid.</summary>
@@ -364,22 +396,11 @@ public partial class Map3DWindow : Window
                 int wx = ((tx % worldTiles) + worldTiles) % worldTiles; // wrap across the antimeridian
                 progress?.Report($"Rendering tiles… {done}/{total}");
 
-                byte[]? bytes;
-                try
-                {
-                    var info = new TileInfo { Index = new TileIndex(wx, ty, zoom) };
-                    if (_tiles is BruTile.IHttpTileSource httpTiles)
-                        bytes = await httpTiles.GetTileAsync(MapExporter.HttpClient, info, ct);
-                    else if (_tiles is BruTile.ILocalTileSource localTiles)
-                        bytes = await localTiles.GetTileAsync(info);
-                    else
-                        bytes = null;
-                }
-                catch { bytes = null; }
+                byte[]? bytes = await FetchTileBytesAsync(wx, ty, zoom, ct);
                 if (bytes is null) { blocked++; continue; }
 
                 int ftx = tx, fty = ty;
-                PatchData? data = await Task.Run(() => BuildPatchData(bytes, ftx, fty, span, tracks));
+                PatchData? data = await Task.Run(() => BuildPatchData(bytes, ftx, fty, span, tracks, clipToExtent: false));
                 if (data is null) { blocked++; continue; }
                 patches.Add(BuildPatchModel(data));
             }
@@ -392,7 +413,7 @@ public partial class Map3DWindow : Window
     /// Builds the geometry + baked texture for one tile, clipped to the view extent. Runs off the UI
     /// thread: it produces raw vertex arrays and a frozen material only (no live Media3D objects).
     /// </summary>
-    private PatchData? BuildPatchData(byte[] bytes, int tx, int ty, double span, List<DrawTrack> tracks)
+    private PatchData? BuildPatchData(byte[] bytes, int tx, int ty, double span, List<DrawTrack> tracks, bool clipToExtent = true)
     {
         using var tile = SKBitmap.Decode(bytes);
         if (tile is null) return null;
@@ -400,10 +421,12 @@ public partial class Map3DWindow : Window
         double tileMinX = tx * span - Origin, tileMaxX = (tx + 1) * span - Origin;
         double tileMaxY = Origin - ty * span, tileMinY = Origin - (ty + 1) * span;
 
-        // Clip the patch to the view extent so edge tiles don't hang past the terrain.
-        double pMinX = Math.Max(tileMinX, _extent.MinX), pMaxX = Math.Min(tileMaxX, _extent.MaxX);
-        double pMinY = Math.Max(tileMinY, _extent.MinY), pMaxY = Math.Min(tileMaxY, _extent.MaxY);
-        if (pMaxX <= pMinX || pMaxY <= pMinY) return null; // tile outside the extent
+        // Clip the patch to the view extent for initial tiles; streamed tiles use the full tile footprint.
+        double pMinX = clipToExtent ? Math.Max(tileMinX, _extent.MinX) : tileMinX;
+        double pMaxX = clipToExtent ? Math.Min(tileMaxX, _extent.MaxX) : tileMaxX;
+        double pMinY = clipToExtent ? Math.Max(tileMinY, _extent.MinY) : tileMinY;
+        double pMaxY = clipToExtent ? Math.Min(tileMaxY, _extent.MaxY) : tileMaxY;
+        if (pMaxX <= pMinX || pMaxY <= pMinY) return null;
 
         // Subdivide the patch to roughly match the elevation grid so the drape follows the terrain.
         double cellX = (_extent.MaxX - _extent.MinX) / (Grid - 1), cellY = (_extent.MaxY - _extent.MinY) / (Grid - 1);
@@ -423,7 +446,7 @@ public partial class Map3DWindow : Window
                 int n = j * nx + i;
                 xs[n] = (mx - _cx) * _k;   // east  → +X
                 ys[n] = (my - _cy) * _k;   // north → +Y
-                bz[n] = SampleEle(mx, my); // elevation before exaggeration
+                bz[n] = clipToExtent ? SampleEle(mx, my) : SampleEleAny(mx, my);
                 // Tile image row 0 is north (top): U across the tile, V flips so north = 0.
                 uv[n] = new System.Windows.Point((mx - tileMinX) / span, (tileMaxY - my) / span);
             }
@@ -742,6 +765,8 @@ public partial class Map3DWindow : Window
         if (ExagLabel is not null) ExagLabel.Text = $"{_exaggeration:0.0}×";
         foreach (var p in _patches)
             p.Mesh.Positions = BuildPositions(p.Xs, p.Ys, p.BaseZ, _exaggeration);
+        foreach (var st in _streamCache.Values)
+            st.Patch.Mesh.Positions = BuildPositions(st.Patch.Xs, st.Patch.Ys, st.Patch.BaseZ, _exaggeration);
         BuildFlags(); // flag heights follow the exaggerated terrain
         if (ChkSun?.IsChecked == true) ScheduleShadowRebake(); // shadows follow the exaggerated relief too
     }
@@ -761,6 +786,7 @@ public partial class Map3DWindow : Window
         // Report where the camera stands so the 2D map can draw the viewer icon.
         var (lon, lat) = SphericalMercator.ToLonLat(_cx + Cam.Position.X / _k, _cy + Cam.Position.Y / _k);
         ViewpointChanged?.Invoke(lat, lon, heading);
+        if (_streamReady) ScheduleStream();
     }
 
     // ======================= basemap detail (tile zoom) =======================
@@ -846,8 +872,13 @@ public partial class Map3DWindow : Window
             _terrain.Children.Clear();
             _patches = built;
             foreach (var p in _patches) _terrain.Children.Add(p.Model);
+            // Streamed tiles have stale textures after any drape rebuild (zoom or shadow changed).
+            // Clear them; StreamTilesAsync will reload at the new zoom once the camera settles.
+            _streamCache.Clear();
+            if (zoom != _zoom) _initialKeys = ComputeExtentKeys(zoom);
             _zoom = zoom;
             _shadowApplied = _shadowGrid is not null;
+            ScheduleStream();
 
             string blocked = _lastBlocked > 0 ? $"   ·   {_lastBlocked} tile(s) skipped" : "";
             string shade = _shadowApplied ? "   ·   ☀ shadows" : "";
@@ -1009,13 +1040,267 @@ public partial class Map3DWindow : Window
         return group;
     }
 
-    /// <summary>The 3D position of a lat/lon on the exaggerated terrain, or null when it lies outside the viewed
-    /// extent (so off-screen tracks don't scatter flags at the map edges).</summary>
+    /// <summary>The 3D position of a lat/lon on the exaggerated terrain. Uses real SRTM elevation
+    /// anywhere — not clipped to the original extent.</summary>
     private Point3D? FlagPosition(double lat, double lon)
     {
         var (mx, my) = SphericalMercator.FromLonLat(lon, lat);
-        if (mx < _extent.MinX || mx > _extent.MaxX || my < _extent.MinY || my > _extent.MaxY) return null;
-        return new Point3D((mx - _cx) * _k, (my - _cy) * _k, SampleEle(mx, my) * _exaggeration);
+        return new Point3D((mx - _cx) * _k, (my - _cy) * _k, SampleEleAny(mx, my) * _exaggeration);
+    }
+
+    // ======================= streaming tile cache =======================
+
+    private static int ComputeMaxStreamTiles()
+    {
+        long avail = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
+        // Each tile ≈ 600 KB in WPF (256×256 BGRA texture decompressed + mesh geometry + CLR overhead).
+        int byMem = (int)(avail / (600 * 1024L));
+        return Math.Clamp(byMem, 100, 2000);
+    }
+
+    /// <summary>Returns the set of tile keys that cover the original view extent at the given zoom.</summary>
+    private HashSet<TileKey> ComputeExtentKeys(int zoom)
+    {
+        double res = MapExporter.ResolutionAtZoom(zoom), span = 256 * res;
+        int tx0 = (int)Math.Floor((_extent.MinX + Origin) / span);
+        int tx1 = (int)Math.Floor((_extent.MaxX + Origin) / span);
+        int ty0 = (int)Math.Floor((Origin - _extent.MaxY) / span);
+        int ty1 = (int)Math.Floor((Origin - _extent.MinY) / span);
+        int worldTiles = 1 << zoom;
+        var keys = new HashSet<TileKey>();
+        for (int ty = ty0; ty <= ty1; ty++)
+            for (int tx = tx0; tx <= tx1; tx++)
+            {
+                if (ty < 0 || ty >= worldTiles) continue;
+                int wx = ((tx % worldTiles) + worldTiles) % worldTiles;
+                keys.Add(new TileKey(wx, ty, zoom));
+            }
+        return keys;
+    }
+
+    private void ScheduleStream() { _streamTimer?.Stop(); _streamTimer?.Start(); }
+
+    private async Task DoStreamAsync()
+    {
+        _streamCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _streamCts = cts;
+        try { await StreamTilesAsync(cts.Token); }
+        catch (OperationCanceledException) { }
+        finally
+        {
+            if (ReferenceEquals(_streamCts, cts)) _streamCts = null;
+            cts.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Loads basemap tiles visible from the current camera position beyond the original extent, and
+    /// evicts tiles that are no longer in view. Called once the camera settles after panning.
+    /// Terrain outside the original extent uses the nearest-edge SRTM elevation (flat when no data).
+    /// </summary>
+    private async Task StreamTilesAsync(CancellationToken ct)
+    {
+        double span = 256 * MapExporter.ResolutionAtZoom(_zoom);
+        int worldTiles = 1 << _zoom;
+
+        // ── frustum footprint on ground plane → tile bounds ───────────────────
+        var (tx0, tx1, ty0, ty1) = ComputeFrustumBounds(span);
+
+        // Camera ground position in Mercator (for distance-priority sort).
+        double camMx = _cx + Cam.Position.X / _k;
+        double camMy = _cy + Cam.Position.Y / _k;
+
+        // ── build wanted set (frustum tiles, excluding initial-extent tiles) ──
+        var wanted = new HashSet<TileKey>();
+        for (int ty = ty0; ty <= ty1; ty++)
+            for (int tx = tx0; tx <= tx1; tx++)
+            {
+                if (ty < 0 || ty >= worldTiles) continue;
+                int wx = ((tx % worldTiles) + worldTiles) % worldTiles;
+                var k = new TileKey(wx, ty, _zoom);
+                if (!_initialKeys.Contains(k)) wanted.Add(k);
+            }
+
+        // ── evict tiles that left the wanted set ─────────────────────────────
+        foreach (var key in _streamCache.Keys.ToList())
+        {
+            if (!wanted.Contains(key))
+            {
+                _terrain.Children.Remove(_streamCache[key].Patch.Model);
+                _streamCache.Remove(key);
+            }
+        }
+
+        // ── LRU eviction when over the hardware-derived cap ──────────────────
+        if (_streamCache.Count > _maxStreamTiles)
+        {
+            foreach (var (key, st) in _streamCache
+                .OrderBy(kv => kv.Value.LastUsed)
+                .Take(_streamCache.Count - _maxStreamTiles)
+                .ToList())
+            {
+                _terrain.Children.Remove(st.Patch.Model);
+                _streamCache.Remove(key);
+            }
+        }
+
+        // ── ensure SRTM elevation data for the frustum tile region ────────────
+        double srtmMinX = tx0 * span - Origin;
+        double srtmMaxX = (tx1 + 1) * span - Origin;
+        double srtmMaxY = Origin - ty0 * span;
+        double srtmMinY = Origin - (ty1 + 1) * span;
+        await EnsureSrtmForRegionAsync(srtmMinX, srtmMinY, srtmMaxX, srtmMaxY, ct);
+
+        // ── load missing tiles, closest to camera ground position first ───────
+        var tracks = BuildDrawTracks();
+        var sortedWanted = wanted
+            .OrderBy(k =>
+            {
+                double tcx = (k.X + 0.5) * span - Origin - camMx;
+                double tcy = Origin - (k.Y + 0.5) * span - camMy;
+                return tcx * tcx + tcy * tcy;
+            })
+            .ToList();
+        foreach (var key in sortedWanted)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (_streamCache.TryGetValue(key, out var existing)) { existing.LastUsed = Environment.TickCount64; continue; }
+            if (_streamCache.Count >= _maxStreamTiles) break;
+
+            byte[]? bytes = await FetchTileBytesAsync(key.X, key.Y, key.Zoom, ct);
+            if (bytes is null) continue;
+
+            double tileSpan = span; // capture for Task.Run closure
+            PatchData? data = await Task.Run(
+                () => BuildPatchData(bytes, key.X, key.Y, tileSpan, tracks, clipToExtent: false), ct);
+            if (data is null) continue;
+
+            var patch = BuildPatchModel(data);
+            _streamCache[key] = new StreamedTile { Patch = patch, LastUsed = Environment.TickCount64 };
+            _terrain.Children.Add(patch.Model);
+        }
+
+        // Rebuild flags: now covers all track points, including those outside the original extent.
+        BuildFlags();
+
+        if (_streamCache.Count > 0)
+        {
+            int total = _patches.Count + _streamCache.Count;
+            StatusText.Text = $"Terrain {_minEle:F0}–{_maxEle:F0} m   ·   z{_zoom} · {total} tiles" +
+                              $"  ({_streamCache.Count} streamed · cap {_maxStreamTiles})";
+        }
+    }
+
+    /// <summary>
+    /// Projects the camera view frustum onto the ground plane and returns the tile-index bounding
+    /// box of the covered area. Capped at sqrt(_maxStreamTiles) tiles from the camera in each axis.
+    /// </summary>
+    private (int tx0, int tx1, int ty0, int ty1) ComputeFrustumBounds(double span)
+    {
+        double px = Cam.Position.X, py = Cam.Position.Y, pz = Cam.Position.Z;
+        double camMx = _cx + px / _k, camMy = _cy + py / _k;
+
+        var ld = Cam.LookDirection;
+        double ldLen = ld.Length;
+        if (ldLen < 1e-9) return FallbackFrustumBounds(span, camMx, camMy);
+        double ldx = ld.X / ldLen, ldy = ld.Y / ldLen, ldz = ld.Z / ldLen;
+
+        // Horizontal right = perpendicular to look's ground projection, normalised.
+        double horiz = Math.Sqrt(ldx * ldx + ldy * ldy);
+        double rx, ry;
+        if (horiz < 1e-9) { rx = 1; ry = 0; }       // straight up/down: arbitrary right
+        else { rx = ldy / horiz; ry = -ldx / horiz; }
+
+        // True screen-up = cross(right, look_norm). Already unit-length when look is normalised.
+        // up = (ry*ldz, -rx*ldz, rx*ldy - ry*ldx)
+        double ux = ry * ldz, uy = -rx * ldz, uz = rx * ldy - ry * ldx;
+
+        // WPF PerspectiveCamera.FieldOfView = horizontal FOV in degrees.
+        double tanH = Math.Tan(Cam.FieldOfView * Math.PI / 360.0); // half horizontal angle
+        double aspect = (Viewport.ActualWidth > 1 && Viewport.ActualHeight > 1)
+            ? Viewport.ActualWidth / Viewport.ActualHeight : 16.0 / 9.0;
+        double tanV = tanH / aspect; // half vertical angle
+
+        // Max view distance in scene ground-metres (used to cap near-horizontal rays).
+        int halfMax = Math.Max(3, (int)Math.Sqrt(_maxStreamTiles));
+        double maxDist = halfMax * span * _k; // Mercator span → ground metres
+
+        double groundZ = _minEle * _exaggeration; // terrain floor in scene metres
+
+        // 4 frustum corner rays + look-centre ray, all normalised.
+        (double x, double y, double z)[] dirs =
+        [
+            Norm3(ldx,                   ldy,                   ldz          ),  // centre
+            Norm3(ldx + tanH*rx + tanV*ux, ldy + tanH*ry + tanV*uy, ldz + tanV*uz), // top-right
+            Norm3(ldx - tanH*rx + tanV*ux, ldy - tanH*ry + tanV*uy, ldz + tanV*uz), // top-left
+            Norm3(ldx + tanH*rx - tanV*ux, ldy + tanH*ry - tanV*uy, ldz - tanV*uz), // bottom-right
+            Norm3(ldx - tanH*rx - tanV*ux, ldy - tanH*ry - tanV*uy, ldz - tanV*uz), // bottom-left
+        ];
+
+        // Ground footprint: intersect each ray with z = groundZ; cap horizontal / upward rays.
+        var groundPts = new List<(double mx, double my)> { (camMx, camMy) }; // camera ground-projection always included
+        foreach (var (dx, dy, dz) in dirs)
+        {
+            double t = dz < -1e-6 ? Math.Min((groundZ - pz) / dz, maxDist) : maxDist;
+            if (t < 0) t = maxDist;
+            groundPts.Add((_cx + (px + t * dx) / _k, _cy + (py + t * dy) / _k));
+        }
+
+        double minMx = groundPts.Min(p => p.mx), maxMx = groundPts.Max(p => p.mx);
+        double minMy = groundPts.Min(p => p.my), maxMy = groundPts.Max(p => p.my);
+
+        // Tile indices, +1 tile margin, capped at halfMax from the camera tile.
+        int camTx = (int)Math.Floor((camMx + Origin) / span);
+        int camTy = (int)Math.Floor((Origin - camMy) / span);
+        int tx0 = Math.Max((int)Math.Floor((minMx + Origin) / span) - 1, camTx - halfMax);
+        int tx1 = Math.Min((int)Math.Floor((maxMx + Origin) / span) + 1, camTx + halfMax);
+        int ty0 = Math.Max((int)Math.Floor((Origin - maxMy) / span) - 1, camTy - halfMax);
+        int ty1 = Math.Min((int)Math.Floor((Origin - minMy) / span) + 1, camTy + halfMax);
+        return (tx0, tx1, ty0, ty1);
+    }
+
+    private (int tx0, int tx1, int ty0, int ty1) FallbackFrustumBounds(double span, double camMx, double camMy)
+    {
+        int halfMax = Math.Max(3, (int)Math.Sqrt(_maxStreamTiles));
+        int tx = (int)Math.Floor((camMx + Origin) / span);
+        int ty = (int)Math.Floor((Origin - camMy) / span);
+        return (tx - halfMax, tx + halfMax, ty - halfMax, ty + halfMax);
+    }
+
+    private static (double x, double y, double z) Norm3(double x, double y, double z)
+    {
+        double len = Math.Sqrt(x * x + y * y + z * z);
+        return len < 1e-12 ? (0, 0, 1) : (x / len, y / len, z / len);
+    }
+
+    /// <summary>Ensures SRTM elevation files covering a Mercator bounding box are on disk.
+    /// Propagates cancellation; swallows network/IO errors (falls back to whatever is cached).</summary>
+    private async Task EnsureSrtmForRegionAsync(double minMx, double minMy, double maxMx, double maxMy, CancellationToken ct)
+    {
+        var (lonMin, latMin) = SphericalMercator.ToLonLat(minMx, minMy);
+        var (lonMax, latMax) = SphericalMercator.ToLonLat(maxMx, maxMy);
+        var coords = new List<(double Lat, double Lon)>();
+        for (int la = (int)Math.Floor(latMin); la <= (int)Math.Floor(latMax); la++)
+            for (int lo = (int)Math.Floor(lonMin); lo <= (int)Math.Floor(lonMax); lo++)
+                coords.Add((la + 0.5, lo + 0.5));
+        try { await _srtm.EnsureTilesAsync(coords, ct: ct); }
+        catch (OperationCanceledException) { throw; }
+        catch { /* offline or download failed; use what we have */ }
+    }
+
+    private async Task<byte[]?> FetchTileBytesAsync(int wx, int ty, int zoom, CancellationToken ct)
+    {
+        try
+        {
+            var info = new TileInfo { Index = new TileIndex(wx, ty, zoom) };
+            if (_tiles is BruTile.IHttpTileSource httpTiles)
+                return await httpTiles.GetTileAsync(MapExporter.HttpClient, info, ct);
+            if (_tiles is BruTile.ILocalTileSource localTiles)
+                return await localTiles.GetTileAsync(info);
+            return null;
+        }
+        catch { return null; }
     }
 
     /// <summary>Moves the camera to a lat/lon (used when the viewer icon is dragged on the 2D map).</summary>
