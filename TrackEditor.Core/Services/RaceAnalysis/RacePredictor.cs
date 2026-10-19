@@ -30,6 +30,12 @@ public class PredictOptions
     /// <summary>Rescale the model's overall pace to what the athlete can hold over this route's distance, using
     /// their recent race (Riegel). Needs <see cref="Profile"/>.RecentRace; ignored otherwise.</summary>
     public bool CalibrateToRecentRace { get; set; } = false;
+    /// <summary>Automatically scale the model's pace to match the target distance using Riegel's law, treating
+    /// the model's representative training distance (<see cref="RaceModelMeta.EffectiveRepresentativeKm"/>) as
+    /// the reference. Corrects for the pacing difference between races of different lengths — a long-race model
+    /// applied to a short race predicts too slow without this, because the model's base speeds were recorded at
+    /// long-race effort. Applied before <see cref="CalibrateToRecentRace"/> so the two can compose.</summary>
+    public bool AutoCalibrateByDistance { get; set; } = false;
     /// <summary>Clamp the effort-scaled pace to the endurance-sustainable ceiling from the recent race, so an
     /// aggressive effort can't predict an unsustainable average. Needs <see cref="Profile"/>.RecentRace.</summary>
     public bool CapToSustainable { get; set; } = false;
@@ -100,6 +106,15 @@ public static class RacePredictor
         // predict an unholdable average). Calibration already lands on the ceiling, so the cap only bites AllOut.
         double effortScale = opt.EffortScale;
         double levelScale = effortScale;
+        // Auto distance calibration: Riegel-scale the model's base pace from its training distance to the
+        // target distance. Applied first so RecentRace calibration or the sustainable cap can override/clamp.
+        if (opt.AutoCalibrateByDistance)
+        {
+            double trainKm = model.Meta.EffectiveRepresentativeKm;
+            levelScale *= EnduranceCalibration.DistanceScale(trainKm, targetKm);
+        }
+        // RecentRace calibration replaces the distance-adjusted level (it already bakes in the distance effect
+        // from the actual race result, which is more authoritative than the model's training distance).
         if (opt.CalibrateToRecentRace)
             levelScale = effortScale * EnduranceCalibration.CalibrationScale(model, recent, targetKm);
         if (opt.CapToSustainable && recent is { IsValid: true })

@@ -363,6 +363,7 @@
     <sys:String x:Key="ChkAltitudeDerate">Taikyti aukščio korekciją</sys:String>
     <sys:String x:Key="ChkCalibrate">Kalibruoti tempą pagal nesenią varžybą (Riegel)</sys:String>
     <sys:String x:Key="ChkCap">Apriboti tempą tvariu maksimumu</sys:String>
+    <sys:String x:Key="ChkAutoCalibrate">Keisti tempą pagal modelio treniruočių atstumą (Riegel)</sys:String>
     <sys:String x:Key="ChkLoad">Taikyti kuprinės / lazdų kylimo kaštus</sys:String>
     <sys:String x:Key="CyclingPhysicsExpander">Dviračio fizika (fiziniam modeliui)</sys:String>
     <sys:String x:Key="LblFtpW">FTP (W):</sys:String>
@@ -451,6 +452,8 @@
     <sys:String x:Key="RaHrDrift">ŠSD dreifas:</sys:String>
     <sys:String x:Key="RaTurnPenalty">Posūkių bauda:</sys:String>
     <sys:String x:Key="RaTwistySection">vingiuotas ruožas</sys:String>
+    <sys:String x:Key="RaPowerHeader">Bėgimo galia (Minetti):</sys:String>
+    <sys:String x:Key="RaPowerDeliverable">  Sportininko lubas (P90):</sys:String>
     <sys:String x:Key="RaHintFitted">Pritaikyta pagal {0} taką(-ų), {1} segmentus.</sys:String>
     <sys:String x:Key="RaAnalysisFailed">Analizės klaida: </sys:String>
 
@@ -460,6 +463,7 @@
     <sys:String x:Key="RpDistance">Atstumas:</sys:String>
     <sys:String x:Key="RpAvgMoving">Vid. jud. greitis:</sys:String>
     <sys:String x:Key="RpEffort">Pastangos:</sys:String>
+    <sys:String x:Key="RpAutoCalib">Auto-kalibruota (atstumas):</sys:String>
     <sys:String x:Key="RpCalibrated">Kalibruota:</sys:String>
     <sys:String x:Key="RpToYourRace">pagal jūsų</sys:String>
     <sys:String x:Key="RpSustainableCap">Ištvermės riba:</sys:String>

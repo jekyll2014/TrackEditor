@@ -20,6 +20,16 @@ public class RaceAnalysisOptions
     public double FatigueFloor { get; set; } = 0.5;
 }
 
+/// <summary>Per-track running power summary computed during the fit.</summary>
+public class TrackPowerStats
+{
+    public string TrackName { get; set; } = "";
+    /// <summary>90th-percentile specific running power (W/kg) for this track — peak sustainable effort.</summary>
+    public double P90SpecificPowerWkg { get; set; }
+    /// <summary>Absolute maximum specific power (W/kg) seen in any single segment of this track.</summary>
+    public double MaxSpecificPowerWkg { get; set; }
+}
+
 /// <summary>Outcome of a fit: the model and the raw counts behind it.</summary>
 public class AnalysisResult
 {
@@ -28,6 +38,8 @@ public class AnalysisResult
     public int SegmentsUsed { get; set; }
     /// <summary>Maximum accumulated effort value across all fitted segments (used by WPF to format the fatigue line).</summary>
     public double MaxEffort { get; set; }
+    /// <summary>Per-track running power percentiles (running models only; empty for cycling).</summary>
+    public List<TrackPowerStats> TrackPower { get; set; } = new();
 }
 
 /// <summary>
@@ -54,6 +66,7 @@ public static class RaceAnalyzer
         var segs = new List<Seg>();
         var flatRefs = new List<double>();
         var names = new List<string>();
+        var trackPower = new List<TrackPowerStats>();
         double totalKm = 0;
         bool anyHr = false, anyCad = false;
 
@@ -103,6 +116,20 @@ public static class RaceAnalyzer
                 raw.Add((gradeDeg, v, cumAsc, (tb - t0).TotalSeconds, cum[i], turn[i], hr));
             }
             if (raw.Count == 0) continue;
+
+            // Specific running power (W/kg) per segment using Minetti metabolic cost model.
+            // gradeFraction = tan(gradeDeg) = rise/run; Minetti is valid for ±0.45 (clamped inside).
+            if (opt.Sport == SportType.Running)
+            {
+                var powers = raw.Select(r =>
+                    RunningPower.SpecificPowerWkg(Math.Tan(r.Grade * Math.PI / 180.0), r.Speed)).ToList();
+                trackPower.Add(new TrackPowerStats
+                {
+                    TrackName = track.Name,
+                    P90SpecificPowerWkg = RunningPower.Percentile90(powers),
+                    MaxSpecificPowerWkg = powers.Max(),
+                });
+            }
 
             // Intensity anchor = median moving speed near flat; normalize this track to it.
             var flat = raw.Where(r => Math.Abs(r.Grade) < 1.5).Select(r => r.Speed).ToList();
@@ -175,7 +202,13 @@ public static class RaceAnalyzer
             Fatigue = fatigue,
             Turn = turnSpec,
             Altitude = new AltitudeSpec { DeratePerKm = 0 },
-            AthleteBaseline = new AthleteBaseline { FlatSpeedMps = athleteFlat, RefHr = refHr },
+            AthleteBaseline = new AthleteBaseline
+            {
+                FlatSpeedMps = athleteFlat,
+                RefHr = refHr,
+                // Maximum of per-track P90 specific powers: what this athlete can actually deliver.
+                PeakSpecificPowerWkg = trackPower.Count > 0 ? trackPower.Max(t => t.P90SpecificPowerWkg) : null,
+            },
             Meta = new RaceModelMeta
             {
                 AthleteName = string.IsNullOrWhiteSpace(opt.AthleteName) ? null : opt.AthleteName.Trim(),
@@ -193,6 +226,7 @@ public static class RaceAnalyzer
             TracksUsed = names.Count,
             SegmentsUsed = segs.Count,
             MaxEffort = segs.Max(s => s.Effort),
+            TrackPower = trackPower,
         };
     }
 

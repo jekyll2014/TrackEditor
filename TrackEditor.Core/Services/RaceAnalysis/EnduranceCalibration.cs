@@ -42,4 +42,16 @@ public static class EnduranceCalibration
         if (flat <= 0 || target <= 0) return 1.0;
         return Math.Clamp(target / flat, 0.5, 1.8);
     }
+
+    /// <summary>Pure distance-scaling factor when a model fitted at <paramref name="trainKm"/> is applied to
+    /// <paramref name="targetKm"/>. Uses Riegel: <c>(d_target/d_train)^(1-b)</c>. No race anchor needed —
+    /// the training distance serves as the reference. Returns 1.0 when distances are equal or either is zero.
+    /// Clamped to [0.5, 2.0] to prevent extreme extrapolations.</summary>
+    public static double DistanceScale(double trainKm, double targetKm, double exponent = RiegelExponent)
+    {
+        if (trainKm <= 0 || targetKm <= 0) return 1.0;
+        double ratio = targetKm / trainKm;
+        if (Math.Abs(ratio - 1.0) < 0.01) return 1.0;
+        return Math.Clamp(Math.Pow(ratio, 1.0 - exponent), 0.5, 2.0);
+    }
 }

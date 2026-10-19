@@ -75,6 +75,16 @@ public class RaceModelMeta
     public List<string> SignalsUsed { get; set; } = new();
     public int SegmentsUsed { get; set; }
     public string? Notes { get; set; }
+
+    /// <summary>Representative single-race distance (km) the model was fitted from, used for automatic
+    /// Riegel distance calibration. Explicitly set when known; otherwise derived as TotalKm / track count,
+    /// which is exact when all source tracks are the same race distance.</summary>
+    public double? RepresentativeDistanceKm { get; set; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public double EffectiveRepresentativeKm =>
+        RepresentativeDistanceKm
+        ?? (SourceTracks.Count > 0 ? TotalKm / SourceTracks.Count : TotalKm);
 }
 
 /// <summary>
@@ -175,4 +185,8 @@ public class AthleteBaseline
 {
     public double FlatSpeedMps { get; set; }
     public double? RefHr { get; set; }
+    /// <summary>90th-percentile specific running power (W/kg) observed across fitted tracks, using the Minetti
+    /// (2002) metabolic cost model. The maximum across all per-track P90 values — represents what the athlete
+    /// can actually deliver at peak effort. Null for cycling models (which use CP/W' instead).</summary>
+    public double? PeakSpecificPowerWkg { get; set; }
 }

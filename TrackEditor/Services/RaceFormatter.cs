@@ -42,6 +42,14 @@ public static class RaceFormatter
             double twisty = m.Turn.RefDegPerM * 3;
             sb.AppendLine($"{Loc.Get("RaTurnPenalty")} ref {m.Turn.RefDegPerM:F2}°/m; {Loc.Get("RaTwistySection")} x{m.Turn.Mult(twisty):F2}");
         }
+        if (r.TrackPower.Count > 0)
+        {
+            sb.AppendLine(Loc.Get("RaPowerHeader"));
+            foreach (var tp in r.TrackPower)
+                sb.AppendLine($"   {tp.TrackName}: P90 {tp.P90SpecificPowerWkg:F1} W/kg  max {tp.MaxSpecificPowerWkg:F1} W/kg");
+            if (m.AthleteBaseline.PeakSpecificPowerWkg is double peak)
+                sb.AppendLine($"{Loc.Get("RaPowerDeliverable")} {peak:F1} W/kg");
+        }
         return sb.ToString().TrimEnd();
     }
 
@@ -56,6 +64,13 @@ public static class RaceFormatter
         sb.AppendLine($"{Loc.Get("RpAvgMoving")} {distM / r.TotalTime.TotalSeconds * 3.6:F1} km/h");
         if (opt.Effort != RaceEffort.Race)
             sb.AppendLine($"{Loc.Get("RpEffort")} {opt.Effort} (×{opt.EffortScale:F2})");
+        if (opt.AutoCalibrateByDistance && !opt.CalibrateToRecentRace)
+        {
+            double trainKm = model.Meta.EffectiveRepresentativeKm;
+            double scale = EnduranceCalibration.DistanceScale(trainKm, r.DistanceKm);
+            if (Math.Abs(scale - 1.0) > 0.005)
+                sb.AppendLine($"{Loc.Get("RpAutoCalib")} ×{scale:F2} ({trainKm:F0} km model → {r.DistanceKm:F1} km target)");
+        }
         var recent = opt.Profile?.RecentRace;
         if (recent is { IsValid: true } && (opt.CalibrateToRecentRace || opt.CapToSustainable))
         {

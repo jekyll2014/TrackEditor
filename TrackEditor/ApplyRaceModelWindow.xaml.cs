@@ -145,6 +145,8 @@ public partial class ApplyRaceModelWindow : Window
         CyclingExpander.Visibility = isCycling ? Visibility.Visible : Visibility.Collapsed;
         ChkUsePhysics.Visibility = isCycling ? Visibility.Visible : Visibility.Collapsed;
         ChkLoad.Visibility = isCycling ? Visibility.Collapsed : Visibility.Visible;
+        if (ChkAutoCalibrate is not null)
+            ChkAutoCalibrate.Visibility = isCycling ? Visibility.Collapsed : Visibility.Visible;
         if (isCycling && string.IsNullOrWhiteSpace(TxtCdA.Text))
         {
             var def = SelectedSport() == SportType.CyclingXC ? CyclingSpec.XCDefault() : CyclingSpec.RoadDefault();
@@ -193,7 +195,9 @@ public partial class ApplyRaceModelWindow : Window
         string physicsHint = m.Cycling is CyclingSpec s
             ? $"CdA {s.CdA:F2} Crr {s.Crr:F4} · "
             : "";
-        return $"{who}{sport}{physicsHint}Flat {m.AthleteBaseline.FlatSpeedMps * 3.6:F1} km/h · " +
+        string powerHint = m.AthleteBaseline.PeakSpecificPowerWkg is double pw
+            ? $" · peak {pw:F1} W/kg" : "";
+        return $"{who}{sport}{physicsHint}Flat {m.AthleteBaseline.FlatSpeedMps * 3.6:F1} km/h{powerHint} · " +
                $"fatigue/{m.Fatigue.Driver} · from: {src}";
     }
 
@@ -228,6 +232,7 @@ public partial class ApplyRaceModelWindow : Window
             Profile = _settings.Profile,
             CalibrateToRecentRace = ChkCalibrate.IsChecked == true,
             CapToSustainable = ChkCap.IsChecked == true,
+            AutoCalibrateByDistance = ChkAutoCalibrate.IsChecked == true,
             UseLoadModel = ChkLoad.IsChecked == true && !isCycling,
             UsePhysics = usePhysics,
             PhysicsSpec = physicsSpec,
