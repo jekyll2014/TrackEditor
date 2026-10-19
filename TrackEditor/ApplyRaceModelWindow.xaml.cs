@@ -137,6 +137,10 @@ public partial class ApplyRaceModelWindow : Window
 
     private void UpdateCyclingVisibility()
     {
+        // Guard against controls not being initialized yet during XAML load
+        if (CyclingExpander is null || ChkUsePhysics is null || ChkLoad is null || TxtCdA is null || TxtCrr is null)
+            return;
+
         bool isCycling = SelectedSport() != SportType.Running;
         CyclingExpander.Visibility = isCycling ? Visibility.Visible : Visibility.Collapsed;
         ChkUsePhysics.Visibility = isCycling ? Visibility.Visible : Visibility.Collapsed;

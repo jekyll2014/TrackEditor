@@ -196,6 +196,36 @@ public class MapManager : IDisposable
     /// <summary>Highest zoom level the active basemap provides.</summary>
     public int BaseMaxZoom => _baseMaxZoom;
 
+    /// <summary>Creates a standalone tile source for <paramref name="provider"/> without a persistent cache
+    /// (suitable for the 3D view where the in-memory stream cache handles repeated fetches).</summary>
+    public static (ITileSource Source, int MaxZoom) CreateTileSource(BaseMapProvider provider)
+    {
+        var (url, tileMaxZoom, attrText, attrUrl, yAxis) = provider switch
+        {
+            BaseMapProvider.OpenTopoMap => (
+                "https://tile.opentopomap.org/{z}/{x}/{y}.png", 17,
+                "© OpenTopoMap (CC-BY-SA), © OpenStreetMap contributors", "https://opentopomap.org/", YAxis.OSM),
+            BaseMapProvider.CyclOSM => (
+                "https://a.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png", 18,
+                "© CyclOSM, © OpenStreetMap contributors", "https://www.cyclosm.org/", YAxis.OSM),
+            BaseMapProvider.EsriWorldImagery => (
+                "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                19, "Imagery © Esri, Maxar, Earthstar Geographics", "https://www.esri.com/", YAxis.OSM),
+            BaseMapProvider.CartoLight => (
+                "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png", 19,
+                "© CARTO, © OpenStreetMap contributors", "https://carto.com/attributions", YAxis.OSM),
+            _ => (
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png", 19,
+                "© OpenStreetMap contributors", "https://www.openstreetmap.org/copyright", YAxis.OSM),
+        };
+        string name = provider.ToString();
+        var schema = new GlobalSphericalMercator(yAxis, 0, tileMaxZoom);
+        var source = new HttpTileSource(schema, url, name: name,
+            attribution: new BruTile.Attribution(attrText, attrUrl),
+            configureHttpRequestMessage: msg => msg.Headers.UserAgent.ParseAdd(UserAgent));
+        return (source, tileMaxZoom);
+    }
+
     /// <summary>Current viewport bounds in Web-Mercator meters (min/max X/Y).</summary>
     public (double MinX, double MinY, double MaxX, double MaxY) ViewportExtent()
     {

@@ -314,6 +314,7 @@
     <sys:String x:Key="Lbl3DZoom">Масштаб</sys:String>
     <sys:String x:Key="Lbl3DVertExag">Вертикальное преувеличение</sys:String>
     <sys:String x:Key="Btn3DSave">💾 Сохранить</sys:String>
+    <sys:String x:Key="Lbl3DMap">Карта</sys:String>
     <sys:String x:Key="Lbl3DDetail">Детализация</sys:String>
     <sys:String x:Key="Lbl3DFlags">Флаги</sys:String>
     <sys:String x:Key="Lbl3DWaypoints">Путевые точки</sys:String>

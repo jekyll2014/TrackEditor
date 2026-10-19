@@ -314,6 +314,7 @@
     <sys:String x:Key="Lbl3DZoom">Zoom</sys:String>
     <sys:String x:Key="Lbl3DVertExag">Vertical exaggeration</sys:String>
     <sys:String x:Key="Btn3DSave">💾 Save</sys:String>
+    <sys:String x:Key="Lbl3DMap">Map</sys:String>
     <sys:String x:Key="Lbl3DDetail">Detail</sys:String>
     <sys:String x:Key="Lbl3DFlags">Flags</sys:String>
     <sys:String x:Key="Lbl3DWaypoints">Waypoints</sys:String>

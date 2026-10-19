@@ -401,6 +401,7 @@ public partial class MainWindow : Window
             _mapMgr.BaseTileSource,
             _doc.Tracks.ToList(),
             _srtm,
+            provider: _settings.BaseMap,
             gradientTrack: _active,
             gradientMetric: _settings.GradientMetric,
             paceMode: _settings.PaceMode,

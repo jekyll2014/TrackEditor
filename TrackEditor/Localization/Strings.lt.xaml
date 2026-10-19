@@ -314,6 +314,7 @@
     <sys:String x:Key="Lbl3DZoom">Mastelis</sys:String>
     <sys:String x:Key="Lbl3DVertExag">Vertikalus didinimas</sys:String>
     <sys:String x:Key="Btn3DSave">💾 Išsaugoti</sys:String>
+    <sys:String x:Key="Lbl3DMap">Žemėlapis</sys:String>
     <sys:String x:Key="Lbl3DDetail">Detalumas</sys:String>
     <sys:String x:Key="Lbl3DFlags">Vėliavėlės</sys:String>
     <sys:String x:Key="Lbl3DWaypoints">Kelrodžiai</sys:String>
