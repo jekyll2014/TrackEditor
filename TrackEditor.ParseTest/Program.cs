@@ -15,10 +15,12 @@ if (!Directory.Exists(samplesRoot))
     return 1;
 }
 
-var configs = new (string Label, bool AutoCalib)[]
+var configs = new (string Label, bool AutoCalib, RunningProfile Profile)[]
 {
-    ("no-calib",   false),
-    ("auto-calib", true),
+    ("no-calib",        false, RunningProfile.Road),
+    ("road",            true,  RunningProfile.Road),
+    ("trail",           true,  RunningProfile.Trail),
+    ("ultra",           true,  RunningProfile.UltraTrail),
 };
 
 foreach (string racerDir in Directory.GetDirectories(samplesRoot).OrderBy(d => d))
@@ -115,6 +117,7 @@ foreach (string racerDir in Directory.GetDirectories(samplesRoot).OrderBy(d => d
                     var opt = new PredictOptions
                     {
                         AutoCalibrateByDistance = configs[ci].AutoCalib,
+                        RunningProfile = configs[ci].Profile,
                         Effort = RaceEffort.Race,
                     };
                     var pred = RacePredictor.Predict(targetTrack, res.Model, opt);
@@ -130,16 +133,22 @@ foreach (string racerDir in Directory.GetDirectories(samplesRoot).OrderBy(d => d
             if (hasGt)
             {
                 var gtDur = TrackStatistics.Compute(gtMatch!.Value.track.Points).Duration;
-                var autoTime = preds[1] ?? preds[0];
-                if (autoTime.HasValue && gtDur.HasValue)
+                for (int ci = 0; ci < configs.Length; ci++)
                 {
-                    double err = (autoTime.Value.TotalSeconds - gtDur.Value.TotalSeconds)
+                    if (preds[ci].HasValue && gtDur.HasValue)
+                    {
+                        double err = (preds[ci]!.Value.TotalSeconds - gtDur.Value.TotalSeconds)
+                                     / gtDur.Value.TotalSeconds * 100.0;
+                        errors[ci].Add(Math.Abs(err));
+                    }
+                }
+                // Print error% for the last (ultra) config as the representative column
+                int repIdx = configs.Length - 1;
+                if (preds[repIdx].HasValue && gtDur.HasValue)
+                {
+                    double err = (preds[repIdx]!.Value.TotalSeconds - gtDur!.Value.TotalSeconds)
                                  / gtDur.Value.TotalSeconds * 100.0;
                     Console.Write($"  {err,+9:F1}%");
-                    errors[1].Add(Math.Abs(err));
-                    if (preds[0].HasValue)
-                        errors[0].Add(Math.Abs((preds[0]!.Value.TotalSeconds - gtDur.Value.TotalSeconds)
-                                               / gtDur.Value.TotalSeconds * 100.0));
                 }
             }
             Console.WriteLine();
