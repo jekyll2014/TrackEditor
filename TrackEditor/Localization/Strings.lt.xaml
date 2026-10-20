@@ -366,6 +366,8 @@
     <sys:String x:Key="ChkAutoCalibrate">Keisti tempą pagal modelio treniruočių atstumą (Riegel)</sys:String>
     <sys:String x:Key="LblHrZone">ŠSD zonos prognozė:</sys:String>
     <sys:String x:Key="HrZoneNormal">Įprastas (greičio kreivė)</sys:String>
+    <sys:String x:Key="HrZoneCustom">Pasirinktinis diapazonas…</sys:String>
+    <sys:String x:Key="LblCustomHrRange">ŠSD diapazonas:</sys:String>
     <sys:String x:Key="LblRunningProfile">Bėgimo profilis:</sys:String>
     <sys:String x:Key="ProfileRoad">Asfaltas (b=1.06)</sys:String>
     <sys:String x:Key="ProfileTrail">Treilas (b=1.04)</sys:String>

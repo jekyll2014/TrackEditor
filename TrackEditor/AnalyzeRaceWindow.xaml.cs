@@ -113,6 +113,7 @@ public partial class AnalyzeRaceWindow : Window
             UseHr = ChkUseHr.IsChecked == true,
             NormalizePerTrack = ChkNormalize.IsChecked == true,
             Driver = SelectedDriver(),
+            MaxHrOverride = int.TryParse(TxtAnalyzeMaxHr.Text.Trim(), out int mhr) && mhr > 100 ? mhr : null,
         };
 
         try

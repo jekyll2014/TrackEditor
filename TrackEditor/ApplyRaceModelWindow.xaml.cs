@@ -88,23 +88,58 @@ public partial class ApplyRaceModelWindow : Window
     private void PopulateHrZoneCombo(RaceModel? m)
     {
         CmbHrZone.Items.Clear();
-        CmbHrZone.Items.Add(new ComboBoxItem { Content = Loc.Get("HrZoneNormal"), Tag = (int?)null });
+        CmbHrZone.Items.Add(new ComboBoxItem
+        {
+            Content = Loc.Get("HrZoneNormal"),
+            Tag = (object?)"normal",
+            ToolTip = "Use the overall speed curve fitted from all training data (default).",
+        });
         if (m?.HrZoneCurves is { Count: > 0 } zones)
+        {
             foreach (var z in zones)
-                CmbHrZone.Items.Add(new ComboBoxItem { Content = z.Label, Tag = (int?)z.Zone });
+                CmbHrZone.Items.Add(new ComboBoxItem
+                {
+                    Content = $"{z.Label}  ({z.FlatSpeedMps * 3.6:F1} km/h flat)",
+                    Tag = (object?)z.Zone,
+                    ToolTip = $"Predict at the flat pace you hold at {z.LowerBpm}–{z.UpperBpm} bpm effort. " +
+                              "Terrain adjustment from overall model. Z2 Aerobic is best for ultras.",
+                });
+            CmbHrZone.Items.Add(new ComboBoxItem
+            {
+                Content = Loc.Get("HrZoneCustom"),
+                Tag = (object?)"custom",
+                ToolTip = "Find the closest fitted zone for a custom bpm range.",
+            });
+        }
         CmbHrZone.SelectedIndex = 0;
         PanelHrZone.Visibility = m?.HrZoneCurves.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private int? SelectedHrZone() =>
-        (CmbHrZone.SelectedItem as ComboBoxItem)?.Tag as int?;
+    private int? SelectedHrZone()
+    {
+        var tag = (CmbHrZone.SelectedItem as ComboBoxItem)?.Tag;
+        if (tag is int z) return z;
+        if (tag is "custom" && _model is not null)
+        {
+            if (!int.TryParse(TxtCustomHrLo.Text.Trim(), out int lo) || lo <= 0) return null;
+            if (!int.TryParse(TxtCustomHrHi.Text.Trim(), out int hi) || hi <= lo) return null;
+            int center = (lo + hi) / 2;
+            return _model.HrZoneCurves
+                .OrderBy(z2 => Math.Abs((z2.LowerBpm + z2.UpperBpm) / 2 - center))
+                .First().Zone;
+        }
+        return null;
+    }
 
     private void CmbHrZone_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
-        bool hrMode = SelectedHrZone() is not null;
-        // In HR zone mode the Riegel checkbox is irrelevant — grey it out visually but keep it accessible.
+        var tag = (CmbHrZone.SelectedItem as ComboBoxItem)?.Tag;
+        bool hrMode = tag is int || tag is "custom";
+        bool customMode = tag is "custom";
         if (ChkAutoCalibrate is not null)
             ChkAutoCalibrate.IsEnabled = !hrMode;
+        if (PanelCustomHr is not null)
+            PanelCustomHr.Visibility = customMode ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>Shows/hides cycling vs running controls and pre-populates CdA/Crr from model defaults.</summary>

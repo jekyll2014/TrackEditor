@@ -70,11 +70,20 @@
             <CheckBox x:Name="ChkCap" Content="{DynamicResource ChkCap}" Margin="0,2,0,0"/>
             <CheckBox x:Name="ChkAutoCalibrate" Content="{DynamicResource ChkAutoCalibrate}" Margin="0,2,0,0" IsChecked="True"
                       ToolTip="Riegel distance scaling: if the model was trained on long races, short-race predictions are sped up automatically. No recent race required."/>
-            <StackPanel x:Name="PanelHrZone" Orientation="Horizontal" Margin="0,2,0,0">
-                <TextBlock Text="{DynamicResource LblHrZone}" Width="130" VerticalAlignment="Center"/>
-                <ComboBox x:Name="CmbHrZone" Width="220"
-                          ToolTip="Predict pace for a specific HR zone, using the speed curve fitted from segments at that HR. Requires HR data in the training tracks."
-                          SelectionChanged="CmbHrZone_SelectionChanged"/>
+            <StackPanel x:Name="PanelHrZone" Orientation="Vertical" Margin="0,2,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{DynamicResource LblHrZone}" Width="130" VerticalAlignment="Center"/>
+                    <ComboBox x:Name="CmbHrZone" Width="280"
+                              ToolTip="Predict pace at a specific HR effort level. Each zone shows the flat speed the athlete holds at that HR. Higher zone = higher effort = faster pace. Z2 Aerobic is ideal for ultra trail."
+                              SelectionChanged="CmbHrZone_SelectionChanged"/>
+                </StackPanel>
+                <StackPanel x:Name="PanelCustomHr" Orientation="Horizontal" Margin="130,4,0,0" Visibility="Collapsed">
+                    <TextBlock Text="{DynamicResource LblCustomHrRange}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBox x:Name="TxtCustomHrLo" Width="50" ToolTip="Lower HR bound (bpm)"/>
+                    <TextBlock Text="–" VerticalAlignment="Center" Margin="4,0"/>
+                    <TextBox x:Name="TxtCustomHrHi" Width="50" ToolTip="Upper HR bound (bpm)"/>
+                    <TextBlock Text="bpm" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="#888"/>
+                </StackPanel>
             </StackPanel>
             <StackPanel x:Name="PanelProfile" Orientation="Horizontal" Margin="0,2,0,0">
                 <TextBlock Text="{DynamicResource LblRunningProfile}" VerticalAlignment="Center" Width="130"/>

@@ -110,14 +110,21 @@ public static class RacePredictor
         double targetKm = cumRs[^1] / 1000.0;
         var recent = opt.Profile?.RecentRace;
 
-        // HR zone mode: substitute the zone's speed curve for the blended BaseCurve. The zone curve already
-        // encodes the athlete's absolute pace at that HR level, so Riegel and RecentRace calibration are skipped.
-        BaseCurve effectiveCurve = model.BaseCurve;
+        // HR zone mode: scale the overall BaseCurve to the zone's flat speed, rather than substituting the
+        // zone's own fitted curve. Zone curves are terrain-biased (high-HR segments are mostly uphills), so
+        // their flat-speed extrapolation is unreliable and produces the paradox Z3 < Z2 < Z1 flat. Instead we
+        // treat FlatSpeedMps as the zone's effort anchor and let the overall terrain model handle grade response.
+        double zoneFlatSpeedMult = 1.0;
         bool usingZoneCurve = false;
         if (opt.TargetHrZone is int targetZone && model.HrZoneCurves.Count > 0)
         {
             var zc = model.HrZoneCurves.FirstOrDefault(z => z.Zone == targetZone);
-            if (zc is not null) { effectiveCurve = zc.Curve; usingZoneCurve = true; }
+            double baseFlat = model.AthleteBaseline.FlatSpeedMps;
+            if (zc is not null && baseFlat > 0)
+            {
+                zoneFlatSpeedMult = zc.FlatSpeedMps / baseFlat;
+                usingZoneCurve = true;
+            }
         }
 
         // Overall pace level: effort intent × optional Riegel calibration to the athlete's recent race, then
@@ -178,7 +185,8 @@ public static class RacePredictor
                 ? AltitudeSpec.MultWith(rs[i].Ele, model.Altitude.RefM, deratePerKm, model.Altitude.Floor)
                 : 1.0;
 
-            double speed = effectiveCurve.SpeedAt(gradeDeg)
+            double speed = model.BaseCurve.SpeedAt(gradeDeg)
+                         * zoneFlatSpeedMult
                          * model.Fatigue.MultWith(effort, kEff)
                          * model.Turn.Mult(turn[i])
                          * altMult

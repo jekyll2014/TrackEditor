@@ -18,6 +18,9 @@ public class RaceAnalysisOptions
     public double GradeMaxDeg { get; set; } = 25;
     public int MinBinSamples { get; set; } = 15;
     public double FatigueFloor { get; set; } = 0.5;
+    /// <summary>Override auto-detected max HR (bpm) used to calculate HR zone breakpoints.
+    /// When null, the maximum HR seen across all fitted segments is used.</summary>
+    public int? MaxHrOverride { get; set; }
     /// <summary>Percentile used when aggregating speed samples within each grade bin (0.5 = median, 0.9 = P90).
     /// Median captures typical effort; P90 captures race-level peak capability per grade.
     /// Higher values give faster, more optimistic models — use when training data under-represents full effort.</summary>
@@ -197,7 +200,7 @@ public static class RaceAnalyzer
             var allHr = segs.Where(s => s.Hr is not null).Select(s => (int)Math.Round(s.Hr!.Value)).ToList();
             if (allHr.Count > 0)
             {
-                maxHrBpm = allHr.Max();
+                maxHrBpm = opt.MaxHrOverride ?? allHr.Max();
                 var zones = HrZoneSpec.FromMaxHr(maxHrBpm.Value);
                 hrZoneCurves = FitHrZoneCurves(segs, zones, opt.GradeMinDeg, bins, opt.MinBinSamples);
             }

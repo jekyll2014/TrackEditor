@@ -366,6 +366,8 @@
     <sys:String x:Key="ChkAutoCalibrate">Масштабировать темп к дистанции модели (Riegel)</sys:String>
     <sys:String x:Key="LblHrZone">Прогноз по зоне ЧСС:</sys:String>
     <sys:String x:Key="HrZoneNormal">Обычный (кривая скорости)</sys:String>
+    <sys:String x:Key="HrZoneCustom">Свой диапазон…</sys:String>
+    <sys:String x:Key="LblCustomHrRange">диапазон ЧСС:</sys:String>
     <sys:String x:Key="LblRunningProfile">Профиль бега:</sys:String>
     <sys:String x:Key="ProfileRoad">Шоссе (b=1.06)</sys:String>
     <sys:String x:Key="ProfileTrail">Трейл (b=1.04)</sys:String>

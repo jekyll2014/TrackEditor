@@ -366,6 +366,8 @@
     <sys:String x:Key="ChkAutoCalibrate">Scale pace to model's training distance (Riegel)</sys:String>
     <sys:String x:Key="LblHrZone">HR zone prediction:</sys:String>
     <sys:String x:Key="HrZoneNormal">Normal (speed curve)</sys:String>
+    <sys:String x:Key="HrZoneCustom">Custom range…</sys:String>
+    <sys:String x:Key="LblCustomHrRange">bpm range:</sys:String>
     <sys:String x:Key="LblRunningProfile">Running profile:</sys:String>
     <sys:String x:Key="ProfileRoad">Road (b=1.06)</sys:String>
     <sys:String x:Key="ProfileTrail">Trail (b=1.04)</sys:String>
