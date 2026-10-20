@@ -18,6 +18,10 @@ public class RaceAnalysisOptions
     public double GradeMaxDeg { get; set; } = 25;
     public int MinBinSamples { get; set; } = 15;
     public double FatigueFloor { get; set; } = 0.5;
+    /// <summary>Percentile used when aggregating speed samples within each grade bin (0.5 = median, 0.9 = P90).
+    /// Median captures typical effort; P90 captures race-level peak capability per grade.
+    /// Higher values give faster, more optimistic models — use when training data under-represents full effort.</summary>
+    public double BinPercentile { get; set; } = 0.5;
 }
 
 /// <summary>Per-track running power summary computed during the fit.</summary>
@@ -157,7 +161,7 @@ public static class RaceAnalyzer
 
         // --- base curve: per-degree robust central speed, gap-filled + smoothed (in normalized space) ---
         int bins = (int)Math.Round((opt.GradeMaxDeg - opt.GradeMinDeg) / 1.0) + 1;
-        var relCurve = FitBaseCurve(segs, opt.GradeMinDeg, bins, opt.MinBinSamples, opt.NormalizePerTrack ? 1.0 : athleteFlat);
+        var relCurve = FitBaseCurve(segs, opt.GradeMinDeg, bins, opt.MinBinSamples, opt.NormalizePerTrack ? 1.0 : athleteFlat, opt.BinPercentile);
         var relLookup = new BaseCurve { GradeMinDeg = opt.GradeMinDeg, StepDeg = 1, SpeedMps = relCurve };
 
         // --- fatigue: residual speed / base(grade) regressed against accumulated effort ---
@@ -230,7 +234,7 @@ public static class RaceAnalyzer
         };
     }
 
-    private static double[] FitBaseCurve(List<Seg> segs, double gradeMin, int bins, int minSamples, double fallback)
+    private static double[] FitBaseCurve(List<Seg> segs, double gradeMin, int bins, int minSamples, double fallback, double percentile = 0.5)
     {
         var buckets = new List<double>[bins];
         for (int b = 0; b < bins; b++) buckets[b] = new List<double>();
@@ -242,7 +246,7 @@ public static class RaceAnalyzer
 
         var curve = new double?[bins];
         for (int b = 0; b < bins; b++)
-            if (buckets[b].Count >= minSamples) curve[b] = Median(buckets[b]);
+            if (buckets[b].Count >= minSamples) curve[b] = Percentile(buckets[b], percentile);
 
         // Fill gaps by linear interpolation between known bins; clamp the ends to the nearest known value.
         FillGaps(curve, fallback);
@@ -330,12 +334,16 @@ public static class RaceAnalyzer
     }
 
     // --- small numeric helpers ---
-    private static double Median(List<double> xs)
+    private static double Median(List<double> xs) => Percentile(xs, 0.5);
+
+    private static double Percentile(List<double> xs, double p)
     {
         if (xs.Count == 0) return 0;
         xs.Sort();
-        int n = xs.Count;
-        return n % 2 == 1 ? xs[n / 2] : (xs[n / 2 - 1] + xs[n / 2]) / 2.0;
+        double idx = (xs.Count - 1) * p;
+        int lo = (int)idx;
+        int hi = Math.Min(lo + 1, xs.Count - 1);
+        return xs[lo] + (xs[hi] - xs[lo]) * (idx - lo);
     }
 
     private static double Mean(List<double> xs) => xs.Count == 0 ? 0 : xs.Average();

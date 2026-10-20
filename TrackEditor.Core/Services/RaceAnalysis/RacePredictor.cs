@@ -35,7 +35,7 @@ public class PredictOptions
     /// the reference. Corrects for the pacing difference between races of different lengths — a long-race model
     /// applied to a short race predicts too slow without this, because the model's base speeds were recorded at
     /// long-race effort. Applied before <see cref="CalibrateToRecentRace"/> so the two can compose.</summary>
-    public bool AutoCalibrateByDistance { get; set; } = false;
+    public bool AutoCalibrateByDistance { get; set; } = true;
     /// <summary>Clamp the effort-scaled pace to the endurance-sustainable ceiling from the recent race, so an
     /// aggressive effort can't predict an unsustainable average. Needs <see cref="Profile"/>.RecentRace.</summary>
     public bool CapToSustainable { get; set; } = false;

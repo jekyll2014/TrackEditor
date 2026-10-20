@@ -68,7 +68,7 @@
             <CheckBox x:Name="ChkAltitude" Content="{DynamicResource ChkAltitudeDerate}" Margin="0,2,0,0"/>
             <CheckBox x:Name="ChkCalibrate" Content="{DynamicResource ChkCalibrate}" Margin="0,2,0,0"/>
             <CheckBox x:Name="ChkCap" Content="{DynamicResource ChkCap}" Margin="0,2,0,0"/>
-            <CheckBox x:Name="ChkAutoCalibrate" Content="{DynamicResource ChkAutoCalibrate}" Margin="0,2,0,0"
+            <CheckBox x:Name="ChkAutoCalibrate" Content="{DynamicResource ChkAutoCalibrate}" Margin="0,2,0,0" IsChecked="True"
                       ToolTip="Riegel distance scaling: if the model was trained on long races, short-race predictions are sped up automatically. No recent race required."/>
             <CheckBox x:Name="ChkLoad" Content="{DynamicResource ChkLoad}" Margin="0,2,0,0"/>
 
