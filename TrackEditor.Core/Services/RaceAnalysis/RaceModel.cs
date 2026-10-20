@@ -47,6 +47,9 @@ public class RaceModel
     /// <summary>Physics parameters for cycling predictions (Option B). Null for running models.
     /// Set to sport defaults when fitted from cycling tracks; editable per-prediction in the UI.</summary>
     public CyclingSpec? Cycling { get; set; }
+    /// <summary>Speed-vs-grade curves per HR zone. Non-empty only when source tracks carried HR data and each
+    /// zone had enough samples. Used for HR-zone-based pace prediction instead of the blended BaseCurve.</summary>
+    public List<HrZoneCurve> HrZoneCurves { get; set; } = new();
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -189,4 +192,27 @@ public class AthleteBaseline
     /// (2002) metabolic cost model. The maximum across all per-track P90 values — represents what the athlete
     /// can actually deliver at peak effort. Null for cycling models (which use CP/W' instead).</summary>
     public double? PeakSpecificPowerWkg { get; set; }
+    /// <summary>Maximum HR (bpm) observed across all fitted tracks, used to derive default HR zone boundaries.</summary>
+    public int? MaxHrBpm { get; set; }
+}
+
+/// <summary>Speed-vs-grade curve fitted from segments recorded within a specific HR zone, plus power output
+/// at that zone. Enables HR-zone-based pace prediction: the predictor substitutes this curve for the blended
+/// BaseCurve, so predicted pace reflects what the athlete actually runs at that HR level on each grade.</summary>
+public class HrZoneCurve
+{
+    public int Zone { get; set; }
+    public string ZoneName { get; set; } = "";
+    public int LowerBpm { get; set; }
+    public int UpperBpm { get; set; }
+    /// <summary>Number of 50 m segments that contributed to this zone's curve.</summary>
+    public int SampleCount { get; set; }
+    /// <summary>Median flat speed (m/s) for segments in this zone — actual pace on flat ground at this HR.</summary>
+    public double FlatSpeedMps { get; set; }
+    /// <summary>Mean specific running power (W/kg, Minetti 2002) delivered across all segments in this zone.</summary>
+    public double? MeanSpecificPowerWkg { get; set; }
+    public BaseCurve Curve { get; set; } = new();
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string Label => $"Z{Zone} {ZoneName} ({LowerBpm}–{UpperBpm} bpm)";
 }

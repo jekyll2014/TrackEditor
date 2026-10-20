@@ -58,6 +58,7 @@ public partial class ApplyRaceModelWindow : Window
             _model = RaceModel.Load(dlg.FileName);
             ModelText.Text = DescribeModel(_model);
             ApplyModelToUi(_model);
+            PopulateHrZoneCombo(_model);
             RunButton.IsEnabled = true;
             HintText.Text = "Model loaded — press Predict.";
         }
@@ -79,8 +80,31 @@ public partial class ApplyRaceModelWindow : Window
         _model = m;
         ModelText.Text = "Created: " + DescribeModel(m);
         ApplyModelToUi(m);
+        PopulateHrZoneCombo(m);
         RunButton.IsEnabled = true;
         HintText.Text = "Profile created — press Predict.";
+    }
+
+    private void PopulateHrZoneCombo(RaceModel? m)
+    {
+        CmbHrZone.Items.Clear();
+        CmbHrZone.Items.Add(new ComboBoxItem { Content = Loc.Get("HrZoneNormal"), Tag = (int?)null });
+        if (m?.HrZoneCurves is { Count: > 0 } zones)
+            foreach (var z in zones)
+                CmbHrZone.Items.Add(new ComboBoxItem { Content = z.Label, Tag = (int?)z.Zone });
+        CmbHrZone.SelectedIndex = 0;
+        PanelHrZone.Visibility = m?.HrZoneCurves.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private int? SelectedHrZone() =>
+        (CmbHrZone.SelectedItem as ComboBoxItem)?.Tag as int?;
+
+    private void CmbHrZone_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        bool hrMode = SelectedHrZone() is not null;
+        // In HR zone mode the Riegel checkbox is irrelevant — grey it out visually but keep it accessible.
+        if (ChkAutoCalibrate is not null)
+            ChkAutoCalibrate.IsEnabled = !hrMode;
     }
 
     /// <summary>Shows/hides cycling vs running controls and pre-populates CdA/Crr from model defaults.</summary>
@@ -157,6 +181,9 @@ public partial class ApplyRaceModelWindow : Window
             ChkAutoCalibrate.Visibility = isCycling ? Visibility.Collapsed : Visibility.Visible;
         if (PanelProfile is not null)
             PanelProfile.Visibility = isCycling ? Visibility.Collapsed : Visibility.Visible;
+        if (PanelHrZone is not null)
+            PanelHrZone.Visibility = isCycling ? Visibility.Collapsed
+                : (_model?.HrZoneCurves.Count > 0 ? Visibility.Visible : Visibility.Collapsed);
         if (isCycling && string.IsNullOrWhiteSpace(TxtCdA.Text))
         {
             var def = SelectedSport() == SportType.CyclingXC ? CyclingSpec.XCDefault() : CyclingSpec.RoadDefault();
@@ -244,6 +271,7 @@ public partial class ApplyRaceModelWindow : Window
             CapToSustainable = ChkCap.IsChecked == true,
             AutoCalibrateByDistance = ChkAutoCalibrate.IsChecked == true,
             RunningProfile = SelectedRunningProfile(),
+            TargetHrZone = SelectedHrZone(),
             UseLoadModel = ChkLoad.IsChecked == true && !isCycling,
             UsePhysics = usePhysics,
             PhysicsSpec = physicsSpec,

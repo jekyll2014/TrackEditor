@@ -364,6 +364,8 @@
     <sys:String x:Key="ChkCalibrate">Калибровать темп по предыдущему забегу (Riegel)</sys:String>
     <sys:String x:Key="ChkCap">Ограничить темп устойчивым максимумом</sys:String>
     <sys:String x:Key="ChkAutoCalibrate">Масштабировать темп к дистанции модели (Riegel)</sys:String>
+    <sys:String x:Key="LblHrZone">Прогноз по зоне ЧСС:</sys:String>
+    <sys:String x:Key="HrZoneNormal">Обычный (кривая скорости)</sys:String>
     <sys:String x:Key="LblRunningProfile">Профиль бега:</sys:String>
     <sys:String x:Key="ProfileRoad">Шоссе (b=1.06)</sys:String>
     <sys:String x:Key="ProfileTrail">Трейл (b=1.04)</sys:String>
@@ -469,6 +471,8 @@
     <sys:String x:Key="RpEffort">Усилие:</sys:String>
     <sys:String x:Key="RpAutoCalib">Авто-калибровка (дистанция):</sys:String>
     <sys:String x:Key="RpProfile">Профиль:</sys:String>
+    <sys:String x:Key="RpHrZone">Зона ЧСС:</sys:String>
+    <sys:String x:Key="RaHrZonesHeader">Кривые по зонам ЧСС:</sys:String>
     <sys:String x:Key="RpCalibrated">Откалибровано:</sys:String>
     <sys:String x:Key="RpToYourRace">к вашему</sys:String>
     <sys:String x:Key="RpSustainableCap">Предел выносливости:</sys:String>

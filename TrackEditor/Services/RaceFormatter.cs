@@ -50,6 +50,15 @@ public static class RaceFormatter
             if (m.AthleteBaseline.PeakSpecificPowerWkg is double peak)
                 sb.AppendLine($"{Loc.Get("RaPowerDeliverable")} {peak:F1} W/kg");
         }
+        if (m.HrZoneCurves.Count > 0)
+        {
+            sb.AppendLine(Loc.Get("RaHrZonesHeader"));
+            foreach (var z in m.HrZoneCurves)
+            {
+                string power = z.MeanSpecificPowerWkg is double pw ? $"  power {pw:F1} W/kg" : "";
+                sb.AppendLine($"   {z.Label,-32}  flat {z.FlatSpeedMps*3.6,5:F1} km/h{power}  ({z.SampleCount} segs)");
+            }
+        }
         return sb.ToString().TrimEnd();
     }
 
@@ -75,6 +84,12 @@ public static class RaceFormatter
         {
             string profileName = opt.RunningProfile == RunningProfile.UltraTrail ? "Ultra Trail" : "Trail";
             sb.AppendLine($"{Loc.Get("RpProfile")} {profileName} (b={EnduranceCalibration.ExponentFor(opt.RunningProfile):F2})");
+        }
+        if (opt.TargetHrZone is int zoneNum)
+        {
+            var zc = model.HrZoneCurves.FirstOrDefault(z => z.Zone == zoneNum);
+            if (zc is not null)
+                sb.AppendLine($"{Loc.Get("RpHrZone")} {zc.Label}  ({zc.FlatSpeedMps*3.6:F1} km/h flat)");
         }
         var recent = opt.Profile?.RecentRace;
         if (recent is { IsValid: true } && (opt.CalibrateToRecentRace || opt.CapToSustainable))

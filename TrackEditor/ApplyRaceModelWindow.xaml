@@ -70,6 +70,12 @@
             <CheckBox x:Name="ChkCap" Content="{DynamicResource ChkCap}" Margin="0,2,0,0"/>
             <CheckBox x:Name="ChkAutoCalibrate" Content="{DynamicResource ChkAutoCalibrate}" Margin="0,2,0,0" IsChecked="True"
                       ToolTip="Riegel distance scaling: if the model was trained on long races, short-race predictions are sped up automatically. No recent race required."/>
+            <StackPanel x:Name="PanelHrZone" Orientation="Horizontal" Margin="0,2,0,0">
+                <TextBlock Text="{DynamicResource LblHrZone}" Width="130" VerticalAlignment="Center"/>
+                <ComboBox x:Name="CmbHrZone" Width="220"
+                          ToolTip="Predict pace for a specific HR zone, using the speed curve fitted from segments at that HR. Requires HR data in the training tracks."
+                          SelectionChanged="CmbHrZone_SelectionChanged"/>
+            </StackPanel>
             <StackPanel x:Name="PanelProfile" Orientation="Horizontal" Margin="0,2,0,0">
                 <TextBlock Text="{DynamicResource LblRunningProfile}" VerticalAlignment="Center" Width="130"/>
                 <ComboBox x:Name="CmbProfile" Width="150" SelectedIndex="0"

@@ -364,6 +364,8 @@
     <sys:String x:Key="ChkCalibrate">Calibrate pace to my recent race (Riegel)</sys:String>
     <sys:String x:Key="ChkCap">Cap pace to my sustainable ceiling</sys:String>
     <sys:String x:Key="ChkAutoCalibrate">Scale pace to model's training distance (Riegel)</sys:String>
+    <sys:String x:Key="LblHrZone">HR zone prediction:</sys:String>
+    <sys:String x:Key="HrZoneNormal">Normal (speed curve)</sys:String>
     <sys:String x:Key="LblRunningProfile">Running profile:</sys:String>
     <sys:String x:Key="ProfileRoad">Road (b=1.06)</sys:String>
     <sys:String x:Key="ProfileTrail">Trail (b=1.04)</sys:String>
@@ -469,6 +471,8 @@
     <sys:String x:Key="RpEffort">Effort:</sys:String>
     <sys:String x:Key="RpAutoCalib">Auto-calibrated (distance):</sys:String>
     <sys:String x:Key="RpProfile">Profile:</sys:String>
+    <sys:String x:Key="RpHrZone">HR zone:</sys:String>
+    <sys:String x:Key="RaHrZonesHeader">HR zone curves (speed at each HR zone):</sys:String>
     <sys:String x:Key="RpCalibrated">Calibrated:</sys:String>
     <sys:String x:Key="RpToYourRace">to your</sys:String>
     <sys:String x:Key="RpSustainableCap">Sustainable cap:</sys:String>

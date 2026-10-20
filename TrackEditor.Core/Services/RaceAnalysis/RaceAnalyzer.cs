@@ -58,10 +58,10 @@ public static class RaceAnalyzer
 {
     private readonly struct Seg
     {
-        public readonly double GradeDeg, SpeedRel, Effort, Turn;
+        public readonly double GradeDeg, SpeedRel, SpeedAbs, Effort, Turn;
         public readonly double? Hr;
-        public Seg(double g, double s, double e, double turn, double? hr)
-        { GradeDeg = g; SpeedRel = s; Effort = e; Turn = turn; Hr = hr; }
+        public Seg(double g, double sRel, double sAbs, double e, double turn, double? hr)
+        { GradeDeg = g; SpeedRel = sRel; SpeedAbs = sAbs; Effort = e; Turn = turn; Hr = hr; }
     }
 
     public static AnalysisResult Analyze(IEnumerable<Track> tracks, RaceAnalysisOptions? options = null)
@@ -150,7 +150,7 @@ public static class RaceAnalyzer
                     FatigueDriver.Distance => r.Dist,
                     _ => r.CumAsc,
                 };
-                segs.Add(new Seg(Math.Clamp(r.Grade, opt.GradeMinDeg, opt.GradeMaxDeg), r.Speed / norm, effort, r.Turn, r.Hr));
+                segs.Add(new Seg(Math.Clamp(r.Grade, opt.GradeMinDeg, opt.GradeMaxDeg), r.Speed / norm, r.Speed, effort, r.Turn, r.Hr));
             }
         }
 
@@ -189,6 +189,20 @@ public static class RaceAnalyzer
         // --- turn penalty: residual after grade+fatigue regressed against turn density ---
         var turnSpec = FitTurn(segs, relLookup, fatigue);
 
+        // HR zone curves — fit one speed curve per zone if HR data present.
+        int? maxHrBpm = null;
+        List<HrZoneCurve> hrZoneCurves = new();
+        if (anyHr)
+        {
+            var allHr = segs.Where(s => s.Hr is not null).Select(s => (int)Math.Round(s.Hr!.Value)).ToList();
+            if (allHr.Count > 0)
+            {
+                maxHrBpm = allHr.Max();
+                var zones = HrZoneSpec.FromMaxHr(maxHrBpm.Value);
+                hrZoneCurves = FitHrZoneCurves(segs, zones, opt.GradeMinDeg, bins, opt.MinBinSamples);
+            }
+        }
+
         double scale = opt.NormalizePerTrack ? athleteFlat : 1.0;
         var model = new RaceModel
         {
@@ -206,11 +220,12 @@ public static class RaceAnalyzer
             Fatigue = fatigue,
             Turn = turnSpec,
             Altitude = new AltitudeSpec { DeratePerKm = 0 },
+            HrZoneCurves = hrZoneCurves,
             AthleteBaseline = new AthleteBaseline
             {
                 FlatSpeedMps = athleteFlat,
                 RefHr = refHr,
-                // Maximum of per-track P90 specific powers: what this athlete can actually deliver.
+                MaxHrBpm = maxHrBpm,
                 PeakSpecificPowerWkg = trackPower.Count > 0 ? trackPower.Max(t => t.P90SpecificPowerWkg) : null,
             },
             Meta = new RaceModelMeta
@@ -235,23 +250,25 @@ public static class RaceAnalyzer
     }
 
     private static double[] FitBaseCurve(List<Seg> segs, double gradeMin, int bins, int minSamples, double fallback, double percentile = 0.5)
+        => FitBaseCurveFromValues(segs.Select(s => (s.GradeDeg, s.SpeedRel)), gradeMin, bins, minSamples, fallback, percentile);
+
+    /// <summary>Core bucket-median-smooth fitter. Works on any (grade, speed) pairs — used for both the main
+    /// normalized curve and absolute-speed HR-zone curves.</summary>
+    private static double[] FitBaseCurveFromValues(
+        IEnumerable<(double GradeDeg, double Speed)> items,
+        double gradeMin, int bins, int minSamples, double fallback, double percentile = 0.5)
     {
         var buckets = new List<double>[bins];
         for (int b = 0; b < bins; b++) buckets[b] = new List<double>();
-        foreach (var s in segs)
+        foreach (var (g, s) in items)
         {
-            int b = (int)Math.Round(s.GradeDeg - gradeMin);
-            if (b >= 0 && b < bins) buckets[b].Add(s.SpeedRel);
+            int b = (int)Math.Round(g - gradeMin);
+            if (b >= 0 && b < bins) buckets[b].Add(s);
         }
-
         var curve = new double?[bins];
         for (int b = 0; b < bins; b++)
             if (buckets[b].Count >= minSamples) curve[b] = Percentile(buckets[b], percentile);
-
-        // Fill gaps by linear interpolation between known bins; clamp the ends to the nearest known value.
         FillGaps(curve, fallback);
-
-        // Light 3-wide smoothing.
         var outp = new double[bins];
         for (int b = 0; b < bins; b++)
         {
@@ -260,6 +277,41 @@ public static class RaceAnalyzer
             outp[b] = sum / c;
         }
         return outp;
+    }
+
+    /// <summary>Fits absolute-speed curves for each HR zone from segments that carry HR data.
+    /// Zones with fewer than 4×minSamples segments are skipped (too sparse to trust).</summary>
+    private static List<HrZoneCurve> FitHrZoneCurves(
+        List<Seg> segs, HrZoneSpec[] zones, double gradeMin, int bins, int minSamples)
+    {
+        var result = new List<HrZoneCurve>();
+        foreach (var z in zones)
+        {
+            var zs = segs.Where(s => s.Hr is double hr && z.Contains(hr)).ToList();
+            if (zs.Count < minSamples * 4) continue;
+
+            double fallback = Median(zs.Select(s => s.SpeedAbs).ToList());
+            var curve = FitBaseCurveFromValues(zs.Select(s => (s.GradeDeg, s.SpeedAbs)), gradeMin, bins, minSamples, fallback);
+
+            var flat = zs.Where(s => Math.Abs(s.GradeDeg) < 1.5).Select(s => s.SpeedAbs).ToList();
+            double flatSpeed = flat.Count >= 5 ? Median(flat) : fallback;
+
+            var powers = zs.Select(s =>
+                RunningPower.SpecificPowerWkg(Math.Tan(s.GradeDeg * Math.PI / 180.0), s.SpeedAbs)).ToList();
+
+            result.Add(new HrZoneCurve
+            {
+                Zone = z.Zone,
+                ZoneName = z.Name,
+                LowerBpm = z.LowerBpm,
+                UpperBpm = z.UpperBpm,
+                SampleCount = zs.Count,
+                FlatSpeedMps = flatSpeed,
+                MeanSpecificPowerWkg = powers.Count > 0 ? powers.Average() : null,
+                Curve = new BaseCurve { GradeMinDeg = gradeMin, StepDeg = 1, SpeedMps = curve },
+            });
+        }
+        return result;
     }
 
     private static void FillGaps(double?[] curve, double fallback)
