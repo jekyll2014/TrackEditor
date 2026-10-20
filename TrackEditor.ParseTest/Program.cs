@@ -15,12 +15,15 @@ if (!Directory.Exists(samplesRoot))
     return 1;
 }
 
-var configs = new (string Label, bool AutoCalib, RunningProfile Profile)[]
+var configs = new (string Label, bool AutoCalib, RunningProfile Profile, int? HrZone)[]
 {
-    ("no-calib",        false, RunningProfile.Road),
-    ("road",            true,  RunningProfile.Road),
-    ("trail",           true,  RunningProfile.Trail),
-    ("ultra",           true,  RunningProfile.UltraTrail),
+    ("no-calib",  false, RunningProfile.Road,       null),
+    ("road",      true,  RunningProfile.Road,       null),
+    ("trail",     true,  RunningProfile.Trail,      null),
+    ("ultra",     true,  RunningProfile.UltraTrail, null),
+    ("Z1-recov",  false, RunningProfile.Road,       1),
+    ("Z2-aerob",  false, RunningProfile.Road,       2),
+    ("Z3-tempo",  false, RunningProfile.Road,       3),
 };
 
 foreach (string racerDir in Directory.GetDirectories(samplesRoot).OrderBy(d => d))
@@ -114,11 +117,19 @@ foreach (string racerDir in Directory.GetDirectories(samplesRoot).OrderBy(d => d
                     var res = RaceAnalyzer.Analyze(subset.Select(x => x.track));
                     if (res.SegmentsUsed == 0) { Console.Write($"  {"no segs",12}"); continue; }
 
+                    int? hrZone = configs[ci].HrZone;
+                    if (hrZone is not null && res.Model.HrZoneCurves.Count == 0)
+                    {
+                        Console.Write($"  {"no HR",12}");
+                        continue;
+                    }
+
                     var opt = new PredictOptions
                     {
                         AutoCalibrateByDistance = configs[ci].AutoCalib,
                         RunningProfile = configs[ci].Profile,
                         Effort = RaceEffort.Race,
+                        TargetHrZone = hrZone,
                     };
                     var pred = RacePredictor.Predict(targetTrack, res.Model, opt);
                     preds[ci] = pred.TotalTime;

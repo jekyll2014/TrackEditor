@@ -202,7 +202,7 @@ public static class RaceAnalyzer
             {
                 maxHrBpm = opt.MaxHrOverride ?? allHr.Max();
                 var zones = HrZoneSpec.FromMaxHr(maxHrBpm.Value);
-                hrZoneCurves = FitHrZoneCurves(segs, zones, opt.GradeMinDeg, bins, opt.MinBinSamples);
+                hrZoneCurves = FitHrZoneCurves(segs, zones, opt.GradeMinDeg, bins, opt.MinBinSamples, relLookup);
             }
         }
 
@@ -283,10 +283,13 @@ public static class RaceAnalyzer
     }
 
     /// <summary>Fits absolute-speed curves for each HR zone from segments that carry HR data.
-    /// Zones with fewer than 4×minSamples segments are skipped (too sparse to trust).</summary>
+    /// Zones with fewer than 4×minSamples segments are skipped (too sparse to trust).
+    /// FlatSpeedMps is terrain-normalized: each segment's AbsSpeed is divided by the grade's relative
+    /// response from the overall model, removing terrain bias from the zone flat-speed estimate.</summary>
     private static List<HrZoneCurve> FitHrZoneCurves(
-        List<Seg> segs, HrZoneSpec[] zones, double gradeMin, int bins, int minSamples)
+        List<Seg> segs, HrZoneSpec[] zones, double gradeMin, int bins, int minSamples, BaseCurve relCurve)
     {
+        double relFlat = relCurve.SpeedAt(0);
         var result = new List<HrZoneCurve>();
         foreach (var z in zones)
         {
@@ -296,8 +299,17 @@ public static class RaceAnalyzer
             double fallback = Median(zs.Select(s => s.SpeedAbs).ToList());
             var curve = FitBaseCurveFromValues(zs.Select(s => (s.GradeDeg, s.SpeedAbs)), gradeMin, bins, minSamples, fallback);
 
-            var flat = zs.Where(s => Math.Abs(s.GradeDeg) < 1.5).Select(s => s.SpeedAbs).ToList();
-            double flatSpeed = flat.Count >= 5 ? Median(flat) : fallback;
+            // Terrain-normalize each segment: divide absolute speed by the expected relative grade response.
+            // Gives the flat-equivalent speed the athlete would run at on this HR, regardless of terrain mix.
+            // Exclude sub-walking speeds (< 1.0 m/s = 3.6 km/h) — recovery walks in ultras are Z1/Z2 but
+            // represent a different activity from sustained aerobic running and bias the flat-speed estimate down.
+            double relFlatSafe = relFlat > 0 ? relFlat : 1.0;
+            const double MinRunSpeedMps = 1.0;
+            var normSpeeds = zs
+                .Where(s => s.SpeedAbs >= MinRunSpeedMps)
+                .Select(s => { double rel = relCurve.SpeedAt(s.GradeDeg); return rel > 0.05 ? s.SpeedAbs * relFlatSafe / rel : (double?)null; })
+                .Where(v => v.HasValue).Select(v => v!.Value).ToList();
+            double flatSpeed = normSpeeds.Count >= 5 ? Median(normSpeeds) : fallback;
 
             var powers = zs.Select(s =>
                 RunningPower.SpecificPowerWkg(Math.Tan(s.GradeDeg * Math.PI / 180.0), s.SpeedAbs)).ToList();
