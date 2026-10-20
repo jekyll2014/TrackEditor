@@ -67,9 +67,14 @@ public static class RaceFormatter
         if (opt.AutoCalibrateByDistance && !opt.CalibrateToRecentRace)
         {
             double trainKm = model.Meta.EffectiveRepresentativeKm;
-            double scale = EnduranceCalibration.DistanceScale(trainKm, r.DistanceKm);
+            double scale = EnduranceCalibration.DistanceScale(trainKm, r.DistanceKm, opt.RunningProfile);
             if (Math.Abs(scale - 1.0) > 0.005)
                 sb.AppendLine($"{Loc.Get("RpAutoCalib")} ×{scale:F2} ({trainKm:F0} km model → {r.DistanceKm:F1} km target)");
+        }
+        if (opt.RunningProfile != RunningProfile.Road)
+        {
+            string profileName = opt.RunningProfile == RunningProfile.UltraTrail ? "Ultra Trail" : "Trail";
+            sb.AppendLine($"{Loc.Get("RpProfile")} {profileName} (b={EnduranceCalibration.ExponentFor(opt.RunningProfile):F2})");
         }
         var recent = opt.Profile?.RecentRace;
         if (recent is { IsValid: true } && (opt.CalibrateToRecentRace || opt.CapToSustainable))

@@ -122,6 +122,14 @@ public partial class ApplyRaceModelWindow : Window
             _ => SportType.Running,
         };
 
+    private RunningProfile SelectedRunningProfile() =>
+        ((CmbProfile.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string) switch
+        {
+            "Trail"      => RunningProfile.Trail,
+            "UltraTrail" => RunningProfile.UltraTrail,
+            _ => RunningProfile.Road,
+        };
+
     private void CmbSport_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         // When user picks sport manually (no model), reset model so physics-only path is used.
@@ -147,6 +155,8 @@ public partial class ApplyRaceModelWindow : Window
         ChkLoad.Visibility = isCycling ? Visibility.Collapsed : Visibility.Visible;
         if (ChkAutoCalibrate is not null)
             ChkAutoCalibrate.Visibility = isCycling ? Visibility.Collapsed : Visibility.Visible;
+        if (PanelProfile is not null)
+            PanelProfile.Visibility = isCycling ? Visibility.Collapsed : Visibility.Visible;
         if (isCycling && string.IsNullOrWhiteSpace(TxtCdA.Text))
         {
             var def = SelectedSport() == SportType.CyclingXC ? CyclingSpec.XCDefault() : CyclingSpec.RoadDefault();
@@ -233,6 +243,7 @@ public partial class ApplyRaceModelWindow : Window
             CalibrateToRecentRace = ChkCalibrate.IsChecked == true,
             CapToSustainable = ChkCap.IsChecked == true,
             AutoCalibrateByDistance = ChkAutoCalibrate.IsChecked == true,
+            RunningProfile = SelectedRunningProfile(),
             UseLoadModel = ChkLoad.IsChecked == true && !isCycling,
             UsePhysics = usePhysics,
             PhysicsSpec = physicsSpec,

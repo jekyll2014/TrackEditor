@@ -70,6 +70,15 @@
             <CheckBox x:Name="ChkCap" Content="{DynamicResource ChkCap}" Margin="0,2,0,0"/>
             <CheckBox x:Name="ChkAutoCalibrate" Content="{DynamicResource ChkAutoCalibrate}" Margin="0,2,0,0" IsChecked="True"
                       ToolTip="Riegel distance scaling: if the model was trained on long races, short-race predictions are sped up automatically. No recent race required."/>
+            <StackPanel x:Name="PanelProfile" Orientation="Horizontal" Margin="0,2,0,0">
+                <TextBlock Text="{DynamicResource LblRunningProfile}" VerticalAlignment="Center" Width="130"/>
+                <ComboBox x:Name="CmbProfile" Width="150" SelectedIndex="0"
+                          ToolTip="Controls the Riegel exponent used by distance calibration. Road=1.06, Trail=1.04 (cap 4×), UltraTrail=1.02 (cap 3×).">
+                    <ComboBoxItem Content="{DynamicResource ProfileRoad}"      Tag="Road"/>
+                    <ComboBoxItem Content="{DynamicResource ProfileTrail}"     Tag="Trail"/>
+                    <ComboBoxItem Content="{DynamicResource ProfileUltraTrail}" Tag="UltraTrail"/>
+                </ComboBox>
+            </StackPanel>
             <CheckBox x:Name="ChkLoad" Content="{DynamicResource ChkLoad}" Margin="0,2,0,0"/>
 
             <Expander x:Name="ProfileExpander" Header="{DynamicResource ProfileExpander}" Margin="0,8,0,0">

@@ -36,6 +36,10 @@ public class PredictOptions
     /// applied to a short race predicts too slow without this, because the model's base speeds were recorded at
     /// long-race effort. Applied before <see cref="CalibrateToRecentRace"/> so the two can compose.</summary>
     public bool AutoCalibrateByDistance { get; set; } = true;
+    /// <summary>Running/terrain profile that controls the Riegel exponent and maximum distance ratio used by
+    /// <see cref="AutoCalibrateByDistance"/>. Road uses the classic b=1.06; trail/ultra runners show a flatter
+    /// pace-distance curve and should use Trail (b=1.04) or UltraTrail (b=1.02) to avoid over-correcting.</summary>
+    public RunningProfile RunningProfile { get; set; } = RunningProfile.Road;
     /// <summary>Clamp the effort-scaled pace to the endurance-sustainable ceiling from the recent race, so an
     /// aggressive effort can't predict an unsustainable average. Needs <see cref="Profile"/>.RecentRace.</summary>
     public bool CapToSustainable { get; set; } = false;
@@ -111,7 +115,7 @@ public static class RacePredictor
         if (opt.AutoCalibrateByDistance)
         {
             double trainKm = model.Meta.EffectiveRepresentativeKm;
-            levelScale *= EnduranceCalibration.DistanceScale(trainKm, targetKm);
+            levelScale *= EnduranceCalibration.DistanceScale(trainKm, targetKm, opt.RunningProfile);
         }
         // RecentRace calibration replaces the distance-adjusted level (it already bakes in the distance effect
         // from the actual race result, which is more authoritative than the model's training distance).
