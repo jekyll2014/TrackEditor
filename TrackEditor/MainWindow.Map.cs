@@ -525,7 +525,6 @@ public partial class MainWindow
         }
 
         _mapMgr.SetPreview(features);
-        if (tracks.Any(t => t.Points.Count >= 2)) _mapMgr.ZoomToTracks(tracks);
 
         // Show stats + plots for the preview track without adding it to the document.
         var first = tracks.FirstOrDefault(t => t.Points.Count >= 2);
@@ -545,6 +544,25 @@ public partial class MainWindow
         _preHeatmapActive = null;
         RefreshStats();
         RefreshPlots();
+    }
+
+    private void HeatmapTracksList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (HeatmapTracksList.SelectedItem is not HeatmapIndex.TrackEntry entry) return;
+        if (!System.IO.File.Exists(entry.FilePath)) return;
+        try
+        {
+            string ext = System.IO.Path.GetExtension(entry.FilePath).ToLowerInvariant();
+            var tracks = ext switch
+            {
+                ".fit" => FitIo.Load(entry.FilePath),
+                ".gpx" => GpxIo.Load(entry.FilePath),
+                ".tcx" => TcxIo.Load(entry.FilePath),
+                _ => new System.Collections.Generic.List<Track>(),
+            };
+            if (tracks.Any(t => t.Points.Count >= 2)) _mapMgr.ZoomToTracks(tracks);
+        }
+        catch { }
     }
 
     private void HeatmapTrackLoadToList_Click(object sender, RoutedEventArgs e)

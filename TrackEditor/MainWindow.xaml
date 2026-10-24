@@ -460,7 +460,8 @@
                                    Foreground="#666" Text="" TextTrimming="CharacterEllipsis"/>
                     </DockPanel>
                     <ListBox x:Name="HeatmapTracksList"
-                             SelectionChanged="HeatmapTracksList_SelectionChanged">
+                             SelectionChanged="HeatmapTracksList_SelectionChanged"
+                             MouseDoubleClick="HeatmapTracksList_MouseDoubleClick">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
