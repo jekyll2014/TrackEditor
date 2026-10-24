@@ -447,7 +447,8 @@ public partial class MainWindow
 
     private void FilterHeatmapTracksNear(double lat, double lon)
     {
-        var tracks = _heatmapIndex.QueryTracksNear(lat, lon);
+        double radiusDeg = _settings.HeatmapClickRadiusM / 111_000.0;
+        var tracks = _heatmapIndex.QueryTracksNear(lat, lon, radiusDeg);
         SetHeatmapLock(true);
         HeatmapTracksList.ItemsSource = tracks;
         HeatmapTracksCountTxt.Text = tracks.Count == 0

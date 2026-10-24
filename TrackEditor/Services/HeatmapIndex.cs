@@ -25,9 +25,19 @@ public sealed class HeatmapIndex : IDisposable
     private bool _disposed;
 
     public record Segment(float Lat1, float Lon1, float Lat2, float Lon2, string TrackName);
-    public record TrackEntry(string Name, string FilePath, DateTime? TrackDate)
+    public record TrackEntry(string Name, string FilePath, DateTime? TrackDate, double? DistanceKm, string? ActivityType)
     {
-        public string TrackDateDisplay => TrackDate?.ToLocalTime().ToString("yyyy-MM-dd  HH:mm") ?? "";
+        public string TrackDateDisplay
+        {
+            get
+            {
+                var parts = new System.Collections.Generic.List<string>();
+                if (!string.IsNullOrWhiteSpace(ActivityType)) parts.Add(ActivityType!);
+                if (TrackDate is DateTime d) parts.Add(d.ToLocalTime().ToString("yyyy-MM-dd  HH:mm"));
+                if (DistanceKm is double km) parts.Add($"{km:F1} km");
+                return string.Join("  ·  ", parts);
+            }
+        }
     }
 
     // ── Construction ─────────────────────────────────────────────────────────────
@@ -44,8 +54,10 @@ public sealed class HeatmapIndex : IDisposable
                 id         INTEGER PRIMARY KEY,
                 path       TEXT    NOT NULL UNIQUE,
                 name       TEXT    NOT NULL,
-                mtime      INTEGER NOT NULL,
-                start_time INTEGER
+                mtime         INTEGER NOT NULL,
+                start_time    INTEGER,
+                distance_m    REAL,
+                activity_type TEXT
             );
             CREATE TABLE IF NOT EXISTS heatmap_segs (
                 id      INTEGER PRIMARY KEY,
@@ -63,9 +75,10 @@ public sealed class HeatmapIndex : IDisposable
                 DELETE FROM heatmap_seg_rtree WHERE id = OLD.id;
             END;
             """);
-        // Migration: add start_time column if absent (existing DBs won't have it).
-        try { Exec("ALTER TABLE heatmap_files ADD COLUMN start_time INTEGER;"); }
-        catch { /* already exists */ }
+        // Migrations: add columns absent from older DBs.
+        try { Exec("ALTER TABLE heatmap_files ADD COLUMN start_time INTEGER;"); } catch { }
+        try { Exec("ALTER TABLE heatmap_files ADD COLUMN distance_m REAL;"); } catch { }
+        try { Exec("ALTER TABLE heatmap_files ADD COLUMN activity_type TEXT;"); } catch { }
     }
 
     // ── Public API ────────────────────────────────────────────────────────────────
@@ -160,7 +173,7 @@ public sealed class HeatmapIndex : IDisposable
         var result = new List<TrackEntry>();
         using var cmd = _conn.CreateCommand();
         cmd.CommandText = """
-            SELECT DISTINCT f.name, f.path, f.start_time
+            SELECT DISTINCT f.name, f.path, f.start_time, f.distance_m, f.activity_type
             FROM heatmap_segs s
             JOIN heatmap_seg_rtree r ON r.id = s.id
             JOIN heatmap_files f ON f.id = s.file_id
@@ -175,9 +188,10 @@ public sealed class HeatmapIndex : IDisposable
         using var r = cmd.ExecuteReader();
         while (r.Read())
         {
-            DateTime? trackDate = r.IsDBNull(2) ? null
-                : new DateTime(r.GetInt64(2), DateTimeKind.Utc);
-            result.Add(new TrackEntry(r.GetString(0), r.GetString(1), trackDate));
+            DateTime? trackDate = r.IsDBNull(2) ? null : new DateTime(r.GetInt64(2), DateTimeKind.Utc);
+            double? distKm = r.IsDBNull(3) ? null : r.GetDouble(3) / 1000.0;
+            string? actType = r.IsDBNull(4) ? null : r.GetString(4);
+            result.Add(new TrackEntry(r.GetString(0), r.GetString(1), trackDate, distKm, actType));
         }
         return result;
     }
@@ -223,6 +237,10 @@ public sealed class HeatmapIndex : IDisposable
             .Where(p => p.Time is { Year: > 1990 })
             .Select(p => p.Time)
             .FirstOrDefault();
+        double distM = tracks
+            .Where(t => t.Points.Count >= 2)
+            .Sum(t => GeoMath.CumulativeDistancesM(t.Points)[^1]);
+        string? activityType = tracks.FirstOrDefault(t => !string.IsNullOrWhiteSpace(t.ActivityType))?.ActivityType;
 
         using var tx = _conn.BeginTransaction();
 
@@ -239,11 +257,13 @@ public sealed class HeatmapIndex : IDisposable
         using (var ins = _conn.CreateCommand())
         {
             ins.Transaction = tx;
-            ins.CommandText = "INSERT INTO heatmap_files (path, name, mtime, start_time) VALUES ($p, $n, $m, $st); SELECT last_insert_rowid();";
+            ins.CommandText = "INSERT INTO heatmap_files (path, name, mtime, start_time, distance_m, activity_type) VALUES ($p, $n, $m, $st, $dm, $at); SELECT last_insert_rowid();";
             ins.Parameters.AddWithValue("$p", path);
             ins.Parameters.AddWithValue("$n", name);
             ins.Parameters.AddWithValue("$m", mtime);
             ins.Parameters.AddWithValue("$st", (object?)startTime?.ToUniversalTime().Ticks ?? DBNull.Value);
+            ins.Parameters.AddWithValue("$dm", distM > 0 ? (object)distM : DBNull.Value);
+            ins.Parameters.AddWithValue("$at", (object?)activityType ?? DBNull.Value);
             fileId = (long)ins.ExecuteScalar()!;
         }
 

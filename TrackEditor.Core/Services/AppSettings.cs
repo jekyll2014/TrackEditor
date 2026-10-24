@@ -134,6 +134,8 @@ public class AppSettings
     public string HeatmapColorHex { get; set; } = "#FF5500";
     /// <summary>Maximum line opacity [0–1] for the most-visited paths (less-visited scale down logarithmically).</summary>
     public double HeatmapOpacity { get; set; } = 0.85;
+    /// <summary>Search radius in metres when filtering the heatmap track list by map click.</summary>
+    public int HeatmapClickRadiusM { get; set; } = 150;
 
     // Server storage account (access/refresh tokens persisted locally; cleared on logout)
     public string? ServerUrl { get; set; }

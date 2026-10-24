@@ -71,6 +71,16 @@ public static class FitIo
                     string? name = NameString(new CourseMesg(e.mesg).GetName());
                     if (!string.IsNullOrWhiteSpace(name)) track.Name = name;
                     break;
+                case MesgNum.Sport:
+                    if (new SportMesg(e.mesg).GetSport() is Sport sp
+                        && sp != Sport.Generic && sp != Sport.Invalid)
+                        track.ActivityType ??= sp.ToString();
+                    break;
+                case MesgNum.Session:
+                    if (new SessionMesg(e.mesg).GetSport() is Sport sp2
+                        && sp2 != Sport.Generic && sp2 != Sport.Invalid)
+                        track.ActivityType ??= sp2.ToString();
+                    break;
                 case MesgNum.Record:
                     if (ParseRecord(new RecordMesg(e.mesg)) is TrackPoint p) track.Points.Add(p);
                     break;

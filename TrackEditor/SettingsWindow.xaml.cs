@@ -82,6 +82,9 @@ public partial class SettingsWindow : Window
         SliderHeatmapOpacity.Value = Result.HeatmapOpacity;
         SliderHeatmapOpacity.ValueChanged += (_, _) => LblHeatmapOpacity.Text = $"{SliderHeatmapOpacity.Value:P0}";
         LblHeatmapOpacity.Text = $"{Result.HeatmapOpacity:P0}";
+        SliderHeatmapRadius.Value = Result.HeatmapClickRadiusM;
+        SliderHeatmapRadius.ValueChanged += (_, _) => LblHeatmapRadius.Text = $"{(int)SliderHeatmapRadius.Value} m";
+        LblHeatmapRadius.Text = $"{Result.HeatmapClickRadiusM} m";
         HeatmapColorPreview.Background = TryBrush(Result.HeatmapColorHex);
 
         UpdateEnabledState();
@@ -224,6 +227,7 @@ public partial class SettingsWindow : Window
         Result.HeatmapFolder = string.IsNullOrWhiteSpace(TxtHeatmapFolder.Text) ? null : TxtHeatmapFolder.Text.Trim();
         Result.HeatmapColorHex = NormalizeHex(TxtHeatmapColor.Text, Result.HeatmapColorHex);
         Result.HeatmapOpacity = SliderHeatmapOpacity.Value;
+        Result.HeatmapClickRadiusM = (int)SliderHeatmapRadius.Value;
 
         DialogResult = true;
     }

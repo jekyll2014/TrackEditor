@@ -222,6 +222,13 @@
                                     Width="200" Margin="0,0,8,0"/>
                             <TextBlock x:Name="LblHeatmapOpacity" VerticalAlignment="Center" Width="36"/>
                         </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="Click radius:" VerticalAlignment="Center" Width="120"/>
+                            <Slider x:Name="SliderHeatmapRadius" Minimum="50" Maximum="500"
+                                    TickFrequency="25" IsSnapToTickEnabled="True"
+                                    Width="200" Margin="0,0,8,0"/>
+                            <TextBlock x:Name="LblHeatmapRadius" VerticalAlignment="Center" Width="50"/>
+                        </StackPanel>
                         <Button Content="Rescan now" Click="RescanHeatmap_Click"
                                 HorizontalAlignment="Left" Padding="8,3"/>
                     </StackPanel>
