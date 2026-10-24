@@ -5,6 +5,7 @@ using BruTile.Web;
 using Mapsui;
 using Mapsui.Extensions;
 using Mapsui.Layers;
+using Mapsui.Manipulations;
 using Mapsui.Nts;
 using Mapsui.Projections;
 using Mapsui.Styles;
@@ -13,7 +14,7 @@ using Mapsui.Tiling.Layers;
 using NetTopologySuite.Geometries;
 
 using System.IO;
-using Mapsui.Manipulations;
+
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
 
@@ -36,6 +37,8 @@ public class MapManager : IDisposable
     private readonly MemoryLayer _hoverLayer = new() { Name = "Hover", Style = null };
     private readonly MemoryLayer _measureLayer = new() { Name = "Measure", Style = null };
     private readonly MemoryLayer _viewerLayer = new() { Name = "Viewer3D", Style = null };
+    private readonly MemoryLayer _heatmapLayer = new() { Name = "Heatmap", Style = null };
+    private readonly MemoryLayer _previewLayer = new() { Name = "HeatmapPreview", Style = null };
     private ILayer _baseLayer;
     private MbTilesCache _baseCache;
     private BaseMapProvider _provider;
@@ -61,7 +64,9 @@ public class MapManager : IDisposable
         var map = ctrl.Map;
         _baseLayer = CreateBaseLayer(provider, LimitBytes, out _baseCache, out _baseMaxZoom);
         map.Layers.Add(_baseLayer);
+        map.Layers.Add(_heatmapLayer);  // above basemap, below user tracks
         map.Layers.Add(_lineLayer);
+        map.Layers.Add(_previewLayer);
         map.Layers.Add(_vertexLayer);
         map.Layers.Add(_flagLayer);
         map.Layers.Add(_waypointLayer);
@@ -120,6 +125,32 @@ public class MapManager : IDisposable
     }
 
     public void ClearMeasure() => SetMeasure(Array.Empty<(double, double)>());
+
+    /// <summary>Replaces the heatmap with freshly rendered features and sets layer-level opacity.</summary>
+    public void SetHeatmap(IList<IFeature> features, double opacity = 0.75)
+    {
+        _heatmapLayer.Features = features;
+        _heatmapLayer.Opacity = opacity;
+        _heatmapLayer.DataHasChanged();
+        _ctrl.RefreshGraphics();
+    }
+
+    /// <summary>Shows or hides the heatmap layer without re-rendering it.</summary>
+    public void SetHeatmapVisible(bool visible)
+    {
+        _heatmapLayer.Enabled = visible;
+        _ctrl.RefreshGraphics();
+    }
+
+    /// <summary>Renders a temporary preview track (heatmap list selection). Pass null to clear.</summary>
+    public void SetPreview(IList<IFeature>? features)
+    {
+        _previewLayer.Features = features ?? Array.Empty<IFeature>();
+        _previewLayer.DataHasChanged();
+        _ctrl.RefreshGraphics();
+    }
+
+    public void ClearPreview() => SetPreview(null);
 
     /// <summary>Recenters the viewport on a point, keeping the current zoom level.</summary>
     public void CenterOn(TrackPoint p)

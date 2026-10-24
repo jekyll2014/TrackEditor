@@ -1,6 +1,6 @@
-using System.Text;
-
 using Dynastream.Fit;
+
+using System.Text;
 
 using TrackEditor.Core.Models;
 
@@ -22,13 +22,44 @@ public static class FitIo
     public static List<Track> Load(string path)
     {
         using var fs = IoFile.OpenRead(path);
+        // Some Garmin exports wrap the .fit in a ZIP archive. Detect by PK signature.
+        Span<byte> sig = stackalloc byte[4];
+        int n = fs.Read(sig);
+        fs.Seek(0, SeekOrigin.Begin);
+        if (n == 4 && sig[0] == 0x50 && sig[1] == 0x4B && sig[2] == 0x03 && sig[3] == 0x04)
+            return LoadFromZip(fs, path);
         return Load(fs, Path.GetFileNameWithoutExtension(path));
+    }
+
+    private static List<Track> LoadFromZip(Stream zipStream, string archivePath)
+    {
+        using var zip = new System.IO.Compression.ZipArchive(zipStream, System.IO.Compression.ZipArchiveMode.Read);
+        var entry = zip.Entries.FirstOrDefault(
+            e => e.Name.EndsWith(".fit", StringComparison.OrdinalIgnoreCase));
+        if (entry is null) return [];
+        // ZipArchiveEntry doesn't support seeking; buffer into MemoryStream first.
+        using var ms = new MemoryStream((int)entry.Length);
+        using (var es = entry.Open()) es.CopyTo(ms);
+        ms.Position = 0;
+        string baseName = Path.GetFileNameWithoutExtension(entry.Name);
+        if (string.IsNullOrWhiteSpace(baseName))
+            baseName = Path.GetFileNameWithoutExtension(archivePath);
+        return Load(ms, baseName);
     }
 
     /// <summary>Stream-based load. A FIT file is one recording, so all Record messages join into a single track;
     /// records without a GPS fix (paused/searching) are skipped.</summary>
     public static List<Track> Load(Stream stream, string baseName = "Track")
     {
+        if (stream.CanSeek)
+        {
+            Span<byte> sig = stackalloc byte[4];
+            int n = stream.Read(sig);
+            stream.Seek(0, SeekOrigin.Begin);
+            if (n == 4 && sig[0] == 0x50 && sig[1] == 0x4B && sig[2] == 0x03 && sig[3] == 0x04)
+                return LoadFromZip(stream, baseName);
+        }
+
         var track = new Track { Name = baseName };
 
         var decode = new Decode();

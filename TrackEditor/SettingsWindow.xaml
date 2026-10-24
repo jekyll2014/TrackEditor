@@ -199,6 +199,34 @@
                     </StackPanel>
                 </GroupBox>
 
+                <!-- Heatmap overlay -->
+                <GroupBox Header="Heatmap Overlay" Margin="0,10,0,0">
+                    <StackPanel Margin="6">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="Activities folder:" VerticalAlignment="Center" Width="120"/>
+                            <TextBox x:Name="TxtHeatmapFolder" Width="260" Margin="0,0,6,0"
+                                     ToolTip="Folder containing .fit / .gpx / .tcx activity files"/>
+                            <Button Content="Browse…" Click="BrowseHeatmapFolder_Click" Width="70"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="Line color:" VerticalAlignment="Center" Width="120"/>
+                            <TextBox x:Name="TxtHeatmapColor" Width="90" Margin="0,0,10,0"
+                                     ToolTip="Hex color code, e.g. #FF5500"/>
+                            <Border x:Name="HeatmapColorPreview" Width="24" Height="24"
+                                    BorderBrush="Gray" BorderThickness="1" CornerRadius="3"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="Max opacity:" VerticalAlignment="Center" Width="120"/>
+                            <Slider x:Name="SliderHeatmapOpacity" Minimum="0.1" Maximum="1.0"
+                                    TickFrequency="0.05" IsSnapToTickEnabled="True"
+                                    Width="200" Margin="0,0,8,0"/>
+                            <TextBlock x:Name="LblHeatmapOpacity" VerticalAlignment="Center" Width="36"/>
+                        </StackPanel>
+                        <Button Content="Rescan now" Click="RescanHeatmap_Click"
+                                HorizontalAlignment="Left" Padding="8,3"/>
+                    </StackPanel>
+                </GroupBox>
+
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

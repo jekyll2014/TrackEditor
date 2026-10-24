@@ -38,6 +38,8 @@ public partial class MainWindow : Window
     private ServerTrackService _serverSvc = null!;
     private bool _elevBusy;
     private readonly MapManager _mapMgr;
+    private HeatmapIndex _heatmapIndex = new();
+    private CancellationTokenSource _heatmapCts = new();
     private readonly DispatcherTimer _viewportTimer;
 
     private Track? _active;
@@ -64,6 +66,8 @@ public partial class MainWindow : Window
         {
             var (cx, cy, res) = _mapMgr.ViewportState();
             _mapMgr.Dispose(); // checkpoint/close the MBTiles cache cleanly
+            _heatmapIndex.Dispose();
+            _heatmapCts.Dispose();
             SessionStore.Save(new SessionStore.Session
             {
                 Active = ActiveIndex(),
@@ -141,20 +145,61 @@ public partial class MainWindow : Window
         ApplyColumnVisibility();
         SyncFlagContentChecks();
         RefreshColumnHeaders();
+        ApplyHeatmapSettings();
+    }
+
+    private string? _lastHeatmapFolder;
+
+    private void ApplyHeatmapSettings()
+    {
+        if (HeatmapCheck is null) return; // during InitializeComponent
+        HeatmapCheck.IsChecked = _settings.HeatmapEnabled;
+        _mapMgr.SetHeatmapVisible(_settings.HeatmapEnabled);
+        HeatmapTracksTab.Visibility = _settings.HeatmapEnabled ? Visibility.Visible : Visibility.Collapsed;
+
+        // Rescan only when the folder changed.
+        if (_settings.HeatmapFolder != _lastHeatmapFolder)
+        {
+            _lastHeatmapFolder = _settings.HeatmapFolder;
+            if (!string.IsNullOrEmpty(_settings.HeatmapFolder))
+                _ = ScanHeatmapAsync(_settings.HeatmapFolder);
+        }
+        else if (_settings.HeatmapEnabled)
+        {
+            _ = RefreshHeatmapAsync();
+        }
+    }
+
+    private async Task ScanHeatmapAsync(string folder)
+    {
+        StatusInfo.Text = "Heatmap: scanning…";
+        try
+        {
+            await _heatmapIndex.ScanAsync(folder,
+                new Progress<(int Done, int Total)>(p =>
+                    Dispatcher.InvokeAsync(() =>
+                        StatusInfo.Text = $"Heatmap: indexed {p.Done}/{p.Total}")));
+            if (_settings.HeatmapEnabled) await RefreshHeatmapAsync();
+            StatusInfo.Text = $"Heatmap: {_heatmapIndex.FileCount()} files indexed";
+        }
+        catch (Exception ex)
+        {
+            StatusInfo.Text = $"Heatmap scan error: {ex.Message}";
+        }
     }
 
     private void RefreshColumnHeaders()
     {
         ColWaypoint.Header = Loc.Get("ColHdrWaypoint");
-        ColLat.Header      = Loc.Get("ColHdrLat");
-        ColLon.Header      = Loc.Get("ColHdrLon");
-        ColEle.Header      = Loc.Get("ColHdrEle");
-        ColTime.Header     = Loc.Get("ColHdrTime");
-        ColDist.Header     = Loc.Get("ColHdrDist");
-        ColHr.Header       = Loc.Get("ColHdrHr");
-        ColCad.Header      = Loc.Get("ColHdrCad");
-        ColTemp.Header     = Loc.Get("ColHdrTemp");
-        ColSurface.Header  = Loc.Get("ColHdrSurface");
+        ColLat.Header = Loc.Get("ColHdrLat");
+        ColLon.Header = Loc.Get("ColHdrLon");
+        ColEle.Header = Loc.Get("ColHdrEle");
+        ColTime.Header = Loc.Get("ColHdrTime");
+        ColDist.Header = Loc.Get("ColHdrDist");
+        ColHr.Header = Loc.Get("ColHdrHr");
+        ColCad.Header = Loc.Get("ColHdrCad");
+        ColTemp.Header = Loc.Get("ColHdrTemp");
+        ColSurface.Header = Loc.Get("ColHdrSurface");
     }
 
     /// <summary>The toolbar Route combo is "Off" plus every routing profile.</summary>
@@ -447,8 +492,17 @@ public partial class MainWindow : Window
     private void Settings_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new SettingsWindow(_settings) { Owner = this };
-        // The dialog hosts the "Clear tile cache" button but the cache lives on the map manager.
         dlg.ClearTileCacheRequested += (_, _) => ClearTileCache_Click(dlg, new RoutedEventArgs());
+        dlg.RescanHeatmapRequested += (_, _) =>
+        {
+            string? folder = string.IsNullOrWhiteSpace(dlg.TxtHeatmapFolder.Text)
+                ? null : dlg.TxtHeatmapFolder.Text.Trim();
+            if (!string.IsNullOrEmpty(folder))
+            {
+                _settings.HeatmapFolder = folder;
+                _ = ScanHeatmapAsync(folder);
+            }
+        };
         if (dlg.ShowDialog() != true) return;
         string? prevServerUrl = _settings.ServerUrl;
         _settings = dlg.Result;

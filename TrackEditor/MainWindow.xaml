@@ -274,6 +274,11 @@
                         <TextBlock Text="{DynamicResource BtnMyLocation}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
+                <Separator/>
+                <CheckBox x:Name="HeatmapCheck" Click="HeatmapToggle_Click" VerticalAlignment="Center"
+                          ToolTip="Show activity heatmap overlay">
+                    <TextBlock Text="🔥 Heatmap" VerticalAlignment="Center"/>
+                </CheckBox>
             </ToolBar>
         </ToolBarTray>
 
@@ -443,6 +448,38 @@
                         </Style>
                     </DataGrid.CellStyle>
                 </DataGrid>
+                </TabItem>
+
+                <TabItem x:Name="HeatmapTracksTab" Header="🔥 Tracks" Visibility="Collapsed">
+                <DockPanel Margin="0,4,0,0">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                        <Button x:Name="HeatmapListLockBtn" DockPanel.Dock="Right"
+                                Padding="5,1" FontSize="11"
+                                Click="HeatmapListLock_Click">Lock</Button>
+                        <TextBlock x:Name="HeatmapTracksCountTxt" VerticalAlignment="Center" FontSize="11"
+                                   Foreground="#666" Text="" TextTrimming="CharacterEllipsis"/>
+                    </DockPanel>
+                    <ListBox x:Name="HeatmapTracksList"
+                             SelectionChanged="HeatmapTracksList_SelectionChanged">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding FilePath}">
+                                    <TextBlock.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Load to tracks" Click="HeatmapTrackLoadToList_Click"/>
+                                        </ContextMenu>
+                                    </TextBlock.ContextMenu>
+                                </TextBlock>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
                 </TabItem>
 
                 <TabItem x:Name="ServerTabItem" Header="{DynamicResource TabServer}">
