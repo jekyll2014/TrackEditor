@@ -468,14 +468,16 @@
                         </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"
-                                           ToolTip="{Binding FilePath}">
-                                    <TextBlock.ContextMenu>
+                                <StackPanel ToolTip="{Binding FilePath}">
+                                    <StackPanel.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="Load to tracks" Click="HeatmapTrackLoadToList_Click"/>
                                         </ContextMenu>
-                                    </TextBlock.ContextMenu>
-                                </TextBlock>
+                                    </StackPanel.ContextMenu>
+                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding TrackDateDisplay}" FontSize="10"
+                                               Foreground="#888" Margin="0,-1,0,0"/>
+                                </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>

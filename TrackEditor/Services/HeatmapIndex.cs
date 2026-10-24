@@ -25,7 +25,10 @@ public sealed class HeatmapIndex : IDisposable
     private bool _disposed;
 
     public record Segment(float Lat1, float Lon1, float Lat2, float Lon2, string TrackName);
-    public record TrackEntry(string Name, string FilePath);
+    public record TrackEntry(string Name, string FilePath, DateTime? TrackDate)
+    {
+        public string TrackDateDisplay => TrackDate?.ToLocalTime().ToString("yyyy-MM-dd  HH:mm") ?? "";
+    }
 
     // ── Construction ─────────────────────────────────────────────────────────────
 
@@ -38,10 +41,11 @@ public sealed class HeatmapIndex : IDisposable
         Exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON;");
         Exec("""
             CREATE TABLE IF NOT EXISTS heatmap_files (
-                id    INTEGER PRIMARY KEY,
-                path  TEXT    NOT NULL UNIQUE,
-                name  TEXT    NOT NULL,
-                mtime INTEGER NOT NULL
+                id         INTEGER PRIMARY KEY,
+                path       TEXT    NOT NULL UNIQUE,
+                name       TEXT    NOT NULL,
+                mtime      INTEGER NOT NULL,
+                start_time INTEGER
             );
             CREATE TABLE IF NOT EXISTS heatmap_segs (
                 id      INTEGER PRIMARY KEY,
@@ -59,6 +63,9 @@ public sealed class HeatmapIndex : IDisposable
                 DELETE FROM heatmap_seg_rtree WHERE id = OLD.id;
             END;
             """);
+        // Migration: add start_time column if absent (existing DBs won't have it).
+        try { Exec("ALTER TABLE heatmap_files ADD COLUMN start_time INTEGER;"); }
+        catch { /* already exists */ }
     }
 
     // ── Public API ────────────────────────────────────────────────────────────────
@@ -153,20 +160,25 @@ public sealed class HeatmapIndex : IDisposable
         var result = new List<TrackEntry>();
         using var cmd = _conn.CreateCommand();
         cmd.CommandText = """
-            SELECT DISTINCT f.name, f.path
+            SELECT DISTINCT f.name, f.path, f.start_time
             FROM heatmap_segs s
             JOIN heatmap_seg_rtree r ON r.id = s.id
             JOIN heatmap_files f ON f.id = s.file_id
             WHERE r.max_lat >= $la AND r.min_lat <= $lb
               AND r.max_lon >= $ca AND r.min_lon <= $cb
-            ORDER BY f.name;
+            ORDER BY COALESCE(f.start_time, f.mtime) DESC;
             """;
         cmd.Parameters.AddWithValue("$la", minLat);
         cmd.Parameters.AddWithValue("$lb", maxLat);
         cmd.Parameters.AddWithValue("$ca", minLon);
         cmd.Parameters.AddWithValue("$cb", maxLon);
         using var r = cmd.ExecuteReader();
-        while (r.Read()) result.Add(new TrackEntry(r.GetString(0), r.GetString(1)));
+        while (r.Read())
+        {
+            DateTime? trackDate = r.IsDBNull(2) ? null
+                : new DateTime(r.GetInt64(2), DateTimeKind.Utc);
+            result.Add(new TrackEntry(r.GetString(0), r.GetString(1), trackDate));
+        }
         return result;
     }
 
@@ -206,6 +218,11 @@ public sealed class HeatmapIndex : IDisposable
 
         // Merge all segments from this file under the first track's name (or file stem).
         string name = tracks.FirstOrDefault()?.Name ?? Path.GetFileNameWithoutExtension(path);
+        DateTime? startTime = tracks
+            .SelectMany(t => t.Points)
+            .Where(p => p.Time is { Year: > 1990 })
+            .Select(p => p.Time)
+            .FirstOrDefault();
 
         using var tx = _conn.BeginTransaction();
 
@@ -222,10 +239,11 @@ public sealed class HeatmapIndex : IDisposable
         using (var ins = _conn.CreateCommand())
         {
             ins.Transaction = tx;
-            ins.CommandText = "INSERT INTO heatmap_files (path, name, mtime) VALUES ($p, $n, $m); SELECT last_insert_rowid();";
+            ins.CommandText = "INSERT INTO heatmap_files (path, name, mtime, start_time) VALUES ($p, $n, $m, $st); SELECT last_insert_rowid();";
             ins.Parameters.AddWithValue("$p", path);
             ins.Parameters.AddWithValue("$n", name);
             ins.Parameters.AddWithValue("$m", mtime);
+            ins.Parameters.AddWithValue("$st", (object?)startTime?.ToUniversalTime().Ticks ?? DBNull.Value);
             fileId = (long)ins.ExecuteScalar()!;
         }
 
