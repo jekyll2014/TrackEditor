@@ -1,11 +1,8 @@
-using System;
-using System.Collections.Generic;
+using Microsoft.Win32;
+
 using System.Globalization;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-
-using Microsoft.Win32;
 
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
@@ -184,7 +181,7 @@ public partial class ApplyRaceModelWindow : Window
     private RunningProfile SelectedRunningProfile() =>
         ((CmbProfile.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string) switch
         {
-            "Trail"      => RunningProfile.Trail,
+            "Trail" => RunningProfile.Trail,
             "UltraTrail" => RunningProfile.UltraTrail,
             _ => RunningProfile.Road,
         };

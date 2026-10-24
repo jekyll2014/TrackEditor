@@ -14,8 +14,6 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 
-using ShimSkiaSharp;
-
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
 using TrackEditor.Core.Skia;
@@ -26,7 +24,6 @@ using SKColor = SkiaSharp.SKColor;
 using SKImage = SkiaSharp.SKImage;
 using SKPaint = SkiaSharp.SKPaint;
 using SKPaintStyle = SkiaSharp.SKPaintStyle;
-using SKPath = SkiaSharp.SKPath;
 using SKRect = SkiaSharp.SKRect;
 using SKStrokeCap = SkiaSharp.SKStrokeCap;
 using SKStrokeJoin = SkiaSharp.SKStrokeJoin;
@@ -153,7 +150,7 @@ public partial class Map3DWindow : Window
 
         _maxStreamTiles = ComputeMaxStreamTiles();
         _streamTimer = new System.Windows.Threading.DispatcherTimer
-            { Interval = TimeSpan.FromMilliseconds(StreamDebounceMs) };
+        { Interval = TimeSpan.FromMilliseconds(StreamDebounceMs) };
         _streamTimer.Tick += async (_, _) => { _streamTimer!.Stop(); await DoStreamAsync(); };
 
         // Google-Earth-style mouse mapping: left drag pans (Helix), right drag orbits/tilts and the

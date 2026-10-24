@@ -1,9 +1,7 @@
-using System.Collections.Generic;
-using System.Linq;
+using Microsoft.Win32;
+
 using System.Windows;
 using System.Windows.Controls;
-
-using Microsoft.Win32;
 
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;

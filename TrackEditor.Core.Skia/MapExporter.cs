@@ -2,8 +2,6 @@ using BruTile;
 
 using Mapsui.Projections;
 
-using ShimSkiaSharp;
-
 using SkiaSharp;
 
 using TrackEditor.Core.Models;
@@ -14,7 +12,6 @@ using SKColor = SkiaSharp.SKColor;
 using SKImage = SkiaSharp.SKImage;
 using SKPaint = SkiaSharp.SKPaint;
 using SKPaintStyle = SkiaSharp.SKPaintStyle;
-using SKPath = SkiaSharp.SKPath;
 using SKRect = SkiaSharp.SKRect;
 using SKStrokeCap = SkiaSharp.SKStrokeCap;
 using SKStrokeJoin = SkiaSharp.SKStrokeJoin;

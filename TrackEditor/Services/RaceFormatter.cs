@@ -56,7 +56,7 @@ public static class RaceFormatter
             foreach (var z in m.HrZoneCurves)
             {
                 string power = z.MeanSpecificPowerWkg is double pw ? $"  power {pw:F1} W/kg" : "";
-                sb.AppendLine($"   {z.Label,-32}  flat {z.FlatSpeedMps*3.6,5:F1} km/h{power}  ({z.SampleCount} segs)");
+                sb.AppendLine($"   {z.Label,-32}  flat {z.FlatSpeedMps * 3.6,5:F1} km/h{power}  ({z.SampleCount} segs)");
             }
         }
         return sb.ToString().TrimEnd();
@@ -89,7 +89,7 @@ public static class RaceFormatter
         {
             var zc = model.HrZoneCurves.FirstOrDefault(z => z.Zone == zoneNum);
             if (zc is not null)
-                sb.AppendLine($"{Loc.Get("RpHrZone")} {zc.Label}  ({zc.FlatSpeedMps*3.6:F1} km/h flat)");
+                sb.AppendLine($"{Loc.Get("RpHrZone")} {zc.Label}  ({zc.FlatSpeedMps * 3.6:F1} km/h flat)");
         }
         var recent = opt.Profile?.RecentRace;
         if (recent is { IsValid: true } && (opt.CalibrateToRecentRace || opt.CapToSustainable))

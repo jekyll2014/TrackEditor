@@ -31,7 +31,7 @@ public static class EnduranceCalibration
     /// <summary>Riegel exponent for the given profile.</summary>
     public static double ExponentFor(RunningProfile p) => p switch
     {
-        RunningProfile.Trail     => 1.04,
+        RunningProfile.Trail => 1.04,
         RunningProfile.UltraTrail => 1.02,
         _ => RiegelExponent,
     };
@@ -40,7 +40,7 @@ public static class EnduranceCalibration
     /// running away when a very-long-race model is applied to a short target. Road has no cap (∞).</summary>
     public static double MaxRatioFor(RunningProfile p) => p switch
     {
-        RunningProfile.Trail     => 4.0,
+        RunningProfile.Trail => 4.0,
         RunningProfile.UltraTrail => 3.0,
         _ => double.PositiveInfinity,
     };

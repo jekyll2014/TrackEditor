@@ -1,8 +1,9 @@
 using System.Globalization;
 using System.IO;
+
+using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
 using TrackEditor.Core.Services.RaceAnalysis;
-using TrackEditor.Core.Models;
 
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
@@ -41,8 +42,8 @@ foreach (string racerDir in Directory.GetDirectories(samplesRoot).OrderBy(d => d
     foreach (var (file, track) in finished)
     {
         var s = TrackStatistics.Compute(track.Points);
-        Console.WriteLine($"  {Path.GetFileName(file),-44} {s.DistanceM/1000,5:F1} km  {s.Duration:hh\\:mm\\:ss}  " +
-                          $"flat {RaceAnalyzer.Analyze(new[]{track}).Model.AthleteBaseline.FlatSpeedMps*3.6:F1} km/h");
+        Console.WriteLine($"  {Path.GetFileName(file),-44} {s.DistanceM / 1000,5:F1} km  {s.Duration:hh\\:mm\\:ss}  " +
+                          $"flat {RaceAnalyzer.Analyze(new[] { track }).Model.AthleteBaseline.FlatSpeedMps * 3.6:F1} km/h");
     }
 
     // For each prediction target, find its matched finished race (ground truth)
@@ -59,7 +60,7 @@ foreach (string racerDir in Directory.GetDirectories(samplesRoot).OrderBy(d => d
             : finished;
 
         var targetStats = TrackStatistics.Compute(targetTrack.Points);
-        Console.WriteLine($"\n--- Target: {Path.GetFileName(targetFile)}  ({targetStats.DistanceM/1000:F1} km) ---");
+        Console.WriteLine($"\n--- Target: {Path.GetFileName(targetFile)}  ({targetStats.DistanceM / 1000:F1} km) ---");
 
         if (hasGt)
         {
@@ -137,7 +138,7 @@ foreach (string racerDir in Directory.GetDirectories(samplesRoot).OrderBy(d => d
                 }
                 catch (Exception ex)
                 {
-                    Console.Write($"  {"ERR:"+ex.Message[..Math.Min(8,ex.Message.Length)],12}");
+                    Console.Write($"  {"ERR:" + ex.Message[..Math.Min(8, ex.Message.Length)],12}");
                 }
             }
 
@@ -173,7 +174,7 @@ foreach (string racerDir in Directory.GetDirectories(samplesRoot).OrderBy(d => d
             {
                 if (errors[ci].Count == 0) continue;
                 double mean = errors[ci].Average();
-                double std = Math.Sqrt(errors[ci].Average(e => (e-mean)*(e-mean)));
+                double std = Math.Sqrt(errors[ci].Average(e => (e - mean) * (e - mean)));
                 Console.WriteLine($"    {configs[ci].Label,-12}  mean={mean,5:F1}%  stddev={std,4:F1}%  best={errors[ci].Min(),4:F1}%");
             }
         }
@@ -198,7 +199,7 @@ static List<(string file, Track track)> LoadTracks(string dir)
             {
                 ".gpx" => GpxIo.Load(file),
                 ".fit" => FitIo.Load(file),
-                _      => TcxIo.Load(file),
+                _ => TcxIo.Load(file),
             };
             var best = tracks.OrderByDescending(t => t.Points.Count).FirstOrDefault();
             if (best is not null) result.Add((file, best));

@@ -102,10 +102,18 @@ public class AthleteProfile
 
     public AthleteProfile Clone() => new()
     {
-        MassKg = MassKg, Age = Age, Sex = Sex,
-        HrMaxBpm = HrMaxBpm, RestingHrBpm = RestingHrBpm, LthrBpm = LthrBpm,
-        PackKg = PackKg, UsePoles = UsePoles,
+        MassKg = MassKg,
+        Age = Age,
+        Sex = Sex,
+        HrMaxBpm = HrMaxBpm,
+        RestingHrBpm = RestingHrBpm,
+        LthrBpm = LthrBpm,
+        PackKg = PackKg,
+        UsePoles = UsePoles,
         RecentRace = RecentRace?.Clone(),
-        FtpW = FtpW, CriticalPowerW = CriticalPowerW, WPrimeJ = WPrimeJ, BikeKg = BikeKg,
+        FtpW = FtpW,
+        CriticalPowerW = CriticalPowerW,
+        WPrimeJ = WPrimeJ,
+        BikeKg = BikeKg,
     };
 }

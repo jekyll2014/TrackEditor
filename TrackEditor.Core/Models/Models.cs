@@ -27,7 +27,7 @@ public class TrackPoint
     public bool IsWaypoint => !string.IsNullOrWhiteSpace(Name);
 
     public TrackPoint Clone() => new()
-        { Lat = Lat, Lon = Lon, Ele = Ele, Time = Time, Hr = Hr, Cad = Cad, Temp = Temp, Surface = Surface, Name = Name };
+    { Lat = Lat, Lon = Lon, Ele = Ele, Time = Time, Hr = Hr, Cad = Cad, Temp = Temp, Surface = Surface, Name = Name };
 }
 
 public class Track
