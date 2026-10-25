@@ -422,9 +422,10 @@ public partial class MainWindow
             var (features, tracks) = await Task.Run(() =>
             {
                 ct.ThrowIfCancellationRequested();
-                var edges = _heatmapIndex.QueryHeatEdges(minLat, maxLat, minLon, maxLon);
+                var cells = _heatmapIndex.QueryHeatCells(minLat, maxLat, minLon, maxLon);
                 ct.ThrowIfCancellationRequested();
-                var f = HeatmapRenderer.BuildFeatures(edges, _settings.HeatmapColorHex);
+                var f = HeatmapRenderer.BuildFeatures(cells, minLon, minLat, maxLon, maxLat,
+                    _settings.HeatmapColorHex, _settings.HeatmapAlwaysVisible);
                 ct.ThrowIfCancellationRequested();
                 var t = _heatmapIndex.QueryVisibleTracks(minLat, maxLat, minLon, maxLon);
                 return (f, t);

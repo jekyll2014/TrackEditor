@@ -148,8 +148,6 @@ public partial class MainWindow : Window
         ApplyHeatmapSettings();
     }
 
-    private string? _lastHeatmapFolder;
-
     private void ApplyHeatmapSettings()
     {
         if (HeatmapCheck is null) return; // during InitializeComponent
@@ -157,17 +155,10 @@ public partial class MainWindow : Window
         _mapMgr.SetHeatmapVisible(_settings.HeatmapEnabled);
         HeatmapTracksTab.Visibility = _settings.HeatmapEnabled ? Visibility.Visible : Visibility.Collapsed;
 
-        // Rescan only when the folder changed.
-        if (_settings.HeatmapFolder != _lastHeatmapFolder)
-        {
-            _lastHeatmapFolder = _settings.HeatmapFolder;
-            if (!string.IsNullOrEmpty(_settings.HeatmapFolder))
-                _ = ScanHeatmapAsync(_settings.HeatmapFolder);
-        }
-        else if (_settings.HeatmapEnabled)
-        {
+        // Never scan automatically — only the Settings "Rescan now" button triggers indexing.
+        // Here we just redraw the overlay from whatever's already in the index.
+        if (_settings.HeatmapEnabled)
             _ = RefreshHeatmapAsync();
-        }
     }
 
     private async Task ScanHeatmapAsync(string folder)

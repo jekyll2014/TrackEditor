@@ -136,6 +136,8 @@ public class AppSettings
     public double HeatmapOpacity { get; set; } = 0.85;
     /// <summary>Search radius in metres when filtering the heatmap track list by map click.</summary>
     public int HeatmapClickRadiusM { get; set; } = 150;
+    /// <summary>Thicken the heatmap blobs and raise their minimum opacity so it stays visible at low/mid zoom.</summary>
+    public bool HeatmapAlwaysVisible { get; set; } = true;
 
     // Server storage account (access/refresh tokens persisted locally; cleared on logout)
     public string? ServerUrl { get; set; }
