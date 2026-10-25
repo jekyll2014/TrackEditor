@@ -9,22 +9,31 @@ namespace TrackEditor.Services;
 
 /// <summary>
 /// SQLite-backed spatial index of activity tracks (.fit/.gpx/.tcx).
-/// Stores Douglas-Peucker-simplified segments in an R-tree for fast viewport bbox queries.
-/// Thread-safe: all DB access serialized on <c>_gate</c>; becomes a no-op after Dispose.
+///
+/// Pre-computes a heat-edge network at index time: GPS segments are snapped to a ~11 m grid,
+/// direction-normalised, and merged into unique edges. Each edge stores the count of distinct
+/// files that pass through it, so rendering only needs to draw the merged network instead of
+/// every raw segment — dramatically fewer draw calls for large collections.
+///
+/// Thread-safe: all DB access serialised on <c>_gate</c>; becomes a no-op after Dispose.
 /// </summary>
 public sealed class HeatmapIndex : IDisposable
 {
-    // DP tolerance: 10 m keeps path shape at any zoom while reducing point count ~10x on typical GPS tracks.
+    // DP tolerance: 10 m keeps path shape while reducing point count ~10× on typical GPS tracks.
     private const double DpToleranceM = 10.0;
-    // Hard cap on segments returned per query to bound rendering time.
-    private const int QueryLimit = 800_000;
+    // Snapping grid: ~11 m at the equator — merges GPS noise and near-identical parallel paths.
+    private const double SnapDeg = 0.0001;
+    // Hard cap on heat edges returned per viewport query.
+    private const int QueryLimit = 200_000;
     private const string Exts = ".fit|.gpx|.tcx";
 
     private readonly SqliteConnection _conn;
     private readonly object _gate = new();
     private bool _disposed;
 
-    public record Segment(float Lat1, float Lon1, float Lat2, float Lon2, string TrackName);
+    /// <summary>A pre-computed, snapped heat edge with its accumulated track count.</summary>
+    public record HeatEdge(float Lat1, float Lon1, float Lat2, float Lon2, int Count);
+
     public record TrackEntry(string Name, string FilePath, DateTime? TrackDate, double? DistanceKm, string? ActivityType)
     {
         public string TrackDateDisplay
@@ -51,40 +60,58 @@ public sealed class HeatmapIndex : IDisposable
         Exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON;");
         Exec("""
             CREATE TABLE IF NOT EXISTS heatmap_files (
-                id         INTEGER PRIMARY KEY,
-                path       TEXT    NOT NULL UNIQUE,
-                name       TEXT    NOT NULL,
+                id            INTEGER PRIMARY KEY,
+                path          TEXT    NOT NULL UNIQUE,
+                name          TEXT    NOT NULL,
                 mtime         INTEGER NOT NULL,
                 start_time    INTEGER,
                 distance_m    REAL,
                 activity_type TEXT
             );
-            CREATE TABLE IF NOT EXISTS heatmap_segs (
-                id      INTEGER PRIMARY KEY,
-                file_id INTEGER NOT NULL REFERENCES heatmap_files(id) ON DELETE CASCADE,
-                lat1 REAL NOT NULL, lon1 REAL NOT NULL,
-                lat2 REAL NOT NULL, lon2 REAL NOT NULL
+
+            -- Snapped, direction-normalised edges shared across all files that pass through them.
+            CREATE TABLE IF NOT EXISTS heat_edges (
+                id    INTEGER PRIMARY KEY,
+                lat1  REAL    NOT NULL,
+                lon1  REAL    NOT NULL,
+                lat2  REAL    NOT NULL,
+                lon2  REAL    NOT NULL,
+                count INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(lat1, lon1, lat2, lon2)
             );
-            CREATE VIRTUAL TABLE IF NOT EXISTS heatmap_seg_rtree USING rtree(
+
+            -- Which files contributed to each edge (one row per file/edge pair).
+            CREATE TABLE IF NOT EXISTS heat_edge_tracks (
+                edge_id INTEGER NOT NULL REFERENCES heat_edges(id)      ON DELETE CASCADE,
+                file_id INTEGER NOT NULL REFERENCES heatmap_files(id)   ON DELETE CASCADE,
+                PRIMARY KEY (edge_id, file_id)
+            );
+
+            CREATE VIRTUAL TABLE IF NOT EXISTS heat_edge_rtree USING rtree(
                 id,
                 min_lat, max_lat,
                 min_lon, max_lon
             );
-            CREATE TRIGGER IF NOT EXISTS del_seg_rtree
-            AFTER DELETE ON heatmap_segs BEGIN
-                DELETE FROM heatmap_seg_rtree WHERE id = OLD.id;
+
+            -- When an edge loses all files, remove it from the R-tree.
+            CREATE TRIGGER IF NOT EXISTS del_heat_edge_rtree
+            AFTER DELETE ON heat_edges BEGIN
+                DELETE FROM heat_edge_rtree WHERE id = OLD.id;
+            END;
+
+            -- When a file/edge association is removed, decrement the edge count;
+            -- delete the edge when it reaches zero (triggers del_heat_edge_rtree above).
+            CREATE TRIGGER IF NOT EXISTS dec_heat_edge_count
+            AFTER DELETE ON heat_edge_tracks BEGIN
+                UPDATE heat_edges SET count = count - 1 WHERE id = OLD.edge_id;
+                DELETE FROM heat_edges WHERE id = OLD.edge_id AND count <= 0;
             END;
             """);
-        // Migrations: add columns absent from older DBs.
-        try { Exec("ALTER TABLE heatmap_files ADD COLUMN start_time INTEGER;"); } catch { }
-        try { Exec("ALTER TABLE heatmap_files ADD COLUMN distance_m REAL;"); } catch { }
-        try { Exec("ALTER TABLE heatmap_files ADD COLUMN activity_type TEXT;"); } catch { }
     }
 
     // ── Public API ────────────────────────────────────────────────────────────────
 
-    /// <summary>Walks <paramref name="folder"/> for activity files, indexes new/changed, removes deleted.
-    /// <paramref name="progress"/> is called with (indexed, total) as files are processed.</summary>
+    /// <summary>Walks <paramref name="folder"/> for activity files, indexes new/changed, removes deleted.</summary>
     public async Task ScanAsync(string folder, IProgress<(int Done, int Total)>? progress = null,
                                 CancellationToken ct = default)
     {
@@ -93,7 +120,6 @@ public sealed class HeatmapIndex : IDisposable
                              .Where(f => Exts.Contains(Path.GetExtension(f).ToLowerInvariant()))
                              .ToList();
 
-        // Build set of known paths to detect deleted files.
         HashSet<string> known;
         lock (_gate)
         {
@@ -117,7 +143,7 @@ public sealed class HeatmapIndex : IDisposable
                     known.Remove(file);
                 }
                 progress?.Report((++done, files.Count));
-                await Task.Yield(); // keep UI responsive between files
+                await Task.Yield();
             }
         }
         catch (Exception e)
@@ -126,29 +152,28 @@ public sealed class HeatmapIndex : IDisposable
             throw;
         }
 
-        // Remove entries for deleted files.
         if (known.Count > 0)
             lock (_gate) { if (!_disposed) DeleteFiles(known); }
     }
 
-    /// <summary>Indexes a single file immediately (blocks caller). Used for one-off additions.</summary>
+    /// <summary>Indexes a single file immediately (blocks caller).</summary>
     public void IndexFile(string path)
     {
         long mtime = new FileInfo(path).LastWriteTimeUtc.Ticks;
         lock (_gate) { if (!_disposed) IndexFileCore(path, mtime); }
     }
 
-    /// <summary>Returns all track segments that intersect the given lat/lon bounding box.</summary>
-    public List<Segment> QuerySegments(double minLat, double maxLat, double minLon, double maxLon)
+    /// <summary>Returns merged heat edges that intersect the given lat/lon bounding box.</summary>
+    public List<HeatEdge> QueryHeatEdges(double minLat, double maxLat, double minLon, double maxLon)
     {
         lock (_gate)
         {
             if (_disposed) return [];
-            return QuerySegmentsCore(minLat, maxLat, minLon, maxLon);
+            return QueryHeatEdgesCore(minLat, maxLat, minLon, maxLon);
         }
     }
 
-    /// <summary>Returns distinct tracks whose segments intersect the bbox — for the Heatmap tab list.</summary>
+    /// <summary>Returns distinct tracks whose edges intersect the bbox — for the Heatmap tab list.</summary>
     public List<TrackEntry> QueryVisibleTracks(double minLat, double maxLat, double minLon, double maxLon)
     {
         lock (_gate)
@@ -158,7 +183,7 @@ public sealed class HeatmapIndex : IDisposable
         }
     }
 
-    /// <summary>Returns distinct tracks whose segments pass within <paramref name="radiusDeg"/> of a point.</summary>
+    /// <summary>Returns distinct tracks whose edges pass within <paramref name="radiusDeg"/> of a point.</summary>
     public List<TrackEntry> QueryTracksNear(double lat, double lon, double radiusDeg = 0.001)
     {
         lock (_gate)
@@ -166,34 +191,6 @@ public sealed class HeatmapIndex : IDisposable
             if (_disposed) return [];
             return QueryTrackEntries(lat - radiusDeg, lat + radiusDeg, lon - radiusDeg, lon + radiusDeg);
         }
-    }
-
-    private List<TrackEntry> QueryTrackEntries(double minLat, double maxLat, double minLon, double maxLon)
-    {
-        var result = new List<TrackEntry>();
-        using var cmd = _conn.CreateCommand();
-        cmd.CommandText = """
-            SELECT DISTINCT f.name, f.path, f.start_time, f.distance_m, f.activity_type
-            FROM heatmap_segs s
-            JOIN heatmap_seg_rtree r ON r.id = s.id
-            JOIN heatmap_files f ON f.id = s.file_id
-            WHERE r.max_lat >= $la AND r.min_lat <= $lb
-              AND r.max_lon >= $ca AND r.min_lon <= $cb
-            ORDER BY COALESCE(f.start_time, f.mtime) DESC;
-            """;
-        cmd.Parameters.AddWithValue("$la", minLat);
-        cmd.Parameters.AddWithValue("$lb", maxLat);
-        cmd.Parameters.AddWithValue("$ca", minLon);
-        cmd.Parameters.AddWithValue("$cb", maxLon);
-        using var r = cmd.ExecuteReader();
-        while (r.Read())
-        {
-            DateTime? trackDate = r.IsDBNull(2) ? null : new DateTime(r.GetInt64(2), DateTimeKind.Utc);
-            double? distKm = r.IsDBNull(3) ? null : r.GetDouble(3) / 1000.0;
-            string? actType = r.IsDBNull(4) ? null : r.GetString(4);
-            result.Add(new TrackEntry(r.GetString(0), r.GetString(1), trackDate, distKm, actType));
-        }
-        return result;
     }
 
     /// <summary>Returns total indexed file count.</summary>
@@ -208,7 +205,7 @@ public sealed class HeatmapIndex : IDisposable
         lock (_gate)
         {
             if (_disposed) return;
-            Exec("DELETE FROM heatmap_files;"); // cascades to segs; trigger cleans rtree
+            Exec("DELETE FROM heatmap_files;"); // cascades to heat_edge_tracks → dec trigger → deletes edges → rtree
         }
     }
 
@@ -228,9 +225,8 @@ public sealed class HeatmapIndex : IDisposable
                 _ => [],
             };
         }
-        catch { return; } // corrupt / unsupported variant — skip silently
+        catch { return; }
 
-        // Merge all segments from this file under the first track's name (or file stem).
         string name = tracks.FirstOrDefault()?.Name ?? Path.GetFileNameWithoutExtension(path);
         DateTime? startTime = tracks
             .SelectMany(t => t.Points)
@@ -244,7 +240,8 @@ public sealed class HeatmapIndex : IDisposable
 
         using var tx = _conn.BeginTransaction();
 
-        // Remove previous entry (ON DELETE CASCADE clears segs + rtree rows).
+        // Delete previous entry — CASCADE removes heat_edge_tracks rows,
+        // triggers dec_heat_edge_count which decrements counts and prunes zero-count edges.
         using (var del = _conn.CreateCommand())
         {
             del.Transaction = tx;
@@ -267,25 +264,47 @@ public sealed class HeatmapIndex : IDisposable
             fileId = (long)ins.ExecuteScalar()!;
         }
 
-        // Insert simplified segments for all tracks in this file.
-        using var segIns = _conn.CreateCommand();
-        segIns.Transaction = tx;
-        segIns.CommandText = "INSERT INTO heatmap_segs (file_id, lat1, lon1, lat2, lon2) VALUES ($f, $a, $b, $c, $d); SELECT last_insert_rowid();";
-        var pFile = segIns.Parameters.Add("$f", SqliteType.Integer); pFile.Value = fileId;
-        var pLat1 = segIns.Parameters.Add("$a", SqliteType.Real);
-        var pLon1 = segIns.Parameters.Add("$b", SqliteType.Real);
-        var pLat2 = segIns.Parameters.Add("$c", SqliteType.Real);
-        var pLon2 = segIns.Parameters.Add("$d", SqliteType.Real);
+        // Prepared commands reused for every edge in this file.
+        using var edgeIns = _conn.CreateCommand();
+        edgeIns.Transaction = tx;
+        edgeIns.CommandText = "INSERT OR IGNORE INTO heat_edges (lat1, lon1, lat2, lon2, count) VALUES ($a, $b, $c, $d, 0);";
+        var eA = edgeIns.Parameters.Add("$a", SqliteType.Real);
+        var eB = edgeIns.Parameters.Add("$b", SqliteType.Real);
+        var eC = edgeIns.Parameters.Add("$c", SqliteType.Real);
+        var eD = edgeIns.Parameters.Add("$d", SqliteType.Real);
 
-        using var rtIns = _conn.CreateCommand();
-        rtIns.Transaction = tx;
-        rtIns.CommandText = "INSERT INTO heatmap_seg_rtree (id, min_lat, max_lat, min_lon, max_lon) VALUES ($id, $la, $lb, $ca, $cb);";
-        var pId = rtIns.Parameters.Add("$id", SqliteType.Integer);
-        var pLa = rtIns.Parameters.Add("$la", SqliteType.Real);
-        var pLb = rtIns.Parameters.Add("$lb", SqliteType.Real);
-        var pCa = rtIns.Parameters.Add("$ca", SqliteType.Real);
-        var pCb = rtIns.Parameters.Add("$cb", SqliteType.Real);
-        rtIns.Transaction = tx;
+        using var changesCmd = _conn.CreateCommand();
+        changesCmd.Transaction = tx;
+        changesCmd.CommandText = "SELECT changes();";
+
+        using var edgeSel = _conn.CreateCommand();
+        edgeSel.Transaction = tx;
+        edgeSel.CommandText = "SELECT id FROM heat_edges WHERE lat1=$a AND lon1=$b AND lat2=$c AND lon2=$d;";
+        var sA = edgeSel.Parameters.Add("$a", SqliteType.Real);
+        var sB = edgeSel.Parameters.Add("$b", SqliteType.Real);
+        var sC = edgeSel.Parameters.Add("$c", SqliteType.Real);
+        var sD = edgeSel.Parameters.Add("$d", SqliteType.Real);
+
+        using var rtreeIns = _conn.CreateCommand();
+        rtreeIns.Transaction = tx;
+        rtreeIns.CommandText = "INSERT INTO heat_edge_rtree (id, min_lat, max_lat, min_lon, max_lon) VALUES ($id, $la, $lb, $ca, $cb);";
+        var rId  = rtreeIns.Parameters.Add("$id", SqliteType.Integer);
+        var rLa  = rtreeIns.Parameters.Add("$la", SqliteType.Real);
+        var rLb  = rtreeIns.Parameters.Add("$lb", SqliteType.Real);
+        var rCa  = rtreeIns.Parameters.Add("$ca", SqliteType.Real);
+        var rCb  = rtreeIns.Parameters.Add("$cb", SqliteType.Real);
+
+        // INSERT OR IGNORE prevents double-counting when the same file visits the same edge twice
+        // (e.g. out-and-back routes). changes() after INSERT returns 1 if new, 0 if duplicate.
+        using var assocCmd = _conn.CreateCommand();
+        assocCmd.Transaction = tx;
+        assocCmd.CommandText = """
+            INSERT OR IGNORE INTO heat_edge_tracks (edge_id, file_id) VALUES ($e, $f);
+            UPDATE heat_edges SET count = count + changes() WHERE id = $e;
+            """;
+        var aEdge = assocCmd.Parameters.Add("$e", SqliteType.Integer);
+        var aFile = assocCmd.Parameters.Add("$f", SqliteType.Integer);
+        aFile.Value = fileId;
 
         foreach (var track in tracks)
         {
@@ -296,29 +315,41 @@ public sealed class HeatmapIndex : IDisposable
                 var p1 = track.Points[kept[i - 1]];
                 var p2 = track.Points[kept[i]];
 
-                pLat1.Value = p1.Lat; pLon1.Value = p1.Lon;
-                pLat2.Value = p2.Lat; pLon2.Value = p2.Lon;
-                long segId = (long)segIns.ExecuteScalar()!;
+                var (s1, s2) = NormalizeEdge(Snap(p1.Lat, p1.Lon), Snap(p2.Lat, p2.Lon));
+                if (s1 == s2) continue; // zero-length after snapping — skip
 
-                pId.Value = segId;
-                pLa.Value = Math.Min(p1.Lat, p2.Lat); pLb.Value = Math.Max(p1.Lat, p2.Lat);
-                pCa.Value = Math.Min(p1.Lon, p2.Lon); pCb.Value = Math.Max(p1.Lon, p2.Lon);
-                rtIns.ExecuteNonQuery();
+                // Upsert edge.
+                eA.Value = s1.Lat; eB.Value = s1.Lon; eC.Value = s2.Lat; eD.Value = s2.Lon;
+                edgeIns.ExecuteNonQuery();
+                bool isNew = (long)changesCmd.ExecuteScalar()! > 0;
+
+                sA.Value = s1.Lat; sB.Value = s1.Lon; sC.Value = s2.Lat; sD.Value = s2.Lon;
+                long edgeId = (long)edgeSel.ExecuteScalar()!;
+
+                if (isNew)
+                {
+                    rId.Value = edgeId;
+                    rLa.Value = Math.Min(s1.Lat, s2.Lat); rLb.Value = Math.Max(s1.Lat, s2.Lat);
+                    rCa.Value = Math.Min(s1.Lon, s2.Lon); rCb.Value = Math.Max(s1.Lon, s2.Lon);
+                    rtreeIns.ExecuteNonQuery();
+                }
+
+                aEdge.Value = edgeId;
+                assocCmd.ExecuteNonQuery();
             }
         }
 
         tx.Commit();
     }
 
-    private List<Segment> QuerySegmentsCore(double minLat, double maxLat, double minLon, double maxLon)
+    private List<HeatEdge> QueryHeatEdgesCore(double minLat, double maxLat, double minLon, double maxLon)
     {
-        var result = new List<Segment>(512);
+        var result = new List<HeatEdge>(512);
         using var cmd = _conn.CreateCommand();
         cmd.CommandText = """
-            SELECT s.lat1, s.lon1, s.lat2, s.lon2, f.name
-            FROM heatmap_segs s
-            JOIN heatmap_seg_rtree r ON r.id = s.id
-            JOIN heatmap_files f ON f.id = s.file_id
+            SELECT e.lat1, e.lon1, e.lat2, e.lon2, e.count
+            FROM heat_edges e
+            JOIN heat_edge_rtree r ON r.id = e.id
             WHERE r.max_lat >= $la AND r.min_lat <= $lb
               AND r.max_lon >= $ca AND r.min_lon <= $cb
             LIMIT $lim;
@@ -332,13 +363,57 @@ public sealed class HeatmapIndex : IDisposable
         using var r = cmd.ExecuteReader();
         while (r.Read())
         {
-            result.Add(new Segment(
+            result.Add(new HeatEdge(
                 (float)r.GetDouble(0), (float)r.GetDouble(1),
                 (float)r.GetDouble(2), (float)r.GetDouble(3),
-                r.GetString(4)));
+                r.GetInt32(4)));
         }
         return result;
     }
+
+    private List<TrackEntry> QueryTrackEntries(double minLat, double maxLat, double minLon, double maxLon)
+    {
+        var result = new List<TrackEntry>();
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = """
+            SELECT DISTINCT f.name, f.path, f.start_time, f.distance_m, f.activity_type
+            FROM heat_edge_rtree r
+            JOIN heat_edges e ON e.id = r.id
+            JOIN heat_edge_tracks et ON et.edge_id = e.id
+            JOIN heatmap_files f ON f.id = et.file_id
+            WHERE r.max_lat >= $la AND r.min_lat <= $lb
+              AND r.max_lon >= $ca AND r.min_lon <= $cb
+            ORDER BY COALESCE(f.start_time, f.mtime) DESC;
+            """;
+        cmd.Parameters.AddWithValue("$la", minLat);
+        cmd.Parameters.AddWithValue("$lb", maxLat);
+        cmd.Parameters.AddWithValue("$ca", minLon);
+        cmd.Parameters.AddWithValue("$cb", maxLon);
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+        {
+            DateTime? trackDate = r.IsDBNull(2) ? null : new DateTime(r.GetInt64(2), DateTimeKind.Utc);
+            double? distKm = r.IsDBNull(3) ? null : r.GetDouble(3) / 1000.0;
+            string? actType = r.IsDBNull(4) ? null : r.GetString(4);
+            result.Add(new TrackEntry(r.GetString(0), r.GetString(1), trackDate, distKm, actType));
+        }
+        return result;
+    }
+
+    // ── Snapping helpers ─────────────────────────────────────────────────────────
+
+    private static (double Lat, double Lon) Snap(double lat, double lon) =>
+        (Math.Round(lat / SnapDeg) * SnapDeg, Math.Round(lon / SnapDeg) * SnapDeg);
+
+    /// <summary>Returns the edge in canonical order (smaller endpoint first) so A→B and B→A are the same edge.</summary>
+    private static ((double Lat, double Lon) A, (double Lat, double Lon) B) NormalizeEdge(
+        (double Lat, double Lon) a, (double Lat, double Lon) b)
+    {
+        if (a.Lat < b.Lat || (a.Lat == b.Lat && a.Lon <= b.Lon)) return (a, b);
+        return (b, a);
+    }
+
+    // ── DB helpers ───────────────────────────────────────────────────────────────
 
     private long QueryMtime(string path)
     {
@@ -370,8 +445,6 @@ public sealed class HeatmapIndex : IDisposable
         tx.Commit();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────────
-
     private void Exec(string sql)
     {
         using var cmd = _conn.CreateCommand();
@@ -386,9 +459,10 @@ public sealed class HeatmapIndex : IDisposable
         return Convert.ToInt64(cmd.ExecuteScalar() ?? 0L);
     }
 
+    // v2 DB: separate file from v1 so old index is not corrupted during investigation.
     private static string DbPath() => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "TrackEditor", "heatmap.db");
+        "TrackEditor", "heatmap_v2.db");
 
     public void Dispose()
     {
