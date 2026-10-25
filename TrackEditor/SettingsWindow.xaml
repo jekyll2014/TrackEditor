@@ -229,6 +229,9 @@
                                     Width="200" Margin="0,0,8,0"/>
                             <TextBlock x:Name="LblHeatmapRadius" VerticalAlignment="Center" Width="50"/>
                         </StackPanel>
+                        <CheckBox x:Name="ChkHeatmapAlwaysVisible" Margin="0,0,0,6"
+                                  Content="Always visible (thicker blobs, stays visible when zoomed out)"
+                                  ToolTip="Keeps the heatmap readable at low/mid zoom by enlarging each point and raising its minimum opacity"/>
                         <Button Content="Rescan now" Click="RescanHeatmap_Click"
                                 HorizontalAlignment="Left" Padding="8,3"/>
                     </StackPanel>

@@ -85,6 +85,7 @@ public partial class SettingsWindow : Window
         SliderHeatmapRadius.Value = Result.HeatmapClickRadiusM;
         SliderHeatmapRadius.ValueChanged += (_, _) => LblHeatmapRadius.Text = $"{(int)SliderHeatmapRadius.Value} m";
         LblHeatmapRadius.Text = $"{Result.HeatmapClickRadiusM} m";
+        ChkHeatmapAlwaysVisible.IsChecked = Result.HeatmapAlwaysVisible;
         HeatmapColorPreview.Background = TryBrush(Result.HeatmapColorHex);
 
         UpdateEnabledState();
@@ -228,6 +229,7 @@ public partial class SettingsWindow : Window
         Result.HeatmapColorHex = NormalizeHex(TxtHeatmapColor.Text, Result.HeatmapColorHex);
         Result.HeatmapOpacity = SliderHeatmapOpacity.Value;
         Result.HeatmapClickRadiusM = (int)SliderHeatmapRadius.Value;
+        Result.HeatmapAlwaysVisible = ChkHeatmapAlwaysVisible.IsChecked == true;
 
         DialogResult = true;
     }
