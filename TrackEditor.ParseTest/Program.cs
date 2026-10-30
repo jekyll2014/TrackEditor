@@ -1,95 +1,267 @@
 using System.Globalization;
 using System.IO;
 
+using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
 using TrackEditor.Core.Services.RaceAnalysis;
 
-// Headless sanity check: parse every sample file and print track/point counts + statistics.
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
-string dir = args.Length > 0 ? args[0] : Path.Combine("..", "gpx_samples");
-if (!Directory.Exists(dir))
+string samplesRoot = args.Length > 0 ? args[0]
+    : Path.Combine("..", "..", "..", "..", ".SAMPLES");
+
+if (!Directory.Exists(samplesRoot))
 {
-    Console.Error.WriteLine($"Sample folder not found: {Path.GetFullPath(dir)}");
+    Console.Error.WriteLine($"Samples folder not found: {Path.GetFullPath(samplesRoot)}");
     return 1;
 }
 
-int failures = 0;
-foreach (string file in Directory.GetFiles(dir).OrderBy(f => f))
+var configs = new (string Label, bool AutoCalib, RunningProfile Profile, int? HrZone)[]
 {
-    string ext = Path.GetExtension(file).ToLowerInvariant();
-    if (ext is not (".gpx" or ".tcx" or ".fit" or ".kml" or ".kmz")) continue;
-    try
+    ("no-calib",  false, RunningProfile.Road,       null),
+    ("road",      true,  RunningProfile.Road,       null),
+    ("trail",     true,  RunningProfile.Trail,      null),
+    ("ultra",     true,  RunningProfile.UltraTrail, null),
+    ("Z1-recov",  false, RunningProfile.Road,       1),
+    ("Z2-aerob",  false, RunningProfile.Road,       2),
+    ("Z3-tempo",  false, RunningProfile.Road,       3),
+};
+
+foreach (string racerDir in Directory.GetDirectories(samplesRoot).OrderBy(d => d))
+{
+    string racerName = Path.GetFileName(racerDir);
+    string finishedDir = Path.Combine(racerDir, "races_finished");
+    if (!Directory.Exists(finishedDir)) continue;
+
+    Console.WriteLine($"\n{'=',0}{'=',0}{'=',0} {racerName.ToUpperInvariant()} {'=',0}{'=',0}{'=',0}");
+
+    var finished = LoadTracks(finishedDir);
+    if (finished.Count == 0) { Console.WriteLine("  No finished races found."); continue; }
+
+    Console.WriteLine("\nFinished races:");
+    foreach (var (file, track) in finished)
     {
-        var tracks = ext switch
-        {
-            ".gpx" => GpxIo.Load(file),
-            ".tcx" => TcxIo.Load(file),
-            ".fit" => FitIo.Load(file),
-            _ => KmlIo.Load(file),
-        };
-        Console.WriteLine($"=== {Path.GetFileName(file)}: {tracks.Count} track(s)");
-        foreach (var t in tracks)
-        {
-            var stats = TrackStatistics.Compute(t.Points);
-            bool hasTime = t.Points.Any(p => p.Time is not null);
-            bool hasEle = t.Points.Any(p => p.Ele is not null);
-            int hrN = t.Points.Count(p => p.Hr is not null);
-            int cadN = t.Points.Count(p => p.Cad is not null);
-            int tempN = t.Points.Count(p => p.Temp is not null);
-            Console.WriteLine($"    '{t.Name}': {t.Points.Count} pts, {stats.DistanceM / 1000:F2} km, " +
-                              $"ele={(hasEle ? $"{stats.AscentM:F0}m up/{stats.DescentM:F0}m down" : "no")}, " +
-                              $"time={(hasTime ? stats.Duration?.ToString() ?? "partial" : "no")}");
-            Console.WriteLine($"    sensors: hr={hrN}, cad={cadN}, temp={tempN}");
+        var s = TrackStatistics.Compute(track.Points);
+        Console.WriteLine($"  {Path.GetFileName(file),-44} {s.DistanceM / 1000,5:F1} km  {s.Duration:hh\\:mm\\:ss}  " +
+                          $"flat {RaceAnalyzer.Analyze(new[] { track }).Model.AthleteBaseline.FlatSpeedMps * 3.6:F1} km/h");
+    }
 
-            // exercise simplify + speeds on the fly
-            var keep = GeoMath.DouglasPeucker(t.Points, 10);
-            var speeds = GeoMath.SpeedsMps(t.Points);
-            Console.WriteLine($"    simplify(10m): {t.Points.Count} -> {keep.Count}; " +
-                              $"speed pts: {speeds.Count(s => s is not null)}");
+    // For each prediction target, find its matched finished race (ground truth)
+    var targets = LoadTracks(racerDir);
+    if (targets.Count == 0) { Console.WriteLine("  No prediction targets found."); continue; }
 
-            // Race Analysis P1: resample to a fixed grid + clean HR
-            var rs = TrackResampler.Resample(t.Points);
-            var span = rs.Count > 1 ? GeoMath.CumulativeDistancesM(rs)[^1] / (rs.Count - 1) : 0;
-            Console.WriteLine($"    resample(5m): {t.Points.Count} -> {rs.Count} pts, mean spacing {span:F2} m");
-            if (hrN > 0)
+    foreach (var (targetFile, targetTrack) in targets)
+    {
+        // Try to find a ground-truth finished race for this target
+        var gtMatch = BestMatch(targetFile, finished);
+        bool hasGt = gtMatch.HasValue;
+        var trainPool = hasGt
+            ? finished.Where(x => x.file != gtMatch!.Value.file).ToList()
+            : finished;
+
+        var targetStats = TrackStatistics.Compute(targetTrack.Points);
+        Console.WriteLine($"\n--- Target: {Path.GetFileName(targetFile)}  ({targetStats.DistanceM / 1000:F1} km) ---");
+
+        if (hasGt)
+        {
+            var gtStats = TrackStatistics.Compute(gtMatch!.Value.track.Points);
+            Console.WriteLine($"    Ground truth: {Path.GetFileName(gtMatch.Value.file)}  actual finish {gtStats.Duration:hh\\:mm\\:ss}");
+        }
+        else
+        {
+            Console.WriteLine("    (no ground truth found — prediction only)");
+        }
+
+        if (trainPool.Count == 0) { Console.WriteLine("    No training races available."); continue; }
+
+        // Riegel reference times from each finished race (terrain-blind sanity check)
+        if (hasGt)
+        {
+            Console.WriteLine("    Riegel (flat, terrain-blind) from each finished race:");
+            foreach (var (ff, ft) in trainPool)
             {
-                var cleaned = SignalCleaning.CleanHr(t.Points);
-                int dropped = Enumerable.Range(0, t.Points.Count).Count(i => t.Points[i].Hr is not null && cleaned[i] is null);
-                Console.WriteLine($"    hr clean: {cleaned.Count(h => h is not null)} valid, {dropped} implausible dropped");
+                var fs = TrackStatistics.Compute(ft.Points);
+                if (fs.Duration is null || fs.Duration == TimeSpan.Zero) continue;
+                var rr = new RecentRace { DistanceKm = fs.DistanceM / 1000.0, Time = fs.Duration!.Value };
+                var riegelTime = EnduranceCalibration.RiegelTime(rr, targetStats.DistanceM / 1000.0);
+                Console.WriteLine($"      from {ShortName(ff),-20}  → {riegelTime:hh\\:mm\\:ss}");
+            }
+        }
+
+        // Subset analysis
+        var subsets = PowerSet(trainPool);
+        var errors = configs.Select(_ => new List<double>()).ToArray();
+
+        Console.WriteLine();
+        Console.Write($"  {"Subset",-42}");
+        foreach (var cfg in configs)
+            Console.Write($"  {cfg.Label,12}");
+        if (hasGt) Console.Write($"  {"err(auto)",10}");
+        Console.WriteLine();
+        Console.WriteLine(new string('-', 42 + 2 + configs.Length * 14 + (hasGt ? 12 : 0)));
+
+        foreach (var subset in subsets)
+        {
+            // Skip huge subsets to keep output manageable; always include single-track and full pool
+            if (subset.Count > 3 && subset.Count < trainPool.Count) continue;
+
+            string label = subset.Count == trainPool.Count
+                ? "[ALL training]"
+                : string.Join("+", subset.Select(x => ShortName(x.file)));
+            Console.Write($"  {label,-42}");
+
+            var preds = new TimeSpan?[configs.Length];
+            for (int ci = 0; ci < configs.Length; ci++)
+            {
+                try
+                {
+                    var res = RaceAnalyzer.Analyze(subset.Select(x => x.track));
+                    if (res.SegmentsUsed == 0) { Console.Write($"  {"no segs",12}"); continue; }
+
+                    int? hrZone = configs[ci].HrZone;
+                    if (hrZone is not null && res.Model.HrZoneCurves.Count == 0)
+                    {
+                        Console.Write($"  {"no HR",12}");
+                        continue;
+                    }
+
+                    var opt = new PredictOptions
+                    {
+                        AutoCalibrateByDistance = configs[ci].AutoCalib,
+                        RunningProfile = configs[ci].Profile,
+                        Effort = RaceEffort.Race,
+                        TargetHrZone = hrZone,
+                    };
+                    var pred = RacePredictor.Predict(targetTrack, res.Model, opt);
+                    preds[ci] = pred.TotalTime;
+                    Console.Write($"  {pred.TotalTime,12:hh\\:mm\\:ss}");
+                }
+                catch (Exception ex)
+                {
+                    Console.Write($"  {"ERR:" + ex.Message[..Math.Min(8, ex.Message.Length)],12}");
+                }
             }
 
-            // Race Analysis P2: fit a model from this (timed) track and round-trip its JSON
-            if (hasTime)
+            if (hasGt)
             {
-                var res = RaceAnalyzer.Analyze(new[] { t });
-                Console.WriteLine($"    | Fitted: {res.TracksUsed} track(s), {res.SegmentsUsed} segs, flat {res.Model.AthleteBaseline.FlatSpeedMps * 3.6:F1} km/h");
-                var round = RaceModel.FromJson(res.Model.ToJson());
-                Console.WriteLine($"    | json round-trip: {round.BaseCurve.SpeedMps.Length} curve bins, " +
-                                  $"flat {round.AthleteBaseline.FlatSpeedMps * 3.6:F1} km/h");
+                var gtDur = TrackStatistics.Compute(gtMatch!.Value.track.Points).Duration;
+                for (int ci = 0; ci < configs.Length; ci++)
+                {
+                    if (preds[ci].HasValue && gtDur.HasValue)
+                    {
+                        double err = (preds[ci]!.Value.TotalSeconds - gtDur.Value.TotalSeconds)
+                                     / gtDur.Value.TotalSeconds * 100.0;
+                        errors[ci].Add(Math.Abs(err));
+                    }
+                }
+                // Print error% for the last (ultra) config as the representative column
+                int repIdx = configs.Length - 1;
+                if (preds[repIdx].HasValue && gtDur.HasValue)
+                {
+                    double err = (preds[repIdx]!.Value.TotalSeconds - gtDur!.Value.TotalSeconds)
+                                 / gtDur.Value.TotalSeconds * 100.0;
+                    Console.Write($"  {err,+9:F1}%");
+                }
+            }
+            Console.WriteLine();
+        }
+
+        if (hasGt && errors.Any(e => e.Count > 0))
+        {
+            Console.WriteLine();
+            Console.WriteLine("  Summary (abs %, lower=better):");
+            for (int ci = 0; ci < configs.Length; ci++)
+            {
+                if (errors[ci].Count == 0) continue;
+                double mean = errors[ci].Average();
+                double std = Math.Sqrt(errors[ci].Average(e => (e - mean) * (e - mean)));
+                Console.WriteLine($"    {configs[ci].Label,-12}  mean={mean,5:F1}%  stddev={std,4:F1}%  best={errors[ci].Min(),4:F1}%");
             }
         }
     }
-    catch (Exception ex)
-    {
-        failures++;
-        Console.WriteLine($"=== {Path.GetFileName(file)}: FAILED - {ex.Message}");
-    }
 }
 
-// Race Analysis P3: end-to-end fit-then-predict when both sample tracks are present.
-string? fitFile = Directory.GetFiles(dir, "*.gpx").FirstOrDefault(f => Path.GetFileName(f).Contains("MonteRosa", StringComparison.OrdinalIgnoreCase));
-string? planFile = Directory.GetFiles(dir, "*.gpx").FirstOrDefault(f => Path.GetFileName(f).Contains("WWT", StringComparison.OrdinalIgnoreCase));
-if (fitFile is not null && planFile is not null)
+Console.WriteLine("\nDone.");
+return 0;
+
+// ---- helpers ----
+
+static List<(string file, Track track)> LoadTracks(string dir)
 {
-    Console.WriteLine("\n=== Race Analysis: fit MonteRosa -> predict WWT ===");
-    var fit = RaceAnalyzer.Analyze(GpxIo.Load(fitFile));
-    var plan = GpxIo.Load(planFile)[0];
-    var pred = RacePredictor.Predict(plan, fit.Model, new PredictOptions { StartTime = DateTime.Today.AddHours(8) });
-    Console.WriteLine($"    Predicted {pred.DistanceKm:F1} km in {pred.TotalTime:hh\\:mm\\:ss}");
-    bool timed = pred.PredictedTrack.Points.All(p => p.Time is not null);
-    Console.WriteLine($"    injected times on all {pred.PredictedTrack.Points.Count} points: {timed}");
+    var result = new List<(string, Track)>();
+    foreach (string file in Directory.GetFiles(dir).OrderBy(f => f))
+    {
+        string ext = Path.GetExtension(file).ToLowerInvariant();
+        if (ext is not (".gpx" or ".fit" or ".tcx")) continue;
+        try
+        {
+            var tracks = ext switch
+            {
+                ".gpx" => GpxIo.Load(file),
+                ".fit" => FitIo.Load(file),
+                _ => TcxIo.Load(file),
+            };
+            var best = tracks.OrderByDescending(t => t.Points.Count).FirstOrDefault();
+            if (best is not null) result.Add((file, best));
+        }
+        catch { }
+    }
+    return result;
 }
 
-Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILURES");
-return failures;
+/// <summary>Token overlap match: find the finished race whose filename shares the most keywords with the target.</summary>
+static (string file, Track track)? BestMatch(string targetFile, List<(string file, Track track)> pool)
+{
+    var targetTokens = Tokens(targetFile);
+    int bestScore = 1;  // require at least 2 overlapping tokens
+    (string file, Track track)? best = null;
+    foreach (var candidate in pool)
+    {
+        var candTokens = Tokens(candidate.file);
+        if (!HasMeaningfulOverlap(targetTokens, candTokens)) continue;
+        int score = targetTokens.Intersect(candTokens).Count();
+        if (score > bestScore) { bestScore = score; best = candidate; }
+    }
+    return best;
+}
+
+static HashSet<string> Tokens(string path)
+{
+    string name = Path.GetFileNameWithoutExtension(path).ToLowerInvariant();
+    var raw = System.Text.RegularExpressions.Regex.Split(name, @"[^a-z0-9]+")
+        .Where(t => t.Length >= 2);
+    // Normalize "21k"→"21", "65k"→"65" etc. so numeric distances compare across naming styles.
+    var tokens = new HashSet<string>(raw.Select(t =>
+        System.Text.RegularExpressions.Regex.IsMatch(t, @"^\d+[a-z]+$")
+            ? System.Text.RegularExpressions.Regex.Match(t, @"^\d+").Value
+            : t));
+    return tokens;
+}
+
+static bool HasMeaningfulOverlap(HashSet<string> a, HashSet<string> b)
+{
+    // At least one shared token must start with a letter (race name, not just a year/distance).
+    return a.Intersect(b).Any(t => char.IsLetter(t[0]));
+}
+
+static string ShortName(string path)
+{
+    string n = Path.GetFileNameWithoutExtension(path);
+    int us = n.IndexOf('_');
+    if (us >= 0 && us < 8) n = n[(us + 1)..];
+    return n.Length > 18 ? n[..18] : n;
+}
+
+static List<List<(string file, Track track)>> PowerSet(List<(string file, Track track)> items)
+{
+    var result = new List<List<(string, Track)>>();
+    int n = items.Count;
+    for (int mask = 1; mask < (1 << n); mask++)
+    {
+        var s = new List<(string, Track)>();
+        for (int i = 0; i < n; i++)
+            if ((mask & (1 << i)) != 0) s.Add(items[i]);
+        result.Add(s);
+    }
+    return result;
+}

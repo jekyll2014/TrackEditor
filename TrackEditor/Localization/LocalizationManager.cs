@@ -10,7 +10,7 @@ public static class LocalizationManager
         {
             "ru" => "Localization/Strings.ru.xaml",
             "lt" => "Localization/Strings.lt.xaml",
-            _    => "Localization/Strings.en.xaml",
+            _ => "Localization/Strings.en.xaml",
         };
 
         var uri = new Uri($"pack://application:,,,/TrackEditor;component/{path}");

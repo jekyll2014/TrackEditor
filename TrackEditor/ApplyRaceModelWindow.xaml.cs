@@ -1,11 +1,8 @@
-using System;
-using System.Collections.Generic;
+using Microsoft.Win32;
+
 using System.Globalization;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-
-using Microsoft.Win32;
 
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
@@ -58,6 +55,7 @@ public partial class ApplyRaceModelWindow : Window
             _model = RaceModel.Load(dlg.FileName);
             ModelText.Text = DescribeModel(_model);
             ApplyModelToUi(_model);
+            PopulateHrZoneCombo(_model);
             RunButton.IsEnabled = true;
             HintText.Text = "Model loaded — press Predict.";
         }
@@ -79,8 +77,66 @@ public partial class ApplyRaceModelWindow : Window
         _model = m;
         ModelText.Text = "Created: " + DescribeModel(m);
         ApplyModelToUi(m);
+        PopulateHrZoneCombo(m);
         RunButton.IsEnabled = true;
         HintText.Text = "Profile created — press Predict.";
+    }
+
+    private void PopulateHrZoneCombo(RaceModel? m)
+    {
+        CmbHrZone.Items.Clear();
+        CmbHrZone.Items.Add(new ComboBoxItem
+        {
+            Content = Loc.Get("HrZoneNormal"),
+            Tag = (object?)"normal",
+            ToolTip = "Use the overall speed curve fitted from all training data (default).",
+        });
+        if (m?.HrZoneCurves is { Count: > 0 } zones)
+        {
+            foreach (var z in zones)
+                CmbHrZone.Items.Add(new ComboBoxItem
+                {
+                    Content = $"{z.Label}  ({z.FlatSpeedMps * 3.6:F1} km/h flat)",
+                    Tag = (object?)z.Zone,
+                    ToolTip = $"Predict at the flat pace you hold at {z.LowerBpm}–{z.UpperBpm} bpm effort. " +
+                              "Terrain adjustment from overall model. Z2 Aerobic is best for ultras.",
+                });
+            CmbHrZone.Items.Add(new ComboBoxItem
+            {
+                Content = Loc.Get("HrZoneCustom"),
+                Tag = (object?)"custom",
+                ToolTip = "Find the closest fitted zone for a custom bpm range.",
+            });
+        }
+        CmbHrZone.SelectedIndex = 0;
+        PanelHrZone.Visibility = m?.HrZoneCurves.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private int? SelectedHrZone()
+    {
+        var tag = (CmbHrZone.SelectedItem as ComboBoxItem)?.Tag;
+        if (tag is int z) return z;
+        if (tag is "custom" && _model is not null)
+        {
+            if (!int.TryParse(TxtCustomHrLo.Text.Trim(), out int lo) || lo <= 0) return null;
+            if (!int.TryParse(TxtCustomHrHi.Text.Trim(), out int hi) || hi <= lo) return null;
+            int center = (lo + hi) / 2;
+            return _model.HrZoneCurves
+                .OrderBy(z2 => Math.Abs((z2.LowerBpm + z2.UpperBpm) / 2 - center))
+                .First().Zone;
+        }
+        return null;
+    }
+
+    private void CmbHrZone_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        var tag = (CmbHrZone.SelectedItem as ComboBoxItem)?.Tag;
+        bool hrMode = tag is int || tag is "custom";
+        bool customMode = tag is "custom";
+        if (ChkAutoCalibrate is not null)
+            ChkAutoCalibrate.IsEnabled = !hrMode;
+        if (PanelCustomHr is not null)
+            PanelCustomHr.Visibility = customMode ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>Shows/hides cycling vs running controls and pre-populates CdA/Crr from model defaults.</summary>
@@ -122,6 +178,14 @@ public partial class ApplyRaceModelWindow : Window
             _ => SportType.Running,
         };
 
+    private RunningProfile SelectedRunningProfile() =>
+        ((CmbProfile.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string) switch
+        {
+            "Trail" => RunningProfile.Trail,
+            "UltraTrail" => RunningProfile.UltraTrail,
+            _ => RunningProfile.Road,
+        };
+
     private void CmbSport_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         // When user picks sport manually (no model), reset model so physics-only path is used.
@@ -137,10 +201,21 @@ public partial class ApplyRaceModelWindow : Window
 
     private void UpdateCyclingVisibility()
     {
+        // Guard against controls not being initialized yet during XAML load
+        if (CyclingExpander is null || ChkUsePhysics is null || ChkLoad is null || TxtCdA is null || TxtCrr is null)
+            return;
+
         bool isCycling = SelectedSport() != SportType.Running;
         CyclingExpander.Visibility = isCycling ? Visibility.Visible : Visibility.Collapsed;
         ChkUsePhysics.Visibility = isCycling ? Visibility.Visible : Visibility.Collapsed;
         ChkLoad.Visibility = isCycling ? Visibility.Collapsed : Visibility.Visible;
+        if (ChkAutoCalibrate is not null)
+            ChkAutoCalibrate.Visibility = isCycling ? Visibility.Collapsed : Visibility.Visible;
+        if (PanelProfile is not null)
+            PanelProfile.Visibility = isCycling ? Visibility.Collapsed : Visibility.Visible;
+        if (PanelHrZone is not null)
+            PanelHrZone.Visibility = isCycling ? Visibility.Collapsed
+                : (_model?.HrZoneCurves.Count > 0 ? Visibility.Visible : Visibility.Collapsed);
         if (isCycling && string.IsNullOrWhiteSpace(TxtCdA.Text))
         {
             var def = SelectedSport() == SportType.CyclingXC ? CyclingSpec.XCDefault() : CyclingSpec.RoadDefault();
@@ -189,7 +264,9 @@ public partial class ApplyRaceModelWindow : Window
         string physicsHint = m.Cycling is CyclingSpec s
             ? $"CdA {s.CdA:F2} Crr {s.Crr:F4} · "
             : "";
-        return $"{who}{sport}{physicsHint}Flat {m.AthleteBaseline.FlatSpeedMps * 3.6:F1} km/h · " +
+        string powerHint = m.AthleteBaseline.PeakSpecificPowerWkg is double pw
+            ? $" · peak {pw:F1} W/kg" : "";
+        return $"{who}{sport}{physicsHint}Flat {m.AthleteBaseline.FlatSpeedMps * 3.6:F1} km/h{powerHint} · " +
                $"fatigue/{m.Fatigue.Driver} · from: {src}";
     }
 
@@ -224,6 +301,9 @@ public partial class ApplyRaceModelWindow : Window
             Profile = _settings.Profile,
             CalibrateToRecentRace = ChkCalibrate.IsChecked == true,
             CapToSustainable = ChkCap.IsChecked == true,
+            AutoCalibrateByDistance = ChkAutoCalibrate.IsChecked == true,
+            RunningProfile = SelectedRunningProfile(),
+            TargetHrZone = SelectedHrZone(),
             UseLoadModel = ChkLoad.IsChecked == true && !isCycling,
             UsePhysics = usePhysics,
             PhysicsSpec = physicsSpec,

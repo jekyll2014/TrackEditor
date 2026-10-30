@@ -76,8 +76,40 @@ public partial class SettingsWindow : Window
 
         CmbLanguage.SelectedIndex = Result.Language switch { "ru" => 1, "lt" => 2, _ => 0 };
 
+        TxtHeatmapFolder.Text = Result.HeatmapFolder ?? "";
+        TxtHeatmapColor.Text = Result.HeatmapColorHex;
+        TxtHeatmapColor.TextChanged += HeatmapColor_Changed;
+        SliderHeatmapOpacity.Value = Result.HeatmapOpacity;
+        SliderHeatmapOpacity.ValueChanged += (_, _) => LblHeatmapOpacity.Text = $"{SliderHeatmapOpacity.Value:P0}";
+        LblHeatmapOpacity.Text = $"{Result.HeatmapOpacity:P0}";
+        SliderHeatmapRadius.Value = Result.HeatmapClickRadiusM;
+        SliderHeatmapRadius.ValueChanged += (_, _) => LblHeatmapRadius.Text = $"{(int)SliderHeatmapRadius.Value} m";
+        LblHeatmapRadius.Text = $"{Result.HeatmapClickRadiusM} m";
+        ChkHeatmapAlwaysVisible.IsChecked = Result.HeatmapAlwaysVisible;
+        HeatmapColorPreview.Background = TryBrush(Result.HeatmapColorHex);
+
         UpdateEnabledState();
     }
+
+    private void HeatmapColor_Changed(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        var brush = TryBrush(TxtHeatmapColor?.Text);
+        if (brush is not null && HeatmapColorPreview is not null)
+            HeatmapColorPreview.Background = brush;
+    }
+
+    private void BrowseHeatmapFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFolderDialog { Title = "Folder containing activity files (.fit/.gpx/.tcx)" };
+        if (!string.IsNullOrWhiteSpace(TxtHeatmapFolder.Text)) dlg.InitialDirectory = TxtHeatmapFolder.Text;
+        if (dlg.ShowDialog() == true) TxtHeatmapFolder.Text = dlg.FolderName;
+    }
+
+    /// <summary>Fired by the Rescan button; returns false from the dialog so the owner can re-scan without saving.</summary>
+    public event EventHandler? RescanHeatmapRequested;
+
+    private void RescanHeatmap_Click(object sender, RoutedEventArgs e) =>
+        RescanHeatmapRequested?.Invoke(this, EventArgs.Empty);
 
     private void WpColor_Changed(object sender, System.Windows.Controls.TextChangedEventArgs e)
     {
@@ -192,6 +224,13 @@ public partial class SettingsWindow : Window
         Result.GradeUnit = CmbGradeUnit.SelectedIndex == 1 ? GradeUnit.Degree : GradeUnit.Percent;
         Result.ServerUrl = string.IsNullOrWhiteSpace(TxtServerUrl.Text) ? null : TxtServerUrl.Text.Trim();
         Result.Language = CmbLanguage.SelectedIndex switch { 1 => "ru", 2 => "lt", _ => "en" };
+
+        Result.HeatmapFolder = string.IsNullOrWhiteSpace(TxtHeatmapFolder.Text) ? null : TxtHeatmapFolder.Text.Trim();
+        Result.HeatmapColorHex = NormalizeHex(TxtHeatmapColor.Text, Result.HeatmapColorHex);
+        Result.HeatmapOpacity = SliderHeatmapOpacity.Value;
+        Result.HeatmapClickRadiusM = (int)SliderHeatmapRadius.Value;
+        Result.HeatmapAlwaysVisible = ChkHeatmapAlwaysVisible.IsChecked == true;
+
         DialogResult = true;
     }
 }

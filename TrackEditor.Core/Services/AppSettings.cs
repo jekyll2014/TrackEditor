@@ -125,6 +125,20 @@ public class AppSettings
     /// <summary>UI language code: "en" (English), "ru" (Russian), "lt" (Lithuanian).</summary>
     public string Language { get; set; } = "en";
 
+    // ── Heatmap overlay ───────────────────────────────────────────────────────────
+    /// <summary>Folder containing activity files (.fit/.gpx/.tcx) to index for the heatmap. Null = feature off.</summary>
+    public string? HeatmapFolder { get; set; }
+    /// <summary>Whether the heatmap overlay is currently shown on the map.</summary>
+    public bool HeatmapEnabled { get; set; }
+    /// <summary>Line color (hex) for the heatmap overlay (defaults to vivid orange).</summary>
+    public string HeatmapColorHex { get; set; } = "#FF5500";
+    /// <summary>Maximum line opacity [0–1] for the most-visited paths (less-visited scale down logarithmically).</summary>
+    public double HeatmapOpacity { get; set; } = 0.85;
+    /// <summary>Search radius in metres when filtering the heatmap track list by map click.</summary>
+    public int HeatmapClickRadiusM { get; set; } = 150;
+    /// <summary>Thicken the heatmap blobs and raise their minimum opacity so it stays visible at low/mid zoom.</summary>
+    public bool HeatmapAlwaysVisible { get; set; } = true;
+
     // Server storage account (access/refresh tokens persisted locally; cleared on logout)
     public string? ServerUrl { get; set; }
     public string? ServerEmail { get; set; }

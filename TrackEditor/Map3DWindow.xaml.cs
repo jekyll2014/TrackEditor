@@ -14,18 +14,16 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 
-using ShimSkiaSharp;
-
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
 using TrackEditor.Core.Skia;
+using TrackEditor.Services;
 
 using SKCanvas = SkiaSharp.SKCanvas;
 using SKColor = SkiaSharp.SKColor;
 using SKImage = SkiaSharp.SKImage;
 using SKPaint = SkiaSharp.SKPaint;
 using SKPaintStyle = SkiaSharp.SKPaintStyle;
-using SKPath = SkiaSharp.SKPath;
 using SKRect = SkiaSharp.SKRect;
 using SKStrokeCap = SkiaSharp.SKStrokeCap;
 using SKStrokeJoin = SkiaSharp.SKStrokeJoin;
@@ -47,10 +45,11 @@ public partial class Map3DWindow : Window
     private const int HeavyPatches = 400;      // above this a level is allowed but flagged slow
 
     private readonly (double MinX, double MinY, double MaxX, double MaxY) _extent;
-    private readonly ITileSource _tiles;
+    private ITileSource _tiles;
+    private BaseMapProvider _mapProvider;
     private readonly IReadOnlyList<Track> _tracks;
     private readonly SrtmService _srtm;
-    private readonly int _maxZoom;
+    private int _maxZoom;
 
     // Gradient colouring applies to this one track only (the 2D map's active track); null = none.
     private readonly Track? _gradientTrack;
@@ -112,12 +111,14 @@ public partial class Map3DWindow : Window
     public Map3DWindow(
         (double MinX, double MinY, double MaxX, double MaxY) extent,
         int zoom, int maxZoom, ITileSource tiles, IReadOnlyList<Track> tracks, SrtmService srtm,
+        BaseMapProvider provider = BaseMapProvider.OpenStreetMap,
         Track? gradientTrack = null, GradientMetric gradientMetric = GradientMetric.None, bool paceMode = false,
         DateTime? sunTime = null)
     {
         InitializeComponent();
         _extent = extent;
         _tiles = tiles;
+        _mapProvider = provider;
         _tracks = tracks;
         _srtm = srtm;
         _maxZoom = maxZoom;
@@ -140,6 +141,7 @@ public partial class Map3DWindow : Window
         _zoom = z;
         TerrainVisual.Content = _terrain;
         PopulateDetailLevels();
+        PopulateMapSources();
 
         _sunTimer = new System.Windows.Threading.DispatcherTimer
         { Interval = TimeSpan.FromMilliseconds(ShadowRebakeDelayMs) };
@@ -148,7 +150,7 @@ public partial class Map3DWindow : Window
 
         _maxStreamTiles = ComputeMaxStreamTiles();
         _streamTimer = new System.Windows.Threading.DispatcherTimer
-            { Interval = TimeSpan.FromMilliseconds(StreamDebounceMs) };
+        { Interval = TimeSpan.FromMilliseconds(StreamDebounceMs) };
         _streamTimer.Tick += async (_, _) => { _streamTimer!.Stop(); await DoStreamAsync(); };
 
         // Google-Earth-style mouse mapping: left drag pans (Helix), right drag orbits/tilts and the
@@ -802,6 +804,31 @@ public partial class Map3DWindow : Window
     /// bounded by how many tiles cover the extent (each tile is its own patch), not by texture size:
     /// a heavy level (many tiles) is flagged ⚠ and a level past the hard cap is shown disabled ⛔.
     /// </summary>
+    private void PopulateMapSources()
+    {
+        if (MapCombo is null) return;
+        MapCombo.Items.Clear();
+        foreach (BaseMapProvider p in Enum.GetValues<BaseMapProvider>())
+        {
+            var item = new ComboBoxItem { Content = p.ToString(), Tag = p };
+            MapCombo.Items.Add(item);
+            if (p == _mapProvider) MapCombo.SelectedItem = item;
+        }
+    }
+
+    private async void MapSource_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_detailReady || MapCombo.SelectedItem is not ComboBoxItem ci || ci.Tag is not BaseMapProvider provider || provider == _mapProvider) return;
+        _mapProvider = provider;
+        var (source, maxZoom) = MapManager.CreateTileSource(provider);
+        _tiles = source;
+        _maxZoom = maxZoom;
+        _streamCache.Clear();
+        int zoom = Math.Min(_zoom, _maxZoom);
+        PopulateDetailLevels();
+        await StartDrapeAsync(zoom, $"Switching to {provider}…");
+    }
+
     private void PopulateDetailLevels()
     {
         if (DetailCombo is null) return;

@@ -314,6 +314,7 @@
     <sys:String x:Key="Lbl3DZoom">Zoom</sys:String>
     <sys:String x:Key="Lbl3DVertExag">Vertical exaggeration</sys:String>
     <sys:String x:Key="Btn3DSave">💾 Save</sys:String>
+    <sys:String x:Key="Lbl3DMap">Map</sys:String>
     <sys:String x:Key="Lbl3DDetail">Detail</sys:String>
     <sys:String x:Key="Lbl3DFlags">Flags</sys:String>
     <sys:String x:Key="Lbl3DWaypoints">Waypoints</sys:String>
@@ -362,6 +363,15 @@
     <sys:String x:Key="ChkAltitudeDerate">Apply altitude derate above reference elevation</sys:String>
     <sys:String x:Key="ChkCalibrate">Calibrate pace to my recent race (Riegel)</sys:String>
     <sys:String x:Key="ChkCap">Cap pace to my sustainable ceiling</sys:String>
+    <sys:String x:Key="ChkAutoCalibrate">Scale pace to model's training distance (Riegel)</sys:String>
+    <sys:String x:Key="LblHrZone">HR zone prediction:</sys:String>
+    <sys:String x:Key="HrZoneNormal">Normal (speed curve)</sys:String>
+    <sys:String x:Key="HrZoneCustom">Custom range…</sys:String>
+    <sys:String x:Key="LblCustomHrRange">bpm range:</sys:String>
+    <sys:String x:Key="LblRunningProfile">Running profile:</sys:String>
+    <sys:String x:Key="ProfileRoad">Road (b=1.06)</sys:String>
+    <sys:String x:Key="ProfileTrail">Trail (b=1.04)</sys:String>
+    <sys:String x:Key="ProfileUltraTrail">Ultra Trail (b=1.02)</sys:String>
     <sys:String x:Key="ChkLoad">Apply pack / poles climb-cost</sys:String>
     <sys:String x:Key="CyclingPhysicsExpander">Cycling physics (optional — needed for physics model)</sys:String>
     <sys:String x:Key="LblFtpW">FTP (W):</sys:String>
@@ -450,6 +460,8 @@
     <sys:String x:Key="RaHrDrift">HR drift:</sys:String>
     <sys:String x:Key="RaTurnPenalty">Turn penalty:</sys:String>
     <sys:String x:Key="RaTwistySection">twisty section</sys:String>
+    <sys:String x:Key="RaPowerHeader">Running power (Minetti):</sys:String>
+    <sys:String x:Key="RaPowerDeliverable">  Deliverable ceiling (max P90):</sys:String>
     <sys:String x:Key="RaHintFitted">Fitted from {0} track(s), {1} segments.</sys:String>
     <sys:String x:Key="RaAnalysisFailed">Analysis failed: </sys:String>
 
@@ -459,6 +471,10 @@
     <sys:String x:Key="RpDistance">Distance:</sys:String>
     <sys:String x:Key="RpAvgMoving">Avg moving:</sys:String>
     <sys:String x:Key="RpEffort">Effort:</sys:String>
+    <sys:String x:Key="RpAutoCalib">Auto-calibrated (distance):</sys:String>
+    <sys:String x:Key="RpProfile">Profile:</sys:String>
+    <sys:String x:Key="RpHrZone">HR zone:</sys:String>
+    <sys:String x:Key="RaHrZonesHeader">HR zone curves (speed at each HR zone):</sys:String>
     <sys:String x:Key="RpCalibrated">Calibrated:</sys:String>
     <sys:String x:Key="RpToYourRace">to your</sys:String>
     <sys:String x:Key="RpSustainableCap">Sustainable cap:</sys:String>

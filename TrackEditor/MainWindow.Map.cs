@@ -346,6 +346,13 @@ public partial class MainWindow
         bool ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
         bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
 
+        // Filter heatmap tracks list to those passing near the clicked point.
+        if (HeatmapCheck.IsChecked == true)
+        {
+            var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
+            FilterHeatmapTracksNear(lat, lon);
+        }
+
         // Universal: a single click near an existing active-track point selects it (every mode but Measure,
         // which needs to place its endpoints freely).
         if (_mode != EditMode.Measure && _active is not null && _active.Points.Count > 0)
@@ -437,7 +444,176 @@ public partial class MainWindow
         {
             _lastViewport = vp;
             if (FlagsCheck.IsChecked == true) UpdateFlags();
+            if (HeatmapCheck.IsChecked == true) _ = RefreshHeatmapAsync();
         }
+    }
+
+    private async Task RefreshHeatmapAsync()
+    {
+        if (!_settings.HeatmapEnabled || string.IsNullOrEmpty(_settings.HeatmapFolder)) return;
+
+        _heatmapCts.Cancel();
+        _heatmapCts = new CancellationTokenSource();
+        var ct = _heatmapCts.Token;
+
+        try
+        {
+            var (minX, minY, maxX, maxY) = _mapMgr.ViewportExtent();
+            var (minLon, minLat) = Mapsui.Projections.SphericalMercator.ToLonLat(minX, minY);
+            var (maxLon, maxLat) = Mapsui.Projections.SphericalMercator.ToLonLat(maxX, maxY);
+
+            var (features, tracks) = await Task.Run(() =>
+            {
+                ct.ThrowIfCancellationRequested();
+                var cells = _heatmapIndex.QueryHeatCells(minLat, maxLat, minLon, maxLon);
+                ct.ThrowIfCancellationRequested();
+                var f = HeatmapRenderer.BuildFeatures(cells, minLon, minLat, maxLon, maxLat,
+                    _settings.HeatmapColorHex, _settings.HeatmapAlwaysVisible);
+                ct.ThrowIfCancellationRequested();
+                var t = _heatmapIndex.QueryVisibleTracks(minLat, maxLat, minLon, maxLon);
+                return (f, t);
+            }, ct);
+
+            _mapMgr.SetHeatmap(features, _settings.HeatmapOpacity);
+            PopulateHeatmapTracksList(tracks);
+        }
+        catch (OperationCanceledException) { /* superseded by a newer viewport */ }
+    }
+
+    private bool _heatmapListLocked;
+
+    private void PopulateHeatmapTracksList(System.Collections.Generic.List<HeatmapIndex.TrackEntry> tracks)
+    {
+        if (_heatmapListLocked) return;
+        HeatmapTracksList.ItemsSource = tracks;
+        HeatmapTracksCountTxt.Text = $"{tracks.Count} track{(tracks.Count == 1 ? "" : "s")} in view";
+    }
+
+    private void FilterHeatmapTracksNear(double lat, double lon)
+    {
+        double radiusDeg = _settings.HeatmapClickRadiusM / 111_000.0;
+        var tracks = _heatmapIndex.QueryTracksNear(lat, lon, radiusDeg);
+        SetHeatmapLock(true);
+        HeatmapTracksList.ItemsSource = tracks;
+        HeatmapTracksCountTxt.Text = tracks.Count == 0
+            ? "No tracks at this point — click 🔓 to show all"
+            : $"{tracks.Count} track{(tracks.Count == 1 ? "" : "s")} near click (🔒)";
+    }
+
+    private void HeatmapListLock_Click(object sender, RoutedEventArgs e)
+    {
+        _heatmapListLocked = !_heatmapListLocked;
+        UpdateHeatmapLockButton();
+        if (!_heatmapListLocked) _ = RefreshHeatmapAsync();
+    }
+
+    private void SetHeatmapLock(bool locked)
+    {
+        _heatmapListLocked = locked;
+        UpdateHeatmapLockButton();
+    }
+
+    private void UpdateHeatmapLockButton()
+    {
+        HeatmapListLockBtn.Content = _heatmapListLocked ? "Unlock" : "Lock";
+        HeatmapListLockBtn.ToolTip = _heatmapListLocked
+            ? "List locked — click to unlock and refresh from viewport"
+            : "List auto-updates on pan/zoom — click to lock";
+    }
+
+    private static readonly Mapsui.Styles.Color PreviewColor = new(255, 235, 59, 220); // yellow, ~86% opacity
+    private Track? _preHeatmapActive; // editor's active track saved while a heatmap preview is shown
+
+    private void HeatmapTracksList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (HeatmapTracksList.SelectedItem is not HeatmapIndex.TrackEntry entry)
+        {
+            _mapMgr.ClearPreview();
+            RestoreActiveFromHeatmapPreview();
+            return;
+        }
+        if (!System.IO.File.Exists(entry.FilePath)) { _mapMgr.ClearPreview(); RestoreActiveFromHeatmapPreview(); return; }
+
+        List<Track> tracks;
+        try
+        {
+            string ext = System.IO.Path.GetExtension(entry.FilePath).ToLowerInvariant();
+            tracks = ext switch
+            {
+                ".fit" => FitIo.Load(entry.FilePath),
+                ".gpx" => GpxIo.Load(entry.FilePath),
+                ".tcx" => TcxIo.Load(entry.FilePath),
+                _ => [],
+            };
+        }
+        catch { _mapMgr.ClearPreview(); return; }
+
+        var features = new System.Collections.Generic.List<Mapsui.IFeature>();
+        foreach (var track in tracks)
+        {
+            if (track.Points.Count < 2) continue;
+            var coords = track.Points.Select(p =>
+            {
+                var (x, y) = Mapsui.Projections.SphericalMercator.FromLonLat(p.Lon, p.Lat);
+                return new NetTopologySuite.Geometries.Coordinate(x, y);
+            }).ToArray();
+            var lf = new Mapsui.Nts.GeometryFeature(new NetTopologySuite.Geometries.LineString(coords));
+            lf.Styles.Add(new Mapsui.Styles.VectorStyle
+            {
+                Line = new Mapsui.Styles.Pen(PreviewColor, 4)
+                {
+                    PenStrokeCap = Mapsui.Styles.PenStrokeCap.Round,
+                    StrokeJoin = Mapsui.Styles.StrokeJoin.Round,
+                },
+            });
+            features.Add(lf);
+        }
+
+        _mapMgr.SetPreview(features);
+
+        // Show stats + plots for the preview track without adding it to the document.
+        var first = tracks.FirstOrDefault(t => t.Points.Count >= 2);
+        if (first is not null)
+        {
+            _preHeatmapActive ??= _active; // save once; nested selections overwrite
+            SetActive(first);
+            RefreshStats();
+            RefreshPlots();
+        }
+    }
+
+    private void RestoreActiveFromHeatmapPreview()
+    {
+        if (_preHeatmapActive == null) return;
+        SetActive(_preHeatmapActive);
+        _preHeatmapActive = null;
+        RefreshStats();
+        RefreshPlots();
+    }
+
+    private void HeatmapTracksList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (HeatmapTracksList.SelectedItem is not HeatmapIndex.TrackEntry entry) return;
+        if (!System.IO.File.Exists(entry.FilePath)) return;
+        try
+        {
+            string ext = System.IO.Path.GetExtension(entry.FilePath).ToLowerInvariant();
+            var tracks = ext switch
+            {
+                ".fit" => FitIo.Load(entry.FilePath),
+                ".gpx" => GpxIo.Load(entry.FilePath),
+                ".tcx" => TcxIo.Load(entry.FilePath),
+                _ => new System.Collections.Generic.List<Track>(),
+            };
+            if (tracks.Any(t => t.Points.Count >= 2)) _mapMgr.ZoomToTracks(tracks);
+        }
+        catch { }
+    }
+
+    private void HeatmapTrackLoadToList_Click(object sender, RoutedEventArgs e)
+    {
+        if (HeatmapTracksList.SelectedItem is HeatmapIndex.TrackEntry entry)
+            LoadFiles([entry.FilePath]);
     }
 
     private void FlagsToggle_Click(object sender, RoutedEventArgs e)
@@ -713,6 +889,19 @@ public partial class MainWindow
         axis.Label.Text = label;
         axis.Label.ForeColor = color;
         axis.TickLabelStyle.ForeColor = color;
+    }
+
+    // ======================= heatmap =======================
+
+    private void HeatmapToggle_Click(object sender, RoutedEventArgs e)
+    {
+        bool on = HeatmapCheck.IsChecked == true;
+        _settings.HeatmapEnabled = on;
+        _settings.Save();
+        _mapMgr.SetHeatmapVisible(on);
+        HeatmapTracksTab.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        if (on) _ = RefreshHeatmapAsync();
+        else { SetHeatmapLock(false); HeatmapTracksList.ItemsSource = null; HeatmapTracksCountTxt.Text = ""; _mapMgr.ClearPreview(); RestoreActiveFromHeatmapPreview(); }
     }
 
     /// <summary>Marks the selection on the profile: a shaded band across the selected km range (when 2+ points

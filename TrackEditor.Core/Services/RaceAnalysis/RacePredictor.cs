@@ -30,6 +30,21 @@ public class PredictOptions
     /// <summary>Rescale the model's overall pace to what the athlete can hold over this route's distance, using
     /// their recent race (Riegel). Needs <see cref="Profile"/>.RecentRace; ignored otherwise.</summary>
     public bool CalibrateToRecentRace { get; set; } = false;
+    /// <summary>Automatically scale the model's pace to match the target distance using Riegel's law, treating
+    /// the model's representative training distance (<see cref="RaceModelMeta.EffectiveRepresentativeKm"/>) as
+    /// the reference. Corrects for the pacing difference between races of different lengths — a long-race model
+    /// applied to a short race predicts too slow without this, because the model's base speeds were recorded at
+    /// long-race effort. Applied before <see cref="CalibrateToRecentRace"/> so the two can compose.</summary>
+    public bool AutoCalibrateByDistance { get; set; } = true;
+    /// <summary>Running/terrain profile that controls the Riegel exponent and maximum distance ratio used by
+    /// <see cref="AutoCalibrateByDistance"/>. Road uses the classic b=1.06; trail/ultra runners show a flatter
+    /// pace-distance curve and should use Trail (b=1.04) or UltraTrail (b=1.02) to avoid over-correcting.</summary>
+    public RunningProfile RunningProfile { get; set; } = RunningProfile.Road;
+    /// <summary>Predict using the fitted HR-zone curve for this zone (1=Recovery, 2=Aerobic, 3=Tempo,
+    /// 4=Threshold, 5=VO₂max) instead of the blended BaseCurve. Requires zone curves in the model (source tracks
+    /// must carry HR data). When set, AutoCalibrateByDistance and RecentRace calibration are skipped — the zone
+    /// curve already encodes the athlete's pace at that HR level; use <see cref="Effort"/> to adjust within it.</summary>
+    public int? TargetHrZone { get; set; }
     /// <summary>Clamp the effort-scaled pace to the endurance-sustainable ceiling from the recent race, so an
     /// aggressive effort can't predict an unsustainable average. Needs <see cref="Profile"/>.RecentRace.</summary>
     public bool CapToSustainable { get; set; } = false;
@@ -95,17 +110,46 @@ public static class RacePredictor
         double targetKm = cumRs[^1] / 1000.0;
         var recent = opt.Profile?.RecentRace;
 
+        // HR zone mode: scale the overall BaseCurve to the zone's flat speed, rather than substituting the
+        // zone's own fitted curve. Zone curves are terrain-biased (high-HR segments are mostly uphills), so
+        // their flat-speed extrapolation is unreliable and produces the paradox Z3 < Z2 < Z1 flat. Instead we
+        // treat FlatSpeedMps as the zone's effort anchor and let the overall terrain model handle grade response.
+        double zoneFlatSpeedMult = 1.0;
+        bool usingZoneCurve = false;
+        if (opt.TargetHrZone is int targetZone && model.HrZoneCurves.Count > 0)
+        {
+            var zc = model.HrZoneCurves.FirstOrDefault(z => z.Zone == targetZone);
+            double baseFlat = model.AthleteBaseline.FlatSpeedMps;
+            if (zc is not null && baseFlat > 0)
+            {
+                zoneFlatSpeedMult = zc.FlatSpeedMps / baseFlat;
+                usingZoneCurve = true;
+            }
+        }
+
         // Overall pace level: effort intent × optional Riegel calibration to the athlete's recent race, then
         // optionally clamped to the endurance-sustainable ceiling for this distance (so a hard effort can't
         // predict an unholdable average). Calibration already lands on the ceiling, so the cap only bites AllOut.
         double effortScale = opt.EffortScale;
         double levelScale = effortScale;
-        if (opt.CalibrateToRecentRace)
-            levelScale = effortScale * EnduranceCalibration.CalibrationScale(model, recent, targetKm);
-        if (opt.CapToSustainable && recent is { IsValid: true })
+        if (!usingZoneCurve)
         {
-            double capRatio = EnduranceCalibration.CalibrationScale(model, recent, targetKm);
-            levelScale = Math.Min(levelScale, capRatio);
+            // Auto distance calibration: Riegel-scale the model's base pace from its training distance to the
+            // target distance. Applied first so RecentRace calibration or the sustainable cap can override/clamp.
+            if (opt.AutoCalibrateByDistance)
+            {
+                double trainKm = model.Meta.EffectiveRepresentativeKm;
+                levelScale *= EnduranceCalibration.DistanceScale(trainKm, targetKm, opt.RunningProfile);
+            }
+            // RecentRace calibration replaces the distance-adjusted level (it already bakes in the distance effect
+            // from the actual race result, which is more authoritative than the model's training distance).
+            if (opt.CalibrateToRecentRace)
+                levelScale = effortScale * EnduranceCalibration.CalibrationScale(model, recent, targetKm);
+            if (opt.CapToSustainable && recent is { IsValid: true })
+            {
+                double capRatio = EnduranceCalibration.CalibrationScale(model, recent, targetKm);
+                levelScale = Math.Min(levelScale, capRatio);
+            }
         }
 
         // Aerobic decoupling: efforts harder than the fitted intensity fade faster, so steepen the fatigue decay.
@@ -142,6 +186,7 @@ public static class RacePredictor
                 : 1.0;
 
             double speed = model.BaseCurve.SpeedAt(gradeDeg)
+                         * zoneFlatSpeedMult
                          * model.Fatigue.MultWith(effort, kEff)
                          * model.Turn.Mult(turn[i])
                          * altMult

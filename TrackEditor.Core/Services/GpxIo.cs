@@ -24,6 +24,10 @@ public static class GpxIo
         foreach (var trk in doc.Descendants().Where(e => e.Name.LocalName == "trk"))
         {
             var track = new Track { Name = ChildValue(trk, "name") ?? baseName };
+            string? trkType = ChildValue(trk, "type");
+            if (!string.IsNullOrWhiteSpace(trkType))
+                track.ActivityType = System.Globalization.CultureInfo.InvariantCulture.TextInfo
+                    .ToTitleCase(trkType.Trim().ToLowerInvariant());
             foreach (var seg in trk.Elements().Where(e => e.Name.LocalName == "trkseg"))
                 foreach (var pt in seg.Elements().Where(e => e.Name.LocalName == "trkpt"))
                     if (ParsePoint(pt) is TrackPoint p) track.Points.Add(p);

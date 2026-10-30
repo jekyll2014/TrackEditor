@@ -18,6 +18,23 @@ public class RaceAnalysisOptions
     public double GradeMaxDeg { get; set; } = 25;
     public int MinBinSamples { get; set; } = 15;
     public double FatigueFloor { get; set; } = 0.5;
+    /// <summary>Override auto-detected max HR (bpm) used to calculate HR zone breakpoints.
+    /// When null, the maximum HR seen across all fitted segments is used.</summary>
+    public int? MaxHrOverride { get; set; }
+    /// <summary>Percentile used when aggregating speed samples within each grade bin (0.5 = median, 0.9 = P90).
+    /// Median captures typical effort; P90 captures race-level peak capability per grade.
+    /// Higher values give faster, more optimistic models — use when training data under-represents full effort.</summary>
+    public double BinPercentile { get; set; } = 0.5;
+}
+
+/// <summary>Per-track running power summary computed during the fit.</summary>
+public class TrackPowerStats
+{
+    public string TrackName { get; set; } = "";
+    /// <summary>90th-percentile specific running power (W/kg) for this track — peak sustainable effort.</summary>
+    public double P90SpecificPowerWkg { get; set; }
+    /// <summary>Absolute maximum specific power (W/kg) seen in any single segment of this track.</summary>
+    public double MaxSpecificPowerWkg { get; set; }
 }
 
 /// <summary>Outcome of a fit: the model and the raw counts behind it.</summary>
@@ -28,6 +45,8 @@ public class AnalysisResult
     public int SegmentsUsed { get; set; }
     /// <summary>Maximum accumulated effort value across all fitted segments (used by WPF to format the fatigue line).</summary>
     public double MaxEffort { get; set; }
+    /// <summary>Per-track running power percentiles (running models only; empty for cycling).</summary>
+    public List<TrackPowerStats> TrackPower { get; set; } = new();
 }
 
 /// <summary>
@@ -42,10 +61,10 @@ public static class RaceAnalyzer
 {
     private readonly struct Seg
     {
-        public readonly double GradeDeg, SpeedRel, Effort, Turn;
+        public readonly double GradeDeg, SpeedRel, SpeedAbs, Effort, Turn;
         public readonly double? Hr;
-        public Seg(double g, double s, double e, double turn, double? hr)
-        { GradeDeg = g; SpeedRel = s; Effort = e; Turn = turn; Hr = hr; }
+        public Seg(double g, double sRel, double sAbs, double e, double turn, double? hr)
+        { GradeDeg = g; SpeedRel = sRel; SpeedAbs = sAbs; Effort = e; Turn = turn; Hr = hr; }
     }
 
     public static AnalysisResult Analyze(IEnumerable<Track> tracks, RaceAnalysisOptions? options = null)
@@ -54,6 +73,7 @@ public static class RaceAnalyzer
         var segs = new List<Seg>();
         var flatRefs = new List<double>();
         var names = new List<string>();
+        var trackPower = new List<TrackPowerStats>();
         double totalKm = 0;
         bool anyHr = false, anyCad = false;
 
@@ -104,6 +124,20 @@ public static class RaceAnalyzer
             }
             if (raw.Count == 0) continue;
 
+            // Specific running power (W/kg) per segment using Minetti metabolic cost model.
+            // gradeFraction = tan(gradeDeg) = rise/run; Minetti is valid for ±0.45 (clamped inside).
+            if (opt.Sport == SportType.Running)
+            {
+                var powers = raw.Select(r =>
+                    RunningPower.SpecificPowerWkg(Math.Tan(r.Grade * Math.PI / 180.0), r.Speed)).ToList();
+                trackPower.Add(new TrackPowerStats
+                {
+                    TrackName = track.Name,
+                    P90SpecificPowerWkg = RunningPower.Percentile90(powers),
+                    MaxSpecificPowerWkg = powers.Max(),
+                });
+            }
+
             // Intensity anchor = median moving speed near flat; normalize this track to it.
             var flat = raw.Where(r => Math.Abs(r.Grade) < 1.5).Select(r => r.Speed).ToList();
             double flatRef = Median(flat.Count > 0 ? flat : raw.Select(r => r.Speed).ToList());
@@ -119,7 +153,7 @@ public static class RaceAnalyzer
                     FatigueDriver.Distance => r.Dist,
                     _ => r.CumAsc,
                 };
-                segs.Add(new Seg(Math.Clamp(r.Grade, opt.GradeMinDeg, opt.GradeMaxDeg), r.Speed / norm, effort, r.Turn, r.Hr));
+                segs.Add(new Seg(Math.Clamp(r.Grade, opt.GradeMinDeg, opt.GradeMaxDeg), r.Speed / norm, r.Speed, effort, r.Turn, r.Hr));
             }
         }
 
@@ -130,7 +164,7 @@ public static class RaceAnalyzer
 
         // --- base curve: per-degree robust central speed, gap-filled + smoothed (in normalized space) ---
         int bins = (int)Math.Round((opt.GradeMaxDeg - opt.GradeMinDeg) / 1.0) + 1;
-        var relCurve = FitBaseCurve(segs, opt.GradeMinDeg, bins, opt.MinBinSamples, opt.NormalizePerTrack ? 1.0 : athleteFlat);
+        var relCurve = FitBaseCurve(segs, opt.GradeMinDeg, bins, opt.MinBinSamples, opt.NormalizePerTrack ? 1.0 : athleteFlat, opt.BinPercentile);
         var relLookup = new BaseCurve { GradeMinDeg = opt.GradeMinDeg, StepDeg = 1, SpeedMps = relCurve };
 
         // --- fatigue: residual speed / base(grade) regressed against accumulated effort ---
@@ -158,6 +192,20 @@ public static class RaceAnalyzer
         // --- turn penalty: residual after grade+fatigue regressed against turn density ---
         var turnSpec = FitTurn(segs, relLookup, fatigue);
 
+        // HR zone curves — fit one speed curve per zone if HR data present.
+        int? maxHrBpm = null;
+        List<HrZoneCurve> hrZoneCurves = new();
+        if (anyHr)
+        {
+            var allHr = segs.Where(s => s.Hr is not null).Select(s => (int)Math.Round(s.Hr!.Value)).ToList();
+            if (allHr.Count > 0)
+            {
+                maxHrBpm = opt.MaxHrOverride ?? allHr.Max();
+                var zones = HrZoneSpec.FromMaxHr(maxHrBpm.Value);
+                hrZoneCurves = FitHrZoneCurves(segs, zones, opt.GradeMinDeg, bins, opt.MinBinSamples, relLookup);
+            }
+        }
+
         double scale = opt.NormalizePerTrack ? athleteFlat : 1.0;
         var model = new RaceModel
         {
@@ -175,7 +223,14 @@ public static class RaceAnalyzer
             Fatigue = fatigue,
             Turn = turnSpec,
             Altitude = new AltitudeSpec { DeratePerKm = 0 },
-            AthleteBaseline = new AthleteBaseline { FlatSpeedMps = athleteFlat, RefHr = refHr },
+            HrZoneCurves = hrZoneCurves,
+            AthleteBaseline = new AthleteBaseline
+            {
+                FlatSpeedMps = athleteFlat,
+                RefHr = refHr,
+                MaxHrBpm = maxHrBpm,
+                PeakSpecificPowerWkg = trackPower.Count > 0 ? trackPower.Max(t => t.P90SpecificPowerWkg) : null,
+            },
             Meta = new RaceModelMeta
             {
                 AthleteName = string.IsNullOrWhiteSpace(opt.AthleteName) ? null : opt.AthleteName.Trim(),
@@ -193,27 +248,30 @@ public static class RaceAnalyzer
             TracksUsed = names.Count,
             SegmentsUsed = segs.Count,
             MaxEffort = segs.Max(s => s.Effort),
+            TrackPower = trackPower,
         };
     }
 
-    private static double[] FitBaseCurve(List<Seg> segs, double gradeMin, int bins, int minSamples, double fallback)
+    private static double[] FitBaseCurve(List<Seg> segs, double gradeMin, int bins, int minSamples, double fallback, double percentile = 0.5)
+        => FitBaseCurveFromValues(segs.Select(s => (s.GradeDeg, s.SpeedRel)), gradeMin, bins, minSamples, fallback, percentile);
+
+    /// <summary>Core bucket-median-smooth fitter. Works on any (grade, speed) pairs — used for both the main
+    /// normalized curve and absolute-speed HR-zone curves.</summary>
+    private static double[] FitBaseCurveFromValues(
+        IEnumerable<(double GradeDeg, double Speed)> items,
+        double gradeMin, int bins, int minSamples, double fallback, double percentile = 0.5)
     {
         var buckets = new List<double>[bins];
         for (int b = 0; b < bins; b++) buckets[b] = new List<double>();
-        foreach (var s in segs)
+        foreach (var (g, s) in items)
         {
-            int b = (int)Math.Round(s.GradeDeg - gradeMin);
-            if (b >= 0 && b < bins) buckets[b].Add(s.SpeedRel);
+            int b = (int)Math.Round(g - gradeMin);
+            if (b >= 0 && b < bins) buckets[b].Add(s);
         }
-
         var curve = new double?[bins];
         for (int b = 0; b < bins; b++)
-            if (buckets[b].Count >= minSamples) curve[b] = Median(buckets[b]);
-
-        // Fill gaps by linear interpolation between known bins; clamp the ends to the nearest known value.
+            if (buckets[b].Count >= minSamples) curve[b] = Percentile(buckets[b], percentile);
         FillGaps(curve, fallback);
-
-        // Light 3-wide smoothing.
         var outp = new double[bins];
         for (int b = 0; b < bins; b++)
         {
@@ -222,6 +280,53 @@ public static class RaceAnalyzer
             outp[b] = sum / c;
         }
         return outp;
+    }
+
+    /// <summary>Fits absolute-speed curves for each HR zone from segments that carry HR data.
+    /// Zones with fewer than 4×minSamples segments are skipped (too sparse to trust).
+    /// FlatSpeedMps is terrain-normalized: each segment's AbsSpeed is divided by the grade's relative
+    /// response from the overall model, removing terrain bias from the zone flat-speed estimate.</summary>
+    private static List<HrZoneCurve> FitHrZoneCurves(
+        List<Seg> segs, HrZoneSpec[] zones, double gradeMin, int bins, int minSamples, BaseCurve relCurve)
+    {
+        double relFlat = relCurve.SpeedAt(0);
+        var result = new List<HrZoneCurve>();
+        foreach (var z in zones)
+        {
+            var zs = segs.Where(s => s.Hr is double hr && z.Contains(hr)).ToList();
+            if (zs.Count < minSamples * 4) continue;
+
+            double fallback = Median(zs.Select(s => s.SpeedAbs).ToList());
+            var curve = FitBaseCurveFromValues(zs.Select(s => (s.GradeDeg, s.SpeedAbs)), gradeMin, bins, minSamples, fallback);
+
+            // Terrain-normalize each segment: divide absolute speed by the expected relative grade response.
+            // Gives the flat-equivalent speed the athlete would run at on this HR, regardless of terrain mix.
+            // Exclude sub-walking speeds (< 1.0 m/s = 3.6 km/h) — recovery walks in ultras are Z1/Z2 but
+            // represent a different activity from sustained aerobic running and bias the flat-speed estimate down.
+            double relFlatSafe = relFlat > 0 ? relFlat : 1.0;
+            const double MinRunSpeedMps = 1.0;
+            var normSpeeds = zs
+                .Where(s => s.SpeedAbs >= MinRunSpeedMps)
+                .Select(s => { double rel = relCurve.SpeedAt(s.GradeDeg); return rel > 0.05 ? s.SpeedAbs * relFlatSafe / rel : (double?)null; })
+                .Where(v => v.HasValue).Select(v => v!.Value).ToList();
+            double flatSpeed = normSpeeds.Count >= 5 ? Median(normSpeeds) : fallback;
+
+            var powers = zs.Select(s =>
+                RunningPower.SpecificPowerWkg(Math.Tan(s.GradeDeg * Math.PI / 180.0), s.SpeedAbs)).ToList();
+
+            result.Add(new HrZoneCurve
+            {
+                Zone = z.Zone,
+                ZoneName = z.Name,
+                LowerBpm = z.LowerBpm,
+                UpperBpm = z.UpperBpm,
+                SampleCount = zs.Count,
+                FlatSpeedMps = flatSpeed,
+                MeanSpecificPowerWkg = powers.Count > 0 ? powers.Average() : null,
+                Curve = new BaseCurve { GradeMinDeg = gradeMin, StepDeg = 1, SpeedMps = curve },
+            });
+        }
+        return result;
     }
 
     private static void FillGaps(double?[] curve, double fallback)
@@ -296,12 +401,16 @@ public static class RaceAnalyzer
     }
 
     // --- small numeric helpers ---
-    private static double Median(List<double> xs)
+    private static double Median(List<double> xs) => Percentile(xs, 0.5);
+
+    private static double Percentile(List<double> xs, double p)
     {
         if (xs.Count == 0) return 0;
         xs.Sort();
-        int n = xs.Count;
-        return n % 2 == 1 ? xs[n / 2] : (xs[n / 2 - 1] + xs[n / 2]) / 2.0;
+        double idx = (xs.Count - 1) * p;
+        int lo = (int)idx;
+        int hi = Math.Min(lo + 1, xs.Count - 1);
+        return xs[lo] + (xs[hi] - xs[lo]) * (idx - lo);
     }
 
     private static double Mean(List<double> xs) => xs.Count == 0 ? 0 : xs.Average();

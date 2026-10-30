@@ -5,6 +5,7 @@ using BruTile.Web;
 using Mapsui;
 using Mapsui.Extensions;
 using Mapsui.Layers;
+using Mapsui.Manipulations;
 using Mapsui.Nts;
 using Mapsui.Projections;
 using Mapsui.Styles;
@@ -13,7 +14,7 @@ using Mapsui.Tiling.Layers;
 using NetTopologySuite.Geometries;
 
 using System.IO;
-using Mapsui.Manipulations;
+
 using TrackEditor.Core.Models;
 using TrackEditor.Core.Services;
 
@@ -36,6 +37,8 @@ public class MapManager : IDisposable
     private readonly MemoryLayer _hoverLayer = new() { Name = "Hover", Style = null };
     private readonly MemoryLayer _measureLayer = new() { Name = "Measure", Style = null };
     private readonly MemoryLayer _viewerLayer = new() { Name = "Viewer3D", Style = null };
+    private readonly MemoryLayer _heatmapLayer = new() { Name = "Heatmap", Style = null };
+    private readonly MemoryLayer _previewLayer = new() { Name = "HeatmapPreview", Style = null };
     private ILayer _baseLayer;
     private MbTilesCache _baseCache;
     private BaseMapProvider _provider;
@@ -61,7 +64,9 @@ public class MapManager : IDisposable
         var map = ctrl.Map;
         _baseLayer = CreateBaseLayer(provider, LimitBytes, out _baseCache, out _baseMaxZoom);
         map.Layers.Add(_baseLayer);
+        map.Layers.Add(_heatmapLayer);  // above basemap, below user tracks
         map.Layers.Add(_lineLayer);
+        map.Layers.Add(_previewLayer);
         map.Layers.Add(_vertexLayer);
         map.Layers.Add(_flagLayer);
         map.Layers.Add(_waypointLayer);
@@ -120,6 +125,32 @@ public class MapManager : IDisposable
     }
 
     public void ClearMeasure() => SetMeasure(Array.Empty<(double, double)>());
+
+    /// <summary>Replaces the heatmap with freshly rendered features and sets layer-level opacity.</summary>
+    public void SetHeatmap(IList<IFeature> features, double opacity = 0.75)
+    {
+        _heatmapLayer.Features = features;
+        _heatmapLayer.Opacity = opacity;
+        _heatmapLayer.DataHasChanged();
+        _ctrl.RefreshGraphics();
+    }
+
+    /// <summary>Shows or hides the heatmap layer without re-rendering it.</summary>
+    public void SetHeatmapVisible(bool visible)
+    {
+        _heatmapLayer.Enabled = visible;
+        _ctrl.RefreshGraphics();
+    }
+
+    /// <summary>Renders a temporary preview track (heatmap list selection). Pass null to clear.</summary>
+    public void SetPreview(IList<IFeature>? features)
+    {
+        _previewLayer.Features = features ?? Array.Empty<IFeature>();
+        _previewLayer.DataHasChanged();
+        _ctrl.RefreshGraphics();
+    }
+
+    public void ClearPreview() => SetPreview(null);
 
     /// <summary>Recenters the viewport on a point, keeping the current zoom level.</summary>
     public void CenterOn(TrackPoint p)
@@ -195,6 +226,36 @@ public class MapManager : IDisposable
 
     /// <summary>Highest zoom level the active basemap provides.</summary>
     public int BaseMaxZoom => _baseMaxZoom;
+
+    /// <summary>Creates a standalone tile source for <paramref name="provider"/> without a persistent cache
+    /// (suitable for the 3D view where the in-memory stream cache handles repeated fetches).</summary>
+    public static (ITileSource Source, int MaxZoom) CreateTileSource(BaseMapProvider provider)
+    {
+        var (url, tileMaxZoom, attrText, attrUrl, yAxis) = provider switch
+        {
+            BaseMapProvider.OpenTopoMap => (
+                "https://tile.opentopomap.org/{z}/{x}/{y}.png", 17,
+                "© OpenTopoMap (CC-BY-SA), © OpenStreetMap contributors", "https://opentopomap.org/", YAxis.OSM),
+            BaseMapProvider.CyclOSM => (
+                "https://a.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png", 18,
+                "© CyclOSM, © OpenStreetMap contributors", "https://www.cyclosm.org/", YAxis.OSM),
+            BaseMapProvider.EsriWorldImagery => (
+                "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                19, "Imagery © Esri, Maxar, Earthstar Geographics", "https://www.esri.com/", YAxis.OSM),
+            BaseMapProvider.CartoLight => (
+                "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png", 19,
+                "© CARTO, © OpenStreetMap contributors", "https://carto.com/attributions", YAxis.OSM),
+            _ => (
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png", 19,
+                "© OpenStreetMap contributors", "https://www.openstreetmap.org/copyright", YAxis.OSM),
+        };
+        string name = provider.ToString();
+        var schema = new GlobalSphericalMercator(yAxis, 0, tileMaxZoom);
+        var source = new HttpTileSource(schema, url, name: name,
+            attribution: new BruTile.Attribution(attrText, attrUrl),
+            configureHttpRequestMessage: msg => msg.Headers.UserAgent.ParseAdd(UserAgent));
+        return (source, tileMaxZoom);
+    }
 
     /// <summary>Current viewport bounds in Web-Mercator meters (min/max X/Y).</summary>
     public (double MinX, double MinY, double MaxX, double MaxY) ViewportExtent()

@@ -27,7 +27,7 @@ public class TrackPoint
     public bool IsWaypoint => !string.IsNullOrWhiteSpace(Name);
 
     public TrackPoint Clone() => new()
-        { Lat = Lat, Lon = Lon, Ele = Ele, Time = Time, Hr = Hr, Cad = Cad, Temp = Temp, Surface = Surface, Name = Name };
+    { Lat = Lat, Lon = Lon, Ele = Ele, Time = Time, Hr = Hr, Cad = Cad, Temp = Temp, Surface = Surface, Name = Name };
 }
 
 public class Track
@@ -40,6 +40,9 @@ public class Track
 
     /// <summary>True when some/all elevations were filled from a DEM/online service rather than recorded.</summary>
     public bool ElevationEstimated { get; set; }
+
+    /// <summary>Activity sport type from the source file (e.g. "Running", "Cycling"). Null when not provided.</summary>
+    public string? ActivityType { get; set; }
 
     /// <summary>Path this track was loaded from / last saved to; null for a drawn (never-saved) track.</summary>
     public string? SourceFile { get; set; }
@@ -102,6 +105,7 @@ public class Track
     public Track Clone() => new()
     {
         Name = Name,
+        ActivityType = ActivityType,
         ColorHex = ColorHex,
         Width = Width,
         Visible = Visible,

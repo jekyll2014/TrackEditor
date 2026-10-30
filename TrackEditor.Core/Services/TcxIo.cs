@@ -39,6 +39,9 @@ public static class TcxIo
     private static void AddContainer(XElement container, string name, List<Track> tracks)
     {
         var track = new Track { Name = name };
+        string? sport = container.Attribute("Sport")?.Value;
+        if (!string.IsNullOrWhiteSpace(sport) && sport != "Other")
+            track.ActivityType = sport;
         foreach (var tp in container.Descendants().Where(e => e.Name.LocalName == "Trackpoint"))
             if (ParsePoint(tp) is TrackPoint p) track.Points.Add(p);
         if (track.Points.Count > 0) tracks.Add(track);

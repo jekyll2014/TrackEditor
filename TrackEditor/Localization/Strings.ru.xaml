@@ -314,6 +314,7 @@
     <sys:String x:Key="Lbl3DZoom">Масштаб</sys:String>
     <sys:String x:Key="Lbl3DVertExag">Вертикальное преувеличение</sys:String>
     <sys:String x:Key="Btn3DSave">💾 Сохранить</sys:String>
+    <sys:String x:Key="Lbl3DMap">Карта</sys:String>
     <sys:String x:Key="Lbl3DDetail">Детализация</sys:String>
     <sys:String x:Key="Lbl3DFlags">Флаги</sys:String>
     <sys:String x:Key="Lbl3DWaypoints">Путевые точки</sys:String>
@@ -362,6 +363,15 @@
     <sys:String x:Key="ChkAltitudeDerate">Применить снижение темпа по высоте</sys:String>
     <sys:String x:Key="ChkCalibrate">Калибровать темп по предыдущему забегу (Riegel)</sys:String>
     <sys:String x:Key="ChkCap">Ограничить темп устойчивым максимумом</sys:String>
+    <sys:String x:Key="ChkAutoCalibrate">Масштабировать темп к дистанции модели (Riegel)</sys:String>
+    <sys:String x:Key="LblHrZone">Прогноз по зоне ЧСС:</sys:String>
+    <sys:String x:Key="HrZoneNormal">Обычный (кривая скорости)</sys:String>
+    <sys:String x:Key="HrZoneCustom">Свой диапазон…</sys:String>
+    <sys:String x:Key="LblCustomHrRange">диапазон ЧСС:</sys:String>
+    <sys:String x:Key="LblRunningProfile">Профиль бега:</sys:String>
+    <sys:String x:Key="ProfileRoad">Шоссе (b=1.06)</sys:String>
+    <sys:String x:Key="ProfileTrail">Трейл (b=1.04)</sys:String>
+    <sys:String x:Key="ProfileUltraTrail">Ультра-трейл (b=1.02)</sys:String>
     <sys:String x:Key="ChkLoad">Учесть рюкзак / палки при подъёме</sys:String>
     <sys:String x:Key="CyclingPhysicsExpander">Физика велосипеда (для физической модели)</sys:String>
     <sys:String x:Key="LblFtpW">FTP (Вт):</sys:String>
@@ -450,6 +460,8 @@
     <sys:String x:Key="RaHrDrift">Дрейф ЧСС:</sys:String>
     <sys:String x:Key="RaTurnPenalty">Штраф за повороты:</sys:String>
     <sys:String x:Key="RaTwistySection">петляющий участок</sys:String>
+    <sys:String x:Key="RaPowerHeader">Беговая мощность (Minetti):</sys:String>
+    <sys:String x:Key="RaPowerDeliverable">  Максимум атлета (P90):</sys:String>
     <sys:String x:Key="RaHintFitted">Аппроксимировано по {0} треку(ам), {1} сегментам.</sys:String>
     <sys:String x:Key="RaAnalysisFailed">Ошибка анализа:</sys:String>
 
@@ -459,6 +471,10 @@
     <sys:String x:Key="RpDistance">Дистанция:</sys:String>
     <sys:String x:Key="RpAvgMoving">Ср. дв. скорость:</sys:String>
     <sys:String x:Key="RpEffort">Усилие:</sys:String>
+    <sys:String x:Key="RpAutoCalib">Авто-калибровка (дистанция):</sys:String>
+    <sys:String x:Key="RpProfile">Профиль:</sys:String>
+    <sys:String x:Key="RpHrZone">Зона ЧСС:</sys:String>
+    <sys:String x:Key="RaHrZonesHeader">Кривые по зонам ЧСС:</sys:String>
     <sys:String x:Key="RpCalibrated">Откалибровано:</sys:String>
     <sys:String x:Key="RpToYourRace">к вашему</sys:String>
     <sys:String x:Key="RpSustainableCap">Предел выносливости:</sys:String>

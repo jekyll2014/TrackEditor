@@ -68,6 +68,32 @@
             <CheckBox x:Name="ChkAltitude" Content="{DynamicResource ChkAltitudeDerate}" Margin="0,2,0,0"/>
             <CheckBox x:Name="ChkCalibrate" Content="{DynamicResource ChkCalibrate}" Margin="0,2,0,0"/>
             <CheckBox x:Name="ChkCap" Content="{DynamicResource ChkCap}" Margin="0,2,0,0"/>
+            <CheckBox x:Name="ChkAutoCalibrate" Content="{DynamicResource ChkAutoCalibrate}" Margin="0,2,0,0" IsChecked="True"
+                      ToolTip="Riegel distance scaling: if the model was trained on long races, short-race predictions are sped up automatically. No recent race required."/>
+            <StackPanel x:Name="PanelHrZone" Orientation="Vertical" Margin="0,2,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{DynamicResource LblHrZone}" Width="130" VerticalAlignment="Center"/>
+                    <ComboBox x:Name="CmbHrZone" Width="280"
+                              ToolTip="Predict pace at a specific HR effort level. Each zone shows the flat speed the athlete holds at that HR. Higher zone = higher effort = faster pace. Z2 Aerobic is ideal for ultra trail."
+                              SelectionChanged="CmbHrZone_SelectionChanged"/>
+                </StackPanel>
+                <StackPanel x:Name="PanelCustomHr" Orientation="Horizontal" Margin="130,4,0,0" Visibility="Collapsed">
+                    <TextBlock Text="{DynamicResource LblCustomHrRange}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBox x:Name="TxtCustomHrLo" Width="50" ToolTip="Lower HR bound (bpm)"/>
+                    <TextBlock Text="–" VerticalAlignment="Center" Margin="4,0"/>
+                    <TextBox x:Name="TxtCustomHrHi" Width="50" ToolTip="Upper HR bound (bpm)"/>
+                    <TextBlock Text="bpm" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="#888"/>
+                </StackPanel>
+            </StackPanel>
+            <StackPanel x:Name="PanelProfile" Orientation="Horizontal" Margin="0,2,0,0">
+                <TextBlock Text="{DynamicResource LblRunningProfile}" VerticalAlignment="Center" Width="130"/>
+                <ComboBox x:Name="CmbProfile" Width="150" SelectedIndex="0"
+                          ToolTip="Controls the Riegel exponent used by distance calibration. Road=1.06, Trail=1.04 (cap 4×), UltraTrail=1.02 (cap 3×).">
+                    <ComboBoxItem Content="{DynamicResource ProfileRoad}"      Tag="Road"/>
+                    <ComboBoxItem Content="{DynamicResource ProfileTrail}"     Tag="Trail"/>
+                    <ComboBoxItem Content="{DynamicResource ProfileUltraTrail}" Tag="UltraTrail"/>
+                </ComboBox>
+            </StackPanel>
             <CheckBox x:Name="ChkLoad" Content="{DynamicResource ChkLoad}" Margin="0,2,0,0"/>
 
             <Expander x:Name="ProfileExpander" Header="{DynamicResource ProfileExpander}" Margin="0,8,0,0">
