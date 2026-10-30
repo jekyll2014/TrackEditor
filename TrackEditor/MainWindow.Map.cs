@@ -176,7 +176,7 @@ public partial class MainWindow
             // In Edit mode a double-click inserts a point on the nearest segment; otherwise it
             // centres the nearest point in the viewport (same as double-click in the list).
             // Either way we suppress Mapsui's default double-click zoom.
-            if (_mode == EditMode.Edit) InsertPointAtScreen(pos);
+            if (_mode == EditMode.Edit) _ = InsertPointAtScreen(pos);
             else CenterNearestPoint(pos);
             _leftDown = false;
             _dragIdx = -1;
@@ -267,8 +267,10 @@ public partial class MainWindow
     }
 
     /// <summary>Inserts a new point directly after the currently selected one (Edit-mode double-click);
-    /// with no selection it appends. Elevation is filled from SRTM when available.</summary>
-    private void InsertPointAtScreen(System.Windows.Point pos)
+    /// with no selection it appends. When auto-route is on, the incoming leg (prev -> new) is routed along
+    /// real paths; the outgoing leg (new -> next) stays straight, matching AppendRoutedAsync. Elevation is
+    /// filled from SRTM when available.</summary>
+    private async Task InsertPointAtScreen(System.Windows.Point pos)
     {
         if (_active is null)
         {
@@ -276,17 +278,58 @@ public partial class MainWindow
             return;
         }
         var (lon, lat) = MapManager.ScreenToLonLat(MapCtrl, pos.X, pos.Y);
-        var p = new TrackPoint { Lat = lat, Lon = lon };
-        if (SrtmActive && _srtm.GetElevation(lat, lon) is double ele) { p.Ele = ele; _active.ElevationEstimated = true; }
 
-        _doc.Snapshot(ActiveIndex());
         var sel = SelectedIndices();
         int at = sel.Count > 0 ? sel[^1] + 1 : _active.Points.Count;
         at = Math.Clamp(at, 0, _active.Points.Count);
-        _active.Points.Insert(at, p);
+
+        if (_settings.AutoRoute && at > 0)
+        {
+            var prev = _active.Points[at - 1];
+            _doc.Snapshot(ActiveIndex());
+            BeginBusy("Routing…");
+            List<TrackPoint>? route;
+            try { route = await _router.RouteAsync((prev.Lat, prev.Lon), (lat, lon)); }
+            finally { EndBusy(); }
+
+            if (_active is null) return; // the active track could have changed while awaiting
+            at = Math.Clamp(at, 0, _active.Points.Count);
+
+            if (route is null || route.Count < 2)
+            {
+                var p = new TrackPoint { Lat = lat, Lon = lon };
+                if (SrtmActive && _srtm.GetElevation(lat, lon) is double ele) { p.Ele = ele; _active.ElevationEstimated = true; }
+                _active.Points.Insert(at, p);
+                StatusInfo.Text = "No route found — inserted a straight segment";
+            }
+            else
+            {
+                int raw = route.Count;
+                if (_settings.AutoRouteSimplify && _settings.AutoRouteToleranceM > 0 && route.Count > 2)
+                {
+                    var keep = GeoMath.DouglasPeucker(route, _settings.AutoRouteToleranceM);
+                    if (keep.Count >= 2) route = keep.Select(i => route[i]).ToList();
+                }
+                var legs = route.Skip(1).ToList(); // route[0] duplicates the previous point
+                _active.Points.InsertRange(at, legs);
+                if (route.Any(p => p.Ele is not null)) _active.ElevationEstimated = true;
+                at += legs.Count - 1; // chain selection onto the new (last routed) point
+                StatusInfo.Text = raw != route.Count
+                    ? $"Routed +{route.Count - 1} points ({_router.Profile}, simplified from {raw - 1} at {_settings.AutoRouteToleranceM:0.#} m)"
+                    : $"Routed +{route.Count - 1} points ({_router.Profile})";
+            }
+        }
+        else
+        {
+            var p = new TrackPoint { Lat = lat, Lon = lon };
+            if (SrtmActive && _srtm.GetElevation(lat, lon) is double ele) { p.Ele = ele; _active.ElevationEstimated = true; }
+            _doc.Snapshot(ActiveIndex());
+            _active.Points.Insert(at, p);
+            StatusInfo.Text = $"Inserted point at index {at}";
+        }
+
         RefreshAll();
         SelectPointInGrid(at); // chain: the next insert goes after this one
-        StatusInfo.Text = $"Inserted point at index {at}";
     }
 
     private void MapCtrl_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
