@@ -56,6 +56,10 @@ public class MapManager : IDisposable
     /// gradient colouring is off or the metric can't be represented. The caller reads it to draw the legend.</summary>
     public TrackGradientResult? ActiveGradient { get; private set; }
 
+    /// <summary>When true the active track's per-point vertex dots are drawn (Edit mode); in View mode only the
+    /// plain track line is shown. Set by the caller whenever the editing mode changes; read on the next rebuild.</summary>
+    public bool ShowPoints { get; set; }
+
     public MapManager(Mapsui.UI.Wpf.MapControl ctrl, BaseMapProvider provider = BaseMapProvider.OpenStreetMap, int tileLimitMB = 0)
     {
         _ctrl = ctrl;
@@ -396,8 +400,8 @@ public class MapManager : IDisposable
             if (track.Points.Count > 1)
                 vertexFeatures.Add(MarkerFeature(track.Points[^1], new Color(198, 40, 40), 0.45));
 
-            // vertices for the active track only (kept light for huge tracks)
-            if (isActive && track.Points.Count <= MaxVertexSymbols)
+            // vertices for the active track only, and only in Edit mode (kept light for huge tracks)
+            if (isActive && ShowPoints && track.Points.Count <= MaxVertexSymbols)
             {
                 var vColor = new Color(color.R, color.G, color.B, 255);
                 foreach (var p in track.Points)

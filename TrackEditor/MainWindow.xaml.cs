@@ -1038,6 +1038,7 @@ public partial class MainWindow : Window
     private void TrackVisible_Click(object sender, RoutedEventArgs e)
     {
         _mapMgr.RebuildTracks(_doc.Tracks, _active);
+        RefreshPlots(); // hiding the active track clears its profile too
         UpdateFlags();
         UpdateGradientLegend();
     }
@@ -1782,6 +1783,10 @@ public partial class MainWindow : Window
         }
 
         StatusMode?.Text = $"Mode: {_mode}";
+
+        // Per-point vertices are an Edit-mode affordance; View/Measure show just the plain track line.
+        _mapMgr.ShowPoints = _mode == EditMode.Edit;
+        _mapMgr.RebuildTracks(_doc.Tracks, _active);
 
         // The measurement panel is only meaningful in Measure mode.
         MeasurePanel?.Visibility = _mode == EditMode.Measure ? Visibility.Visible : Visibility.Collapsed;

@@ -113,7 +113,8 @@ public partial class MainWindow
             return; // suppress hover while dragging
         }
 
-        if (_active is null || _active.Points.Count == 0)
+        // No hover snapping onto a track that's hidden on the map.
+        if (_active is null || !_active.Visible || _active.Points.Count == 0)
         {
             HideHover();
             return;
@@ -200,7 +201,7 @@ public partial class MainWindow
 
         // In Edit mode, pressing on an existing vertex begins a drag (and suppresses Mapsui's pan).
         _dragIdx = -1;
-        if (_mode == EditMode.Edit && _active is not null && _active.Points.Count > 0)
+        if (_mode == EditMode.Edit && _active is not null && _active.Visible && _active.Points.Count > 0)
         {
             int idx = _mapMgr.FindNearestPointIndex(_active, pos.X, pos.Y, 10);
             if (idx >= 0)
@@ -355,7 +356,7 @@ public partial class MainWindow
 
         // Universal: a single click near an existing active-track point selects it (every mode but Measure,
         // which needs to place its endpoints freely).
-        if (_mode != EditMode.Measure && _active is not null && _active.Points.Count > 0)
+        if (_mode != EditMode.Measure && _active is not null && _active.Visible && _active.Points.Count > 0)
         {
             int nearIdx = _mapMgr.FindNearestPointIndex(_active, pos.X, pos.Y, 10);
             if (nearIdx >= 0)
@@ -779,7 +780,8 @@ public partial class MainWindow
         var spdColor = ScottPlot.Color.FromHex("#E67E22"); // distinct from the track color
 
         bool hasAlt = false, hasSpeed = false;
-        if (_active is not null && _active.Points.Count > 1)
+        // A track hidden on the map (display checkbox off) is also dropped from the profile plot.
+        if (_active is not null && _active.Visible && _active.Points.Count > 1)
         {
             var xsE = new List<double>();
             var ysE = new List<double>();
@@ -842,7 +844,7 @@ public partial class MainWindow
     /// when the channel is toggled off or the active track carries fewer than two samples for it.</summary>
     private bool AddSignalSeries(ScottPlot.Plot plt, bool show, Func<TrackPoint, double?> selector, string label, string hex)
     {
-        if (!show || _active is null || _active.Points.Count < 2) return false;
+        if (!show || _active is null || !_active.Visible || _active.Points.Count < 2) return false;
         var xs = new List<double>();
         var ys = new List<double>();
         for (int i = 0; i < _active.Points.Count; i++)
@@ -864,7 +866,7 @@ public partial class MainWindow
     /// <summary>Draws a labelled vertical line on the profile at each named waypoint of the active track.</summary>
     private void AddWaypointMarkers(ScottPlot.Plot plt)
     {
-        if (_active is null) return;
+        if (_active is null || !_active.Visible) return;
         // Colours come from settings; the label tag's background defaults to the line colour.
         var wpBack = ScottPlot.Color.FromHex(_settings.WaypointLabelBackHex);
         var wpText = ScottPlot.Color.FromHex(_settings.WaypointLabelTextHex);
